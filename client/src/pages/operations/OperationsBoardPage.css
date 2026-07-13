@@ -743,14 +743,20 @@
   background-color: var(--background-secondary, #f8f9fa) !important;
   border: 1px solid var(--border, #dee2e6) !important;
   border-radius: 8px !important;
-  opacity: 0.85;
+  opacity: 0.5;
 }
 
 .operations-board-page .operations-board-lane-override,
 .operations-board-lane-override {
-  background-color: rgba(254, 243, 199, 0.45) !important;
-  border: 2px dashed rgba(217, 119, 6, 0.65) !important;
+  background-color: rgba(245, 158, 11, 0.08) !important;
+  border: 2px dashed rgba(245, 158, 11, 0.7) !important;
   border-radius: 8px !important;
+  animation: operations-board-lane-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes operations-board-lane-pulse {
+  0%, 100% { border-color: rgba(245, 158, 11, 0.7); }
+  50% { border-color: rgba(245, 158, 11, 1); }
 }
 
 .operations-board-lane > .relative.overflow-hidden {
@@ -969,7 +975,7 @@
   transform: translateX(-50%);
   z-index: 1400;
   pointer-events: none;
-  max-width: min(560px, calc(100vw - 2rem));
+  max-width: min(640px, calc(100vw - 2rem));
   animation: operations-board-banner-slide-up 0.3s ease-out;
 }
 

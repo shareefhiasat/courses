@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { PanelLeftClose, PanelLeftOpen, ArrowRightLeft, Workflow as WorkflowIcon } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, ArrowRightLeft, Workflow as WorkflowIcon, Lock } from 'lucide-react';
 import { KanbanHeader } from '@/components/kibo-ui/kanban';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
@@ -47,6 +47,9 @@ export default function BoardLaneHeader({
     ? (t('operations_board_expand_lane') || 'Expand lane')
     : (t('operations_board_collapse_lane') || 'Collapse lane');
 
+  const isTerminalLane = column.id === 'APPROVED' || column.id === 'REJECTED';
+  const headerBg = isTerminalLane ? `${column.color}18` : undefined;
+
   if (collapsed) {
     return (
       <KanbanHeader className="operations-board-lane-header operations-board-lane-header-collapsed">
@@ -82,7 +85,7 @@ export default function BoardLaneHeader({
   }
 
   return (
-    <KanbanHeader className="operations-board-lane-header">
+    <KanbanHeader className="operations-board-lane-header" style={headerBg ? { background: headerBg } : undefined}>
       <div
         className="grid items-center gap-1"
         style={{ gridTemplateColumns: '28px 1fr 28px' }}
@@ -161,6 +164,9 @@ export default function BoardLaneHeader({
           >
             {title}
           </span>
+          {isTerminalLane && (
+            <Lock size={icon(12)} className="shrink-0" style={{ color: column.color, opacity: 0.7 }} aria-hidden />
+          )}
           {laneType !== 'workflow' && (
             <span
               className="text-xs font-semibold tabular-nums shrink-0"

@@ -36,6 +36,8 @@ import { getUserRoleFromObject } from '@utils/userUtils';
 import { getStatusVariant, WORKFLOW_STATUS } from '@constants/workflowStatusTypes';
 import { Workflow as WorkflowIcon, Paperclip, MessageSquare, Clock, CheckCircle, Circle, AlertCircle, FileText, Send, AlertTriangle, XCircle, Star, Users, Shield, GraduationCap } from 'lucide-react';
 import { getWorkflowDocument } from '@services/api/workflow-documents-api.js';
+import ApprovalSuccessDialog from '@components/workflow/ApprovalSuccessDialog.jsx';
+import { generateWeeklyViolationSnapshot, generateDailyViolationSnapshot } from '@services/business/workflowSnapshotService.js';
 
 const WorkflowDocumentDetailPage = () => {
   const { t, lang } = useLang();
@@ -47,6 +49,7 @@ const WorkflowDocumentDetailPage = () => {
 
   // ── Guided Tour ──────────────────────────────────────────────────────────
   const [runTour, setRunTour] = useState(false);
+  const [approvalSnapshot, setApprovalSnapshot] = useState(null);
   const tourSeenKey = `workflowDocTourSeen_${lang}`;
   const tourSteps = useMemo(() => [
     { target: 'body', content: t('tour.workflow_doc_intro'), disableBeacon: true, placement: 'center' },
@@ -306,13 +309,66 @@ const WorkflowDocumentDetailPage = () => {
     setActionLoading(true);
     try {
       const commentValue = commentInputRef.current?.value || '';
-      const result = await approveWorkflowDocument(documentId, { comment: commentValue });
+      let snapshotData = null;
+      let snapResult = null;
+      // When HR approves from UNDER_HR_REVIEW, generate the appropriate snapshot based on workflow type
+      if (document?.status === WORKFLOW_STATUS.UNDER_REVIEW && auth?.isHR) {
+        const wfType = document.workflowType || '';
+        const attSubtype = document.attendanceSubtype || '';
+        if (wfType === 'ATTENDANCE_WEEKLY' || attSubtype === 'WEEKLY_SUMMARY') {
+          snapResult = await generateWeeklyViolationSnapshot({
+            document: { date: document.date, dateFrom: document.dateFrom },
+            user: auth?.user,
+            lang,
+            programId: document.programId,
+            programName: document.program,
+            classIds: document.classId ? [document.classId] : [],
+          });
+          if (snapResult.success) {
+            snapshotData = {
+              snapshotFileId: snapResult.fileId,
+              snapshotWeekFrom: snapResult.weekFrom,
+              snapshotWeekTo: snapResult.weekTo,
+            };
+          }
+        } else if (wfType === 'ATTENDANCE_DAILY' || attSubtype === 'DAILY') {
+          snapResult = await generateDailyViolationSnapshot({
+            document: { date: document.date, dateFrom: document.dateFrom },
+            user: auth?.user,
+            lang,
+            classId: document.classId,
+            programId: document.programId,
+            programName: document.program,
+          });
+          if (snapResult.success) {
+            snapshotData = {
+              snapshotFileId: snapResult.fileId,
+              snapshotWeekFrom: snapResult.date,
+              snapshotWeekTo: snapResult.date,
+            };
+          }
+        }
+      }
+      const result = await approveWorkflowDocument(documentId, {
+        comment: commentValue,
+        ...(snapshotData || {}),
+      });
       if (result.success) {
         toast.success(t('workflow.document.approved', 'Document approved successfully'));
         showNotificationInfo(result.notificationsSent);
         await refreshDocument();
         setActionModal(null);
         setComment('');
+        // Show success dialog if snapshot was generated
+        if (snapshotData) {
+          setApprovalSnapshot({
+            fileId: snapshotData.snapshotFileId,
+            filename: snapResult.filename,
+            weekFrom: snapshotData.snapshotWeekFrom,
+            weekTo: snapshotData.snapshotWeekTo,
+            date: snapResult.date || null,
+          });
+        }
       } else {
         toast.error(result.error || t('workflow.document.approveError', 'Failed to approve document'));
       }
@@ -1073,6 +1129,16 @@ const WorkflowDocumentDetailPage = () => {
                 ? t('workflow.document.uploadSignedConfirm', 'Upload the signed document after student signatures. This will reassign the document to HR for final review.')
                 : t('workflow.document.withdrawConfirm', 'Are you sure you want to withdraw this document? It will be reverted to DRAFT status and you can resubmit it after making corrections.')}
             </p>
+            {actionModal === 'approve' && document?.status === WORKFLOW_STATUS.UNDER_REVIEW && auth?.isHR && (document?.workflowType === 'ATTENDANCE_WEEKLY' || document?.attendanceSubtype === 'WEEKLY_SUMMARY') && (
+              <div style={{ padding: '0.75rem', borderRadius: '0.5rem', backgroundColor: 'var(--info-bg, #e0f2fe)', border: '1px solid var(--info-border, #0284c7)', fontSize: '0.875rem', color: 'var(--info-text, #075985)' }}>
+                {t('workflow_snapshot_info_weekly', 'A weekly attendance violation report will be generated and attached as a back-reference to this workflow.')}
+              </div>
+            )}
+            {actionModal === 'approve' && document?.status === WORKFLOW_STATUS.UNDER_REVIEW && auth?.isHR && (document?.workflowType === 'ATTENDANCE_DAILY' || document?.attendanceSubtype === 'DAILY') && (
+              <div style={{ padding: '0.75rem', borderRadius: '0.5rem', backgroundColor: 'var(--info-bg, #e0f2fe)', border: '1px solid var(--info-border, #0284c7)', fontSize: '0.875rem', color: 'var(--info-text, #075985)' }}>
+                {t('workflow_snapshot_info_daily', 'A daily attendance report snapshot will be generated and attached as a back-reference to this workflow.')}
+              </div>
+            )}
             {(actionModal === 'resubmit' || actionModal === 'reupload' || actionModal === 'upload-signed') && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <label className="block text-sm font-medium text-gray-700">
@@ -1171,6 +1237,13 @@ const WorkflowDocumentDetailPage = () => {
           </div>
         </Modal>
       )}
+
+      <ApprovalSuccessDialog
+        open={Boolean(approvalSnapshot)}
+        onClose={() => setApprovalSnapshot(null)}
+        snapshot={approvalSnapshot}
+        t={t}
+      />
       </div>
     </div>
   );

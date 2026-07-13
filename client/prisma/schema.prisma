@@ -1598,6 +1598,7 @@ model File {
   activities        FileActivity[]
   workflowInstances WorkflowInstance[]
   workflowDocuments WorkflowDocument[] @relation("WorkflowDocumentFile")
+  workflowDocumentSnapshots WorkflowDocument[] @relation("WorkflowDocumentSnapshotFile")
   preferences       UserFilePreference[]
   exportHistories   ExportHistory[]    @relation("ExportHistoryFile")
 
@@ -2228,6 +2229,10 @@ model WorkflowDocument {
   program             String?
   subject             String?
   metadata            Json?
+  snapshotFileId       String?
+  snapshotDate         DateTime?
+  snapshotWeekFrom     DateTime?
+  snapshotWeekTo       DateTime?
   reviewCycleCount     Int                 @default(0)
   createdBy           Int?
   updatedBy           Int?
@@ -2235,6 +2240,7 @@ model WorkflowDocument {
   updatedAt           DateTime             @updatedAt
 
   file                File?                   @relation("WorkflowDocumentFile", fields: [fileId], references: [id], onDelete: SetNull)
+  snapshotFile        File?                   @relation("WorkflowDocumentSnapshotFile", fields: [snapshotFileId], references: [id], onDelete: SetNull)
   submitter           User                    @relation("WorkflowDocumentSubmitter", fields: [submitterId], references: [id])
   currentAssignee     User?                   @relation("WorkflowDocumentAssignee", fields: [currentAssigneeId], references: [id])
   instructor          User?                   @relation("WorkflowDocumentInstructor", fields: [instructorId], references: [id])
@@ -2256,6 +2262,7 @@ model WorkflowDocument {
   @@index([program, subject])
   @@index([targetStudentId])
   @@index([classId, targetStudentId, status])
+  @@index([snapshotWeekFrom, snapshotWeekTo, status])
   @@map("workflow_documents")
 }
 
@@ -2813,4 +2820,34 @@ model WorkflowTypeConfig {
   @@index([isActive])
   @@index([approvalFlow])
   @@map("workflow_type_configs")
+}
+
+// ============================================================================
+// Academic Closure System
+// Flexible closure model supporting weekly, monthly, semester, and custom
+// closures with scoped levels (global, program, class).
+// ============================================================================
+
+model AcademicClosure {
+  id                 Int       @id @default(autoincrement())
+  closureType        String    // WEEKLY, MONTHLY, SEMESTER, CUSTOM
+  scopeType          String    @default("PROGRAM") // GLOBAL, PROGRAM, CLASS
+  dateFrom           DateTime
+  dateTo             DateTime
+  programId          Int?
+  classId            Int?
+  workflowDocumentId Int?
+  status             String    @default("CLOSED") // CLOSED, REOPENED
+  closedBy           Int?
+  reopenedBy         Int?
+  closedAt           DateTime  @default(now())
+  reopenedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([closureType, scopeType, dateFrom, dateTo, programId, classId])
+  @@index([closureType, scopeType, dateFrom, dateTo])
+  @@index([programId, classId, status])
+  @@index([workflowDocumentId])
+  @@map("academic_closures")
 }

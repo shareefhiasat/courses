@@ -257,7 +257,7 @@ const ScheduledReportsPage = () => {
     a.href = url;
     a.download = `scheduled-reports-${formatForDateInput(new Date())}.csv`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const filteredReports = reports.filter(r => {

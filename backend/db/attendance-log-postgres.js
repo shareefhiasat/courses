@@ -1,4 +1,5 @@
 import prisma from '../db/prismaClient.js';
+import { normalizeProfileImageUrl } from '../utils/userNameFields.js';
 
 /**
  * Get lecture log for a class+date — action history (marked, submitted, approved, rejected, returned)
@@ -16,10 +17,10 @@ export const getLectureLog = async ({ classId, date }) => {
           date: { gte: dayStart, lt: dayEnd },
         },
         include: {
-          submitter: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, email: true } },
+          submitter: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, keycloakId: true, email: true } },
           statusHistory: {
             include: {
-              actor: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, email: true } },
+              actor: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, keycloakId: true, email: true } },
             },
             orderBy: { createdAt: 'asc' },
           },
@@ -33,7 +34,7 @@ export const getLectureLog = async ({ classId, date }) => {
         },
         include: {
           status: { select: { id: true, code: true, nameEn: true, nameAr: true } },
-          creator: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, email: true } },
+          creator: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, keycloakId: true, email: true } },
         },
         orderBy: { createdAt: 'asc' },
       }),
@@ -48,11 +49,14 @@ export const getLectureLog = async ({ classId, date }) => {
           attendance: { select: { userId: true } },
           fromStatus: { select: { id: true, code: true, nameEn: true, nameAr: true } },
           toStatus: { select: { id: true, code: true, nameEn: true, nameAr: true } },
-          changedByUser: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, email: true } },
+          changedByUser: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, keycloakId: true, email: true } },
         },
         orderBy: { changedAt: 'asc' },
       }),
     ]);
+
+    // Normalize profileImageUrl from raw MinIO key to proxy URL
+    const norm = (user) => user ? normalizeProfileImageUrl(user) : null;
 
     const logEntries = [];
 
@@ -61,7 +65,7 @@ export const getLectureLog = async ({ classId, date }) => {
         type: 'attendance_marked',
         timestamp: att.createdAt,
         actor: att.creator?.displayName || 'System',
-        user: att.creator || null,
+        user: norm(att.creator) || null,
         status: att.status?.nameEn || 'Unknown',
         statusAr: att.status?.nameAr || att.status?.nameEn || 'Unknown',
         details: `Attendance marked for ${att.userId}`,
@@ -73,7 +77,7 @@ export const getLectureLog = async ({ classId, date }) => {
         type: 'attendance_status_change',
         timestamp: change.changedAt,
         actor: change.changedByUser?.displayName || 'System',
-        user: change.changedByUser || null,
+        user: norm(change.changedByUser) || null,
         userId: change.attendance?.userId,
         fromStatus: change.fromStatus?.nameEn || 'Unknown',
         fromStatusAr: change.fromStatus?.nameAr || change.fromStatus?.nameEn || 'Unknown',
@@ -90,7 +94,7 @@ export const getLectureLog = async ({ classId, date }) => {
           type: 'workflow_status_change',
           timestamp: hist.createdAt,
           actor: hist.actor?.displayName || 'System',
-          user: hist.actor || null,
+          user: norm(hist.actor) || null,
           action: hist.action || 'STATUS_CHANGE',
           fromStatus: hist.fromStatus,
           toStatus: hist.toStatus,
@@ -120,12 +124,12 @@ export const getRecordHistory = async (attendanceId) => {
       include: {
         fromStatus: { select: { id: true, code: true, nameEn: true, nameAr: true } },
         toStatus: { select: { id: true, code: true, nameEn: true, nameAr: true } },
-        changedByUser: { select: { id: true, displayName: true, firstName: true, lastName: true } },
+        changedByUser: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, keycloakId: true, email: true } },
       },
       orderBy: { changedAt: 'asc' },
     });
 
-    return { success: true, data: changes };
+    return { success: true, data: changes.map(c => ({ ...c, changedByUser: normalizeProfileImageUrl(c.changedByUser) })) };
   } catch (error) {
     console.error('[attendance-log-postgres] getRecordHistory:', error);
     return { success: false, error: 'Internal server error' };

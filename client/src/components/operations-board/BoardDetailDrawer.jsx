@@ -17,7 +17,6 @@ import {
   fetchAttendanceHistory,
   addWorkflowBoardComment,
   moveAttendanceCard,
-  markWorkflowAsTaken,
   ATTENDANCE_COLUMNS,
 } from '@services/business/operationsBoardService.js';
 import { useLang } from '@contexts/LangContext';
@@ -126,15 +125,6 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
     if (!card || card.type !== 'attendance' || !card.rawId) return;
     await moveAttendanceCard(card.rawId, card.column, notes);
     onRefresh?.();
-  };
-
-  const handleMarkTaken = async () => {
-    if (!card || card.type !== 'workflow') return;
-    const result = await markWorkflowAsTaken(card.rawId);
-    if (result.success) {
-      onRefresh?.();
-      onOpenChange(false);
-    }
   };
 
   const handleAttendanceStatus = async (statusId) => {
@@ -284,12 +274,6 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
                 {t('operations_board_mark_attendance') || 'Mark Attendance'}
               </Button>
             </div>
-          )}
-
-          {card.type === 'workflow' && card.status === 'DRAFT' && (
-            <Button size="sm" onClick={handleMarkTaken} data-testid="operations-board-mark-taken">
-              {t('operations_board_mark_taken')}
-            </Button>
           )}
 
           {card.type === 'workflow' && card.fileId && (

@@ -180,14 +180,23 @@ function ViolationsPage({ data, dateGroups, labels, showHeader, showFooter, show
         </table>
 
         {showFooter && (
-          <div
-            className={`${styles.officerSignatureBlock} ${
-              data.lang === 'ar' ? styles.officerSignatureAr : styles.officerSignatureEn
-            }`}
-          >
-            <span className={styles.officerSignatureLabel}>{labels.officerSign}</span>
-            <span className={styles.officerSignatureLine} aria-hidden />
-          </div>
+          <>
+            <div
+              className={`${styles.officerSignatureBlock} ${
+                data.lang === 'ar' ? styles.officerSignatureAr : styles.officerSignatureEn
+              }`}
+            >
+              <span className={styles.officerSignatureLabel}>{labels.officerSign}</span>
+              <span className={styles.officerSignatureLine} aria-hidden />
+            </div>
+            {data.generatedAt && (
+              <div className={styles.officialFooter}>
+                <span style={{ fontSize: '10px', color: '#6b7280' }}>
+                  {data.lang === 'ar' ? 'تم التوليد' : 'Generated'}: {data.generatedAt}
+                </span>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

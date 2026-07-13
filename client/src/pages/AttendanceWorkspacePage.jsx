@@ -220,7 +220,7 @@ const AttendanceWorkspacePage = () => {
       link.href = url;
       link.download = `${filename}.pdf`;
       link.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } finally {
       setExporting(false);
     }

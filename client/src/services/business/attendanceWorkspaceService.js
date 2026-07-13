@@ -87,7 +87,7 @@ export const getScheduleStatus = async (classIds, date) => {
   try {
     const query = new URLSearchParams({
       classIds: classIds.join(','),
-      date: date.toISOString(),
+      date: (date instanceof Date ? date : new Date(date)).toISOString(),
     }).toString();
     const response = await fetch(`${API_BASE}/attendance-workspace/schedule-status?${query}`, {
       headers: getHeaders(),

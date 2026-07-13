@@ -34,8 +34,8 @@ export function parseWorkflowCardName(name) {
   return parts.map((p) => p.trim()).filter(Boolean);
 }
 
-/** Strip 4-digit year from ISO dates in workflow titles (2026-07-05 → 07-05). */
+/** Keep full ISO date in workflow titles (2026-07-05). */
 export function shortenWorkflowDisplayName(name) {
   if (!name) return '';
-  return String(name).replace(/\b\d{4}-(\d{2}-\d{2})\b/g, '$1');
+  return String(name);
 }

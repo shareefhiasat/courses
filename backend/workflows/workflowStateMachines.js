@@ -266,7 +266,7 @@ export function resolveMachineKey(approvalFlowOrLegacyType) {
     GENERAL_MIXED_HR_ADMIN: 'HR_THEN_ADMIN',
     GENERAL_MIXED_ADMIN_HR: 'ADMIN_THEN_HR',
     ATTENDANCE_DAILY: 'INSTRUCTOR_THEN_ADMIN_THEN_HR',
-    ATTENDANCE_WEEKLY: 'HR_THEN_ADMIN',
+    ATTENDANCE_WEEKLY: 'ADMIN_THEN_HR',
   };
 
   return legacyToFlow[approvalFlowOrLegacyType] || approvalFlowOrLegacyType || 'HR_ONLY';
@@ -289,7 +289,7 @@ export const getWorkflowMachine = (approvalFlowOrLegacyType) => {
     GENERAL_MIXED_HR_ADMIN: generalMixedHRAdminMachine,
     GENERAL_MIXED_ADMIN_HR: generalMixedAdminHRMachine,
     ATTENDANCE_DAILY: instructorThenAdminThenHRMachine,
-    ATTENDANCE_WEEKLY: generalMixedHRAdminMachine,
+    ATTENDANCE_WEEKLY: generalMixedAdminHRMachine,
   };
 
   return machines[key] || generalHRMachine;

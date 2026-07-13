@@ -8,8 +8,9 @@ import {
   exportDailyOfficialTemplate,
   exportDailyOfficialForDate,
 } from '@services/business/accessScopeExportService.js';
-import { FileText, FileSpreadsheet, AlertCircle, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, IconButton as MuiIconButton, Box, CircularProgress, Typography, Chip } from '@mui/material';
+import { FileText, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton } from '@mui/material';
+import PdfPreviewDialog from '@components/workspace/PdfPreviewDialog.jsx';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import useQRPermissions from '@hooks/useQRPermissions';
 import { isHROnlyViewer } from '@components/operations-board/hrAttendancePrivacy.js';
@@ -39,10 +40,7 @@ function ScheduleContextMenu({
   const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
   const [existingWorkflow, setExistingWorkflow] = useState(null);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
-  const [previewExpanded, setPreviewExpanded] = useState(false);
-  const [livePreviewUrl, setLivePreviewUrl] = useState(null);
-  const [livePreviewLoading, setLivePreviewLoading] = useState(false);
-  const [livePreviewError, setLivePreviewError] = useState(null);
+  const [dailyPreviewOpen, setDailyPreviewOpen] = useState(false);
 
   const cls = session?.class;
   const subject = cls?.subject;
@@ -107,82 +105,14 @@ function ScheduleContextMenu({
     onClose();
   }, [onClose]);
 
-  const handlePreviewPdf = useCallback(async () => {
-    setPdfPreviewOpen(true);
-    setLivePreviewUrl(null);
-    setLivePreviewError(null);
-    setLivePreviewLoading(true);
+  const handlePreviewPdf = useCallback(() => {
     onClose();
-    try {
-      const result = await exportDailyOfficialForDate({
-        cls,
-        program,
-        subject,
-        academicTerm,
-        lang,
-        user,
-        date: dateStr,
-        instructorName: slotInstructor,
-        format: EXPORT_FORMAT.PDF,
-        skipDownload: true,
-        skipPersist: true,
-      });
-      if (result?.blob) {
-        const url = URL.createObjectURL(result.blob);
-        setLivePreviewUrl(url);
-      } else {
-        setLivePreviewError(t('live_preview_failed') || 'Failed to generate preview');
-      }
-    } catch (err) {
-      console.error('[ScheduleContextMenu] live preview failed:', err);
-      setLivePreviewError(err.message || (t('live_preview_failed') || 'Failed to generate preview'));
-    } finally {
-      setLivePreviewLoading(false);
-    }
-  }, [cls, program, subject, academicTerm, lang, user, dateStr, slotInstructor, onClose]);
-
-  const handleRefreshPreview = useCallback(async () => {
-    setLivePreviewUrl(null);
-    setLivePreviewError(null);
-    setLivePreviewLoading(true);
-    try {
-      const result = await exportDailyOfficialForDate({
-        cls,
-        program,
-        subject,
-        academicTerm,
-        lang,
-        user,
-        date: dateStr,
-        instructorName: slotInstructor,
-        format: EXPORT_FORMAT.PDF,
-        skipDownload: true,
-        skipPersist: true,
-      });
-      if (result?.blob) {
-        const url = URL.createObjectURL(result.blob);
-        setLivePreviewUrl(url);
-      } else {
-        setLivePreviewError(t('live_preview_failed') || 'Failed to generate preview');
-      }
-    } catch (err) {
-      console.error('[ScheduleContextMenu] live preview refresh failed:', err);
-      setLivePreviewError(err.message || (t('live_preview_failed') || 'Failed to generate preview'));
-    } finally {
-      setLivePreviewLoading(false);
-    }
-  }, [cls, program, subject, academicTerm, lang, user, dateStr, slotInstructor]);
+    setPdfPreviewOpen(true);
+  }, [onClose]);
 
   const handleClosePreview = useCallback(() => {
-    if (livePreviewUrl) {
-      URL.revokeObjectURL(livePreviewUrl);
-    }
-    setLivePreviewUrl(null);
-    setLivePreviewError(null);
-    setLivePreviewLoading(false);
-    setPreviewExpanded(false);
     setPdfPreviewOpen(false);
-  }, [livePreviewUrl]);
+  }, []);
 
   const handleCloseWorkflowDialog = useCallback(() => {
     setWorkflowDialogOpen(false);
@@ -254,8 +184,10 @@ function ScheduleContextMenu({
             title: t('export_pdf') || 'PDF',
             icon: <FileText size={16} style={{ color: '#e53935' }} />,
             tooltipColor: '#e53935',
-            onClick: () => runExport('export-daily-pdf', () =>
-              exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.PDF })),
+            onClick: () => {
+              onClose();
+              setDailyPreviewOpen(true);
+            },
           },
           {
             title: t('export_excel') || 'Excel',
@@ -335,26 +267,41 @@ function ScheduleContextMenu({
     });
 
     const workflowChildren = existingWorkflow
-      ? [{
-        id: 'daily-attendance-existing',
-        labelNode: (
-          <span>
-            {t('workspace_menu_daily_attendance') || 'Daily attendance'}
-            {' — '}
-            <span style={{ color: '#f59e0b', fontWeight: 600 }}>
-              {t('workspace_menu_already_exists') || 'Already exists'}
+      ? ((() => {
+        const status = String(existingWorkflow.status || '').toUpperCase();
+        const statusColors = {
+          APPROVED: '#16a34a',
+          REJECTED: '#dc2626',
+          DRAFT: '#f59e0b',
+          TAKEN: '#f59e0b',
+          SUBMITTED: '#f59e0b',
+          UNDER_ADMIN_REVIEW: '#f59e0b',
+          UNDER_HR_REVIEW: '#f59e0b',
+        };
+        const color = statusColors[status] || '#f59e0b';
+        const statusLabel = t(`workflow_status_${status.toLowerCase()}`, status);
+        const iconColor = status === 'APPROVED' ? '#16a34a' : status === 'REJECTED' ? '#dc2626' : '#f59e0b';
+        return [{
+          id: 'daily-attendance-existing',
+          labelNode: (
+            <span>
+              {t('workspace_menu_daily_attendance') || 'Daily attendance'}
+              {' — '}
+              <span style={{ color, fontWeight: 600 }}>
+                {statusLabel}
+              </span>
             </span>
-          </span>
-        ),
-        icon: <AlertCircle size={18} color="#f59e0b" />,
-        onClick: () => handleGoToOperationsFromWorkflow(existingWorkflow),
-        trailingActions: existingWorkflow.fileId ? [{
-          title: t('operations_board_preview_pdf') || 'Preview PDF',
-          icon: <FileText size={16} color="#3b82f6" />,
-          tooltipColor: '#3b82f6',
-          onClick: handlePreviewPdf,
-        }] : undefined,
-      }]
+          ),
+          icon: <AlertCircle size={18} color={iconColor} />,
+          onClick: () => handleGoToOperationsFromWorkflow(existingWorkflow),
+          trailingActions: existingWorkflow.fileId ? [{
+            title: t('operations_board_preview_pdf') || 'Preview PDF',
+            icon: <FileText size={16} color="#3b82f6" />,
+            tooltipColor: '#3b82f6',
+            onClick: handlePreviewPdf,
+          }] : undefined,
+        }];
+      })())
       : [{
         id: 'initiate-workflow',
         labelKey: 'workspace_menu_workflow_initiate',
@@ -415,84 +362,34 @@ function ScheduleContextMenu({
         onGoToOperations={handleGoToOperationsFromWorkflow}
         knownExisting={existingWorkflow}
       />
-      <Dialog
+      <PdfPreviewDialog
         open={pdfPreviewOpen}
         onClose={handleClosePreview}
-        maxWidth={previewExpanded ? false : 'md'}
-        fullWidth={!previewExpanded}
-        fullScreen={previewExpanded}
-        data-testid="schedule-workflow-pdf-preview-dialog"
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-          <span>{t('operations_board_preview_pdf') || 'Preview PDF'}</span>
-          <Chip
-            label={t('live_preview') || 'LIVE'}
-            size="small"
-            color="success"
-            sx={{ height: 20, fontSize: 10, fontWeight: 700 }}
-          />
-          <MuiButton
-            size="small"
-            startIcon={<RefreshCw size={14} />}
-            onClick={handleRefreshPreview}
-            disabled={livePreviewLoading}
-            sx={{ ml: 'auto', textTransform: 'none' }}
-          >
-            {t('refresh') || 'Refresh'}
-          </MuiButton>
-          <MuiIconButton
-            size="small"
-            onClick={() => setPreviewExpanded((prev) => !prev)}
-            aria-label={previewExpanded ? (t('schedule_collapse') || 'Collapse') : (t('schedule_expand') || 'Expand')}
-            sx={{ textTransform: 'none' }}
-          >
-            {previewExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-          </MuiIconButton>
-        </DialogTitle>
-        <DialogContent>
-          {livePreviewLoading && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 5, flexDirection: 'column', gap: 2 }}>
-              <CircularProgress size={32} />
-              <Typography variant="body2" color="text.secondary">
-                {t('generating_live_preview') || 'Generating live preview from current attendance data…'}
-              </Typography>
-            </Box>
-          )}
-          {!livePreviewLoading && livePreviewError && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, py: 3, textAlign: 'center' }}>
-              <Typography variant="body2" color="error">{livePreviewError}</Typography>
-              <MuiButton size="small" variant="outlined" onClick={handleRefreshPreview} startIcon={<RefreshCw size={14} />}>
-                {t('retry') || 'Retry'}
-              </MuiButton>
-            </Box>
-          )}
-          {!livePreviewLoading && livePreviewUrl && (
-            <Box sx={{ width: '100%', minHeight: 420 }}>
-              <iframe
-                title="Live PDF Preview"
-                src={livePreviewUrl}
-                style={{ width: '100%', height: 420, border: '1px solid #e0e0e0', borderRadius: 4 }}
-              />
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <MuiButton onClick={handleClosePreview}>
-            {t('close') || 'Close'}
-          </MuiButton>
-          {existingWorkflow && (
-            <MuiButton
-              variant="contained"
-              onClick={() => {
-                handleClosePreview();
-                handleGoToOperationsFromWorkflow(existingWorkflow);
-              }}
-            >
-              {t('initiate_workflow_go_operations') || 'Go to Operations'}
-            </MuiButton>
-          )}
-        </DialogActions>
-      </Dialog>
+        cls={cls}
+        program={program}
+        subject={subject}
+        academicTerm={academicTerm}
+        date={dateStr}
+        instructorName={slotInstructor}
+        user={user}
+        title={t('operations_board_preview_pdf') || 'Preview PDF'}
+        fileId={existingWorkflow?.fileId}
+        isApproved={String(existingWorkflow?.status || '').toUpperCase() === 'APPROVED'}
+      />
+      <PdfPreviewDialog
+        open={dailyPreviewOpen}
+        onClose={() => setDailyPreviewOpen(false)}
+        cls={cls}
+        program={program}
+        subject={subject}
+        academicTerm={academicTerm}
+        date={dateStr}
+        instructorName={slotInstructor}
+        user={user}
+        title={t('daily_official') || 'Daily Official'}
+        fileId={existingWorkflow?.fileId}
+        isApproved={String(existingWorkflow?.status || '').toUpperCase() === 'APPROVED'}
+      />
     </>
   );
 }

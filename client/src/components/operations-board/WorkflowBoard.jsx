@@ -10,7 +10,7 @@ import {
 } from '@/components/kibo-ui/kanban';
 import { Avatar, AvatarFallback } from '@/components/kibo/ui/avatar';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
-import { FileText, Workflow as WorkflowIcon } from 'lucide-react';
+import { FileText, Workflow as WorkflowIcon, ShieldCheck, Calendar, User, Shield } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import BoardLaneHeader from './BoardLaneHeader.jsx';
 import { parseWorkflowCardName } from './operationsBoardDisplayUtils.js';
@@ -63,21 +63,42 @@ function isDateLike(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) || /^\d{2}\/\d{2}\/\d{4}$/.test(value);
 }
 
-function WorkflowCardTitle({ name, context }) {
+function WorkflowCardTitle({ name, context, isAttendanceWorkflow, summaryItems, dotSize }) {
   const parts = parseWorkflowCardName(name).filter((part) => !isDateLike(part));
   const dateLabel = context?.date || null;
 
-  if (parts.length <= 1 && !dateLabel) {
+  const titleParts = isAttendanceWorkflow ? parts.slice(1) : parts;
+  const showCircles = isAttendanceWorkflow && summaryItems?.length > 0;
+
+  if (titleParts.length <= 1 && !dateLabel && !showCircles) {
     return <span className="truncate text-xs font-medium">{name}</span>;
   }
   return (
     <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-      <span className="truncate text-[0.7rem] font-semibold leading-tight">{parts[0] || name}</span>
-      {parts[1] && (
-        <span className="truncate text-[0.65rem] font-medium leading-tight text-muted-foreground">{parts[1]}</span>
+      <div className="flex items-center gap-1 min-w-0">
+        {showCircles && (
+          <div className="flex items-center shrink-0">
+            {summaryItems.map((s, i) => (
+              <span
+                key={i}
+                className="inline-block rounded-full"
+                style={{
+                  width: dotSize,
+                  height: dotSize,
+                  backgroundColor: s.color,
+                  marginLeft: i > 0 ? '-3px' : '0',
+                }}
+              />
+            ))}
+          </div>
+        )}
+        <span className="truncate text-[0.7rem] font-semibold leading-tight">{titleParts[0] || name}</span>
+      </div>
+      {titleParts[1] && (
+        <span className="truncate text-[0.65rem] font-medium leading-tight text-muted-foreground">{titleParts[1]}</span>
       )}
-      {dateLabel && (
-        <span className="truncate text-[0.6rem] leading-tight text-muted-foreground/70">
+      {dateLabel && !isAttendanceWorkflow && (
+        <span className="truncate text-[0.55rem] leading-tight text-muted-foreground/70">
           {dateLabel}
         </span>
       )}
@@ -155,7 +176,11 @@ function WorkflowCardHoverTooltip({ item, column, summary, t }) {
   const dateLabel = item.date
     ? format(parseISO(item.date.slice(0, 10)), 'dd/MM/yyyy')
     : null;
-  const instructor = item.classInstructorName || item.assignee;
+  
+  // Determine workflow type indicator
+  const isDailyAttendance = item.workflowType === 'ATTENDANCE_DAILY' || item.attendanceSubtype === 'DAILY';
+  const isWeeklySummary = item.workflowType === 'ATTENDANCE_WEEKLY' || item.attendanceSubtype === 'WEEKLY_SUMMARY';
+  const instructor = item.classInstructorName || (isWeeklySummary ? null : item.assignee);
 
   return (
     <div style={{ maxWidth: 220, fontSize: '0.75rem', lineHeight: 1.45, color: labelColor }}>
@@ -164,6 +189,20 @@ function WorkflowCardHoverTooltip({ item, column, summary, t }) {
       {dateLabel && (
         <div style={{ marginBottom: 2, color: labelColor }}>
           {t('date') || 'Date'}: {dateLabel}
+        </div>
+      )}
+      {isDailyAttendance && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2, color: '#3b82f6' }}>
+          <Calendar size={12} />
+          <User size={12} />
+          <span style={{ fontWeight: 600 }}>{t('operations_board_daily_attendance') || 'Daily Attendance'}</span>
+        </div>
+      )}
+      {isWeeklySummary && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2, color: '#8b5cf6' }}>
+          <Calendar size={12} />
+          <Shield size={12} />
+          <span style={{ fontWeight: 600 }}>{t('operations_board_weekly_summary') || 'Weekly Summary'}</span>
         </div>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
@@ -459,14 +498,17 @@ export default function WorkflowBoard({
                         }}
                       >
                         <WorkflowAssigneeAvatar assignee={item.assignee || item.name} size="sm" fontScale={fontScale} />
-                        {item.fileId && (
-                          <FileText size={scalePx(12, fontScale)} className="text-blue-500" aria-hidden />
+                        {item.fileId && !item.snapshotFileId && (
+                          <FileText size={scalePx(12, fontScale)} className="text-gray-400" aria-hidden />
+                        )}
+                        {item.snapshotFileId && (
+                          <ShieldCheck size={scalePx(12, fontScale)} style={{ color: '#16a34a' }} aria-hidden />
                         )}
                       </div>
                     </KanbanCard>
                   );
                 }
-                const dotSize = scalePx(6, fontScale);
+                const dotSize = scalePx(8, fontScale);
                 const wfIconSize = scalePx(18, fontScale);
                 const pdfIconSize = scalePx(16, fontScale);
                 const summary = item.attendanceSummary;
@@ -476,43 +518,21 @@ export default function WorkflowBoard({
                   { count: summary.absent, color: '#ef4444' },
                   { count: summary.excused, color: '#ec4899' },
                 ].filter((s) => s.count > 0) : [];
+                const isAttendanceWorkflow = item.workflowType === 'ATTENDANCE_DAILY'
+                  || item.workflowType === 'ATTENDANCE_WEEKLY'
+                  || item.attendanceSubtype === 'DAILY'
+                  || item.attendanceSubtype === 'WEEKLY_SUMMARY';
 
-                const cardBody = (
-                  <div className="flex items-center gap-1 min-w-0 flex-1">
-                    <WorkflowIcon size={wfIconSize} className="shrink-0" style={{ color: column.color }} aria-hidden />
-                    {summaryItems.length > 0 && (
-                      <div className="flex items-center gap-0.5 shrink-0">
-                        {summaryItems.map((s, i) => (
-                          <span
-                            key={i}
-                            className="inline-block rounded-full"
-                            style={{ width: dotSize, height: dotSize, backgroundColor: s.color }}
-                          />
-                        ))}
-                      </div>
-                    )}
-                    <WorkflowCardTitle name={item.name} context={{
-                      date: item.date ? format(parseISO(item.date.slice(0, 10)), 'dd/MM/yyyy') : null,
-                    }} />
-                    {item.fileId && (
-                      <ColoredTooltip
-                        title={t('operations_board_preview_pdf') || 'Preview PDF'}
-                        color="#3b82f6"
-                        placement="top"
-                      >
-                        <FileText
-                          size={pdfIconSize}
-                          className="shrink-0 text-blue-500"
-                          data-testid={`workflow-card-pdf-${item.id}`}
-                        />
-                      </ColoredTooltip>
-                    )}
-                  </div>
-                );
+                const parts = parseWorkflowCardName(item.name).filter((part) => !isDateLike(part));
+                const titleParts = isAttendanceWorkflow ? parts.slice(1) : parts;
+                const titleText = titleParts[0] || item.name;
 
+                const isWeeklyCard = item.workflowType === 'ATTENDANCE_WEEKLY' || item.attendanceSubtype === 'WEEKLY_SUMMARY';
                 const assigneeTooltip = item.classInstructorName
                   ? `${t('operations_board_class_instructor') || 'Class instructor'}: ${item.classInstructorName}`
-                  : item.assignee;
+                  : (isWeeklyCard && item.assignee
+                    ? `${t('operations_board_assigned_to') || 'Assigned to'}: ${item.assignee}`
+                    : item.assignee);
 
                 return (
                   <KanbanCard
@@ -522,25 +542,88 @@ export default function WorkflowBoard({
                     name={item.name}
                     dragColor={dragOriginColor}
                     className="operations-workflow-card p-2"
+                    style={{ marginBottom: '-4px' }}
                   >
+                    <WorkflowHoverTooltip
+                      title={<WorkflowCardHoverTooltip item={item} column={column} summary={summary} t={t} />}
+                    >
                     <div
-                      className="flex items-center justify-between gap-1.5"
+                      className="flex flex-col gap-1 min-w-0"
                       onClick={(e) => {
                         e.stopPropagation();
                         onCardClick(item);
                       }}
                     >
-                      <WorkflowHoverTooltip
-                        title={<WorkflowCardHoverTooltip item={item} column={column} summary={summary} t={t} />}
-                      >
-                        {cardBody}
-                      </WorkflowHoverTooltip>
-                      <WorkflowAssigneeAvatar
-                        assignee={item.assignee}
-                        assigneeLabel={assigneeTooltip}
-                        fontScale={fontScale}
-                      />
+                      <div className="flex items-center justify-between gap-1.5 min-w-0">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <WorkflowIcon size={wfIconSize} className="shrink-0" style={{ color: column.color }} aria-hidden />
+                          {(item.workflowType === 'ATTENDANCE_DAILY' || item.attendanceSubtype === 'DAILY') && (
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              <Calendar size={scalePx(14, fontScale)} className="text-blue-500" />
+                              <User size={scalePx(14, fontScale)} className="text-blue-500" />
+                            </div>
+                          )}
+                          {(item.workflowType === 'ATTENDANCE_WEEKLY' || item.attendanceSubtype === 'WEEKLY_SUMMARY') && (
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              <Calendar size={scalePx(14, fontScale)} className="text-purple-500" />
+                              <Shield size={scalePx(14, fontScale)} className="text-purple-500" />
+                            </div>
+                          )}
+                          {summaryItems.length > 0 && (
+                            <div className="flex items-center shrink-0">
+                              {summaryItems.map((s, i) => (
+                                <span
+                                  key={i}
+                                  className="inline-block rounded-full"
+                                  style={{
+                                    width: dotSize,
+                                    height: dotSize,
+                                    backgroundColor: s.color,
+                                    marginLeft: i > 0 ? '-3px' : '0',
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          )}
+                          {item.fileId && !item.snapshotFileId && (
+                            <ColoredTooltip
+                              title={t('operations_board_preview_pdf') || 'Preview PDF'}
+                              color="#6b7280"
+                              placement="top"
+                            >
+                              <FileText
+                                size={pdfIconSize}
+                                className="shrink-0 text-gray-400"
+                                data-testid={`workflow-card-pdf-${item.id}`}
+                              />
+                            </ColoredTooltip>
+                          )}
+                          {item.snapshotFileId && (
+                            <ColoredTooltip
+                              title={t('operations_board_view_approved_snapshot') || 'View Approved Snapshot'}
+                              color="#16a34a"
+                              placement="top"
+                            >
+                              <ShieldCheck
+                                size={pdfIconSize}
+                                className="shrink-0"
+                                style={{ color: '#16a34a' }}
+                                data-testid={`workflow-card-snapshot-${item.id}`}
+                              />
+                            </ColoredTooltip>
+                          )}
+                        </div>
+                        <WorkflowAssigneeAvatar
+                          assignee={item.assignee}
+                          assigneeLabel={assigneeTooltip}
+                          fontScale={fontScale}
+                        />
+                      </div>
+                      <span className="truncate text-[0.7rem] font-semibold leading-tight">
+                        {titleText}
+                      </span>
                     </div>
+                    </WorkflowHoverTooltip>
                   </KanbanCard>
                 );
               }}

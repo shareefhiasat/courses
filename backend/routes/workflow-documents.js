@@ -30,6 +30,7 @@ import {
   getWorkflowsByContextController,
   getBoardWorkflowDocumentsController,
   ensureDailyWorkflowsController,
+  getWeeklySnapshotController,
 } from '../controllers/workflowDocuments.js';
 import { screenOps } from '../middleware/requirePermission.js';
 
@@ -219,6 +220,7 @@ router.get('/', wfOps.view, getWorkflowDocumentsController);
 
 router.get('/board', wfOps.view, getBoardWorkflowDocumentsController);
 router.post('/ensure-daily', wfOps.create, ensureDailyWorkflowsController);
+router.get('/snapshot', wfOps.view, getWeeklySnapshotController);
 
 /**
  * @swagger

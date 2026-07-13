@@ -41,6 +41,8 @@ const WORKFLOW_OVERSIGHT_STATUSES = new Set([
   'SUBMITTED',
   'UNDER_ADMIN_REVIEW',
   'UNDER_HR_REVIEW',
+  'APPROVED',
+  'REJECTED',
 ]);
 
 const ok = (permission) => ({ allowed: true, permission });
@@ -82,7 +84,7 @@ export async function canAccessFile(fileId, actor) {
 
   // Check if user is a workflow participant via WorkflowDocument (simple workflow system)
   const workflowDoc = await prisma.workflowDocument.findFirst({
-    where: { fileId },
+    where: { OR: [{ fileId }, { snapshotFileId: fileId }] },
     select: {
       submitterId: true,
       currentAssigneeId: true,

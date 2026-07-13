@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, Workflow as WorkflowIcon } from 'lucide-react';
+import { Star, Workflow as WorkflowIcon, Calendar, User, Shield } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
 import { WORKFLOW_COLUMNS } from '@services/business/operationsBoardService.js';
@@ -14,6 +14,9 @@ export default function BoardLegend({
   showAttendance = true,
   showWorkflow = true,
   showScheduleExtras = false,
+  scheduleExtrasFirst = false,
+  showYourClassOnly = false,
+  hideDivider = false,
   includeNotTaken = false,
   roleContext = {},
   className = '',
@@ -25,6 +28,31 @@ export default function BoardLegend({
   const attendanceLegendColumns = getHRLegendAttendanceColumns(roleContext);
   const hidePrivacyLegend = isHROnlyViewer(roleContext);
 
+  const renderYourClassOnly = showYourClassOnly && (
+    <div className={gridStyles.legendItem} data-testid="operations-board-legend-your-class">
+      <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_inProgress} ${gridStyles.legendDotPulse}`} />
+      <span className={gridStyles.legendLabel} style={{ color: 'rgb(3, 105, 161)', fontSize: '0.7rem' }}>{t('workspace_lecture_in_progress')}</span>
+    </div>
+  );
+
+  const renderScheduleExtras = showScheduleExtras && (
+    <>
+      {(showAttendance || showWorkflow) && !hideDivider && <div className={gridStyles.legendDivider} aria-hidden="true" />}
+      <div className={gridStyles.legendItem}>
+        <span className={gridStyles.legendLine} />
+        <span className={gridStyles.legendLabel} style={{ color: '#0ea5e9' }}>{t('workspace_current_time')}</span>
+      </div>
+      <div className={gridStyles.legendItem}>
+        <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_inProgress}`} />
+        <span className={gridStyles.legendLabel} style={{ color: 'rgb(3, 105, 161)' }}>{t('workspace_lecture_in_progress')}</span>
+      </div>
+      <div className={gridStyles.legendItem}>
+        <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_selected}`} />
+        <span className={gridStyles.legendLabel} style={{ color: '#8b5cf6' }}>{t('workspace_selected_class')}</span>
+      </div>
+    </>
+  );
+
   return (
     <div
       className={bare ? className : `${gridStyles.statusLegend} ${className}`.trim()}
@@ -32,6 +60,8 @@ export default function BoardLegend({
       data-testid={dataTestId}
       data-tour={dataTour}
     >
+      {scheduleExtrasFirst && renderScheduleExtras}
+      {showYourClassOnly && renderYourClassOnly}
       {showAttendance && attendanceLegendColumns.map((col) => (
         <div key={col.id} className={gridStyles.legendItem} data-testid={`operations-board-legend-att-${col.id}`}>
           <span
@@ -81,25 +111,28 @@ export default function BoardLegend({
               </span>
             </div>
           ))}
+          <div className={gridStyles.legendDivider} aria-hidden="true" />
+          <div className={gridStyles.legendItem} data-testid="operations-board-legend-wf-daily">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Calendar size={12} style={{ color: '#3b82f6' }} />
+              <User size={12} style={{ color: '#3b82f6' }} />
+            </div>
+            <span className={gridStyles.legendLabel} style={{ color: '#3b82f6', fontSize: '0.7rem' }}>
+              {t('operations_board_daily_attendance') || 'Daily Attendance'}
+            </span>
+          </div>
+          <div className={gridStyles.legendItem} data-testid="operations-board-legend-wf-weekly">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Calendar size={12} style={{ color: '#8b5cf6' }} />
+              <Shield size={12} style={{ color: '#8b5cf6' }} />
+            </div>
+            <span className={gridStyles.legendLabel} style={{ color: '#8b5cf6', fontSize: '0.7rem' }}>
+              {t('operations_board_weekly_summary') || 'Weekly Summary'}
+            </span>
+          </div>
         </>
       )}
-      {showScheduleExtras && (
-        <>
-          {(showAttendance || showWorkflow) && <div className={gridStyles.legendDivider} aria-hidden="true" />}
-          <div className={gridStyles.legendItem}>
-            <span className={gridStyles.legendLine} />
-            <span className={gridStyles.legendLabel} style={{ color: '#0ea5e9' }}>{t('workspace_current_time')}</span>
-          </div>
-          <div className={gridStyles.legendItem}>
-            <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_inProgress}`} />
-            <span className={gridStyles.legendLabel} style={{ color: 'rgb(3, 105, 161)' }}>{t('workspace_lecture_in_progress')}</span>
-          </div>
-          <div className={gridStyles.legendItem}>
-            <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_selected}`} />
-            <span className={gridStyles.legendLabel} style={{ color: '#8b5cf6' }}>{t('workspace_selected_class')}</span>
-          </div>
-        </>
-      )}
+      {!scheduleExtrasFirst && renderScheduleExtras}
     </div>
   );
 }

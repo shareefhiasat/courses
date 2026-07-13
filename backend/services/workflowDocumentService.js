@@ -108,7 +108,7 @@ async function getScopedUsersForRoleAndClass(roleCode, classId) {
 /**
  * Auto-share a workflow file with scoped users on the workflow class, or role fallback.
  */
-async function shareWorkflowFile({
+export async function shareWorkflowFile({
   fileId,
   submitterId,
   approvalFlow,
@@ -568,8 +568,8 @@ export async function getDocumentsByFileId(fileId) {
 /**
  * Update workflow document status
  */
-export async function updateStatus(id, status, actorId, reason) {
-  const result = await updateWorkflowDocumentStatus(id, status, actorId, reason);
+export async function updateStatus(id, status, actorId, reason, snapshotData = null, filedFileId = null) {
+  const result = await updateWorkflowDocumentStatus(id, status, actorId, reason, snapshotData, filedFileId);
 
   if (result.success && status === 'APPROVED') {
     try {
@@ -943,7 +943,7 @@ export async function uploadSignedDocument(data) {
       data: {
         fileId: file.id,
         currentAssigneeId: hrUsers[0].userId, // Reassign to first HR user
-        status: 'UNDER_FINAL_HR_REVIEW',
+        status: 'UNDER_HR_REVIEW',
         reviewCycleCount: document.reviewCycleCount + 1,
         updatedBy,
         updatedAt: new Date()
@@ -960,7 +960,7 @@ export async function uploadSignedDocument(data) {
     await createWorkflowStatusHistory({
       workflowDocumentId: documentId,
       fromStatus: document.status,
-      toStatus: 'UNDER_FINAL_HR_REVIEW',
+      toStatus: 'UNDER_HR_REVIEW',
       actorId: adminId,
       reason: comment || 'Signed document uploaded by Admin, reassigned to HR for final review'
     });
@@ -1789,6 +1789,8 @@ export async function getBoardWorkflowDocuments(filters = {}) {
   try {
     const {
       date,
+      dateFrom,
+      dateTo,
       classId,
       programId,
       subjectId,
@@ -1801,26 +1803,36 @@ export async function getBoardWorkflowDocuments(filters = {}) {
       offset = 0,
     } = filters;
 
+    console.log('[getBoardWorkflowDocuments] filters:', JSON.stringify(filters));
+
     const where = {
       ...(workflowCategory && { workflowCategory }),
       ...(attendanceSubtype && { attendanceSubtype }),
       ...(workflowType && { workflowType }),
       ...(status && { status }),
-      ...(classId && { classId: parseInt(classId, 10) }),
+      ...(classId && attendanceSubtype !== 'WEEKLY_SUMMARY' && { classId: parseInt(classId, 10) }),
     };
 
-    if (date) {
+    if (dateFrom && dateTo) {
+      where.date = {
+        gte: startOfDay(dateFrom),
+        lt: startOfNextDay(dateTo),
+      };
+    } else if (date) {
       where.date = {
         gte: startOfDay(date),
         lt: startOfNextDay(date),
       };
     }
 
-    if (programId || subjectId) {
+    if ((programId || subjectId) && attendanceSubtype !== 'WEEKLY_SUMMARY') {
       where.class = {
         ...(programId && { programId: parseInt(programId, 10) }),
         ...(subjectId && { subjectId: parseInt(subjectId, 10) }),
       };
+    }
+    if (programId && attendanceSubtype === 'WEEKLY_SUMMARY') {
+      where.program = String(programId);
     }
 
     if (search) {
@@ -1832,7 +1844,37 @@ export async function getBoardWorkflowDocuments(filters = {}) {
 
     const documents = await prisma.workflowDocument.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        workflowType: true,
+        approvalFlow: true,
+        workflowCategory: true,
+        attendanceSubtype: true,
+        title: true,
+        description: true,
+        status: true,
+        fileId: true,
+        fileVersionId: true,
+        submitterId: true,
+        currentAssigneeId: true,
+        classId: true,
+        instructorId: true,
+        targetStudentId: true,
+        date: true,
+        dateFrom: true,
+        dateTo: true,
+        program: true,
+        subject: true,
+        metadata: true,
+        snapshotFileId: true,
+        snapshotDate: true,
+        snapshotWeekFrom: true,
+        snapshotWeekTo: true,
+        reviewCycleCount: true,
+        createdBy: true,
+        updatedBy: true,
+        createdAt: true,
+        updatedAt: true,
         submitter: true,
         currentAssignee: true,
         instructor: {
@@ -1848,8 +1890,16 @@ export async function getBoardWorkflowDocuments(filters = {}) {
           },
         },
         file: true,
+        snapshotFile: true,
         class: {
-          include: {
+          select: {
+            id: true,
+            code: true,
+            nameEn: true,
+            nameAr: true,
+            programId: true,
+            subjectId: true,
+            instructorId: true,
             program: { select: { id: true, code: true, nameEn: true, nameAr: true } },
             subject: { select: { id: true, code: true, nameEn: true, nameAr: true } },
             instructor: {
@@ -1869,12 +1919,31 @@ export async function getBoardWorkflowDocuments(filters = {}) {
         statusHistory: {
           orderBy: { createdAt: 'desc' },
           take: 5,
-          include: { actor: { select: { id: true, displayName: true, firstName: true, lastName: true } } },
+          select: {
+            id: true,
+            workflowDocumentId: true,
+            fromStatus: true,
+            toStatus: true,
+            actorId: true,
+            reason: true,
+            createdAt: true,
+            actor: { select: { id: true, displayName: true, firstName: true, lastName: true } },
+            workflowDocument: true,
+          },
         },
         comments: {
           orderBy: { createdAt: 'desc' },
           take: 5,
-          include: { author: { select: { id: true, displayName: true, firstName: true, lastName: true } } },
+          select: {
+            id: true,
+            workflowDocumentId: true,
+            authorId: true,
+            comment: true,
+            action: true,
+            createdAt: true,
+            author: { select: { id: true, displayName: true, firstName: true, lastName: true } },
+            workflowDocument: true,
+          },
         },
       },
       orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
@@ -1882,6 +1951,7 @@ export async function getBoardWorkflowDocuments(filters = {}) {
       take: parseInt(limit, 10),
     });
 
+    console.log('[getBoardWorkflowDocuments] count:', documents.length, 'firstId:', documents[0]?.id);
     const enriched = await enrichWorkflowDocuments(documents);
     return { success: true, data: enriched, total: enriched.length };
   } catch (error) {
@@ -1994,7 +2064,7 @@ export async function ensureWorkflowOversightFileShares(fileId) {
   if (!fileId) return false;
   try {
     const doc = await prisma.workflowDocument.findFirst({
-      where: { fileId },
+      where: { OR: [{ fileId }, { snapshotFileId: fileId }] },
       select: {
         id: true,
         submitterId: true,
@@ -2007,7 +2077,7 @@ export async function ensureWorkflowOversightFileShares(fileId) {
     });
     if (!doc) return false;
     const status = String(doc.status || '').toUpperCase();
-    if (!['DRAFT', 'TAKEN', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW'].includes(status)) {
+    if (!['DRAFT', 'TAKEN', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED', 'REJECTED'].includes(status)) {
       return false;
     }
     await shareWorkflowFile({
@@ -2053,4 +2123,5 @@ export default {
   getBoardWorkflowDocuments,
   ensureDailyWorkflows,
   ensureWorkflowOversightFileShares,
+  shareWorkflowFile,
 };

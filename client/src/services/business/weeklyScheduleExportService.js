@@ -39,12 +39,17 @@ function classMatchesAcademicTerm(cls, academicTermId, academicTermCode) {
   return legacy && legacy !== '-' && code === legacy;
 }
 
-async function fetchAllSessionsForClasses(classIds) {
+async function fetchAllSessionsForClasses(classIds, singleClassId = null) {
   if (!classIds.length) return [];
 
   const classIdSet = new Set(classIds.map(Number));
   const res = await getAllScheduledSessions({ limit: 5000 });
   const all = res?.data || res?.payload || [];
+
+  // If singleClassId is provided, only return sessions for that class
+  if (singleClassId) {
+    return all.filter((session) => Number(session.classId) === Number(singleClassId));
+  }
 
   return all.filter((session) => classIdSet.has(Number(session.classId)));
 }
@@ -164,7 +169,7 @@ export async function loadWeeklyScheduleSources({
   const classIds = cohortClasses.map((c) => c.id || c.docId).filter(Boolean);
 
   const [sessions, breaksRes, availRes, timeSlotsRes] = await Promise.all([
-    fetchAllSessionsForClasses(classIds),
+    fetchAllSessionsForClasses(classIds, classId),
     resolvedProgramId
       ? schedulingSummaryService.getBreakSessions({ programId: resolvedProgramId, limit: 300 })
       : Promise.resolve({ success: true, data: [] }),

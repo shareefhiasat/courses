@@ -185,6 +185,16 @@ export const getWorkflowDocumentsByContext = async ({ userId, classId, date }) =
   return await apiService.get(`/workflow-documents/by-context?${params.toString()}`);
 };
 
+/**
+ * Get the latest approved weekly attendance violation snapshot for a given week.
+ * @param {{ weekFrom: string, weekTo: string, classId?: number }} params
+ */
+export const getWeeklySnapshot = async ({ weekFrom, weekTo, classId }) => {
+  const params = new URLSearchParams({ weekFrom, weekTo });
+  if (classId) params.append('classId', String(classId));
+  return await apiService.get(`/workflow-documents/snapshot?${params.toString()}`);
+};
+
 export default {
   createWorkflowDocument,
   createCustomWorkflowDocument,
@@ -204,4 +214,5 @@ export default {
   downloadFileVersion,
   getLinkedWorkflowsByAttendanceIds,
   getWorkflowDocumentsByContext,
+  getWeeklySnapshot,
 };

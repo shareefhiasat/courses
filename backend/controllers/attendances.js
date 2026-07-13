@@ -8,6 +8,7 @@
 import { attendanceService } from '../services/attendanceService.js';
 import prisma from '../db/prismaClient.js';
 import { ATTENDANCE_STATUS_CODES } from '../constants/attendanceConstants.js';
+import { checkAcademicClosure } from '../utils/academicClosure.js';
 import {
   getRequestScope,
   filterRecordsByScope,
@@ -141,6 +142,20 @@ export const createAttendance = async (req, res) => {
     const access = await assertClassInScope(req, attendanceData.classId);
     if (!access.ok) return scopeForbidden(res);
 
+    // Check if the period is closed
+    const closure = await checkAcademicClosure({
+      dateFrom: attendanceData.date,
+      dateTo: attendanceData.date,
+      scopeType: 'CLASS',
+      classId: attendanceData.classId,
+    });
+    if (closure) {
+      return res.status(403).json({
+        success: false,
+        error: 'This period is closed. Attendance changes are locked.',
+      });
+    }
+
     const user = req.user || {};
     const result = await attendanceService.createAttendance(attendanceData, user);
 
@@ -189,6 +204,24 @@ export const updateAttendance = async (req, res) => {
       });
     }
     if (!(await assertAttendanceRecordAccess(req, res, existing.data))) return;
+
+    // Check if the period is closed
+    const attDate = existing.data?.date || updateData.date;
+    const attClassId = existing.data?.classId || updateData.classId;
+    if (attDate && attClassId) {
+      const closure = await checkAcademicClosure({
+        dateFrom: attDate,
+        dateTo: attDate,
+        scopeType: 'CLASS',
+        classId: attClassId,
+      });
+      if (closure) {
+        return res.status(403).json({
+          success: false,
+          error: 'This period is closed. Attendance changes are locked.',
+        });
+      }
+    }
 
     const user = req.user || {};
     const result = await attendanceService.updateAttendance(parseInt(id), updateData, user);

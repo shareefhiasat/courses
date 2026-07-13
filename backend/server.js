@@ -433,6 +433,7 @@ import welcomeRoutes from "./routes/welcome.js";
 import attendanceWorkspaceRoutes from "./routes/attendance-workspace.js";
 import attendanceLogRoutes from "./routes/attendance-log.js";
 import workflowTypeConfigRoutes from "./routes/workflow-type-configs.js";
+import academicClosureRoutes from "./routes/academic-closure.js";
 
 // Mount routes with versioning
 app.use(`/api/${API_VERSION}/programs`, programRoutes);
@@ -494,6 +495,9 @@ app.use(`/api/${API_VERSION}/workflow-documents`, workflowDocumentRoutes);
 
 // Workflow type config routes
 app.use(`/api/${API_VERSION}/workflow-type-configs`, workflowTypeConfigRoutes);
+
+// Academic closure routes
+app.use(`/api/${API_VERSION}/academic-closure`, academicClosureRoutes);
 
 // Weekly summary routes
 app.use(`/api/${API_VERSION}/weekly-summary`, weeklySummaryRoutes);

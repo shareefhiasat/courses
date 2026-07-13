@@ -49,14 +49,14 @@ export function getAllowedAttendanceActions(roleContext = {}) {
 
 const ROLE_WORKFLOW_EDIT_STATUSES = {
   instructor: new Set(['DRAFT', 'TAKEN']),
-  admin: new Set(['SUBMITTED', 'UNDER_ADMIN_REVIEW']),
+  admin: new Set(['DRAFT', 'TAKEN', 'SUBMITTED', 'UNDER_ADMIN_REVIEW']),
   hr: new Set(['UNDER_HR_REVIEW']),
 };
 
 /**
  * Enforce workflow ownership for attendance edits.
  * Instructors may edit while the workflow is still with them (DRAFT/TAKEN).
- * Admins may edit while the workflow is with them (SUBMITTED/UNDER_ADMIN_REVIEW).
+ * Admins may edit at any stage the workflow is with the instructor or with them (DRAFT/TAKEN/SUBMITTED/UNDER_ADMIN_REVIEW).
  * HR may edit only while the workflow is under HR review.
  * Super-admins may always edit.
  * When no workflow exists yet, instructors and admins are allowed to take initial attendance.

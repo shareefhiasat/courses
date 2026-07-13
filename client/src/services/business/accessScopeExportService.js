@@ -224,7 +224,7 @@ export async function exportDailyOfficialTemplate({
       watermarkUser: user,
     },
   });
-  const filename = `${reportData.serial}_daily_official_template_${sanitize(meta.className)}`;
+  const filename = `${reportData.serial}_daily_template_${sanitize(meta.className)}`;
   const blob = await exportDailyOfficialReport(reportData, { format, filename });
   return { filename };
 }

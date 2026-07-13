@@ -140,7 +140,7 @@ export default function InitiateWorkflowDialog({
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <Typography variant="body2" color="text.secondary">
-              {t('initiate_workflow_description') || 'A PDF attendance report will be attached to a new draft workflow.'}
+              {t('initiate_workflow_description') || 'A draft workflow will be created. The attendance PDF will be filed when the admin sends it to HR.'}
             </Typography>
             {(className || selectedDate) && (
               <Typography variant="body2">
@@ -252,6 +252,7 @@ export default function InitiateWorkflowDialog({
         <WorkflowPdfPreviewPanel
           fileId={activeExisting?.fileId}
           fileName={activeExisting?.fileName || activeExisting?.title}
+          generatedAt={activeExisting?.createdAt || activeExisting?.fileCreatedAt || undefined}
           open={pdfPreviewOpen}
           onClose={() => setPdfPreviewOpen(false)}
           t={t}

@@ -382,7 +382,7 @@ export async function getWorkflowDocumentsByAssignee(assigneeId, filters = {}) {
 /**
  * Update workflow document status
  */
-export async function updateWorkflowDocumentStatus(id, status, actorId, reason) {
+export async function updateWorkflowDocumentStatus(id, status, actorId, reason, snapshotData = null, filedFileId = null) {
   try {
     // Get current document
     const current = await prisma.workflowDocument.findUnique({
@@ -393,13 +393,34 @@ export async function updateWorkflowDocumentStatus(id, status, actorId, reason) 
       return { success: false, error: 'Document not found' };
     }
 
+    // Build update data
+    const updateData = {
+      status,
+      updatedBy: actorId,
+      reviewCycleCount: status === 'SUBMITTED' ? current.reviewCycleCount + 1 : current.reviewCycleCount
+    };
+
+    // Attach snapshot fields if provided (on APPROVED transition)
+    if (snapshotData && snapshotData.snapshotFileId) {
+      updateData.snapshotFileId = snapshotData.snapshotFileId;
+      updateData.snapshotDate = new Date();
+      if (snapshotData.snapshotWeekFrom) updateData.snapshotWeekFrom = new Date(snapshotData.snapshotWeekFrom);
+      if (snapshotData.snapshotWeekTo) updateData.snapshotWeekTo = new Date(snapshotData.snapshotWeekTo);
+    }
+
+    // Set filed fileId when provided (Admin → HR filing transition)
+    if (filedFileId) {
+      updateData.fileId = filedFileId;
+    }
+
     // Update document
     const updated = await prisma.workflowDocument.update({
       where: { id },
-      data: {
-        status,
-        updatedBy: actorId,
-        reviewCycleCount: status === 'SUBMITTED' ? current.reviewCycleCount + 1 : current.reviewCycleCount
+      data: updateData,
+      include: {
+        file: true,
+        snapshotFile: true,
+        class: { select: { id: true, nameEn: true, nameAr: true, code: true } },
       }
     });
 

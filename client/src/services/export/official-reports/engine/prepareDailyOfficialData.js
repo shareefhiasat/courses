@@ -115,6 +115,15 @@ export function prepareDailyOfficialData({
     ];
   }
 
+  const isAr = lang === 'ar';
+  const generatedAt = new Date().toLocaleString(isAr ? 'ar-SA' : 'en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
   return {
     serial,
     title: lang === 'ar' ? 'كشف الحضور اليومي الرسمي' : 'Official Daily Attendance Report',
@@ -122,6 +131,7 @@ export function prepareDailyOfficialData({
     isTemplate,
     lang,
     statusKeys: OFFICIAL_STATUS_KEYS,
+    generatedAt,
     header: {
       serial,
       date: formatReportDate(metadata.date),

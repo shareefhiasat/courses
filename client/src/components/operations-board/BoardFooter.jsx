@@ -24,10 +24,12 @@ function FooterControls({
   embedded,
   expanded,
   onToggleExpand,
+  hideViewToggle = false,
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-      <Tabs
+      {!hideViewToggle && (
+        <Tabs
         value={activeView}
         onChange={(_, next) => next && onViewChange(next)}
         aria-label={t('operations_board_view_mode')}
@@ -71,8 +73,9 @@ function FooterControls({
           );
         })}
       </Tabs>
+      )}
 
-      {onOpenHistory && classInfo?.id && date && (
+      {!hideViewToggle && onOpenHistory && classInfo?.id && date && (
         <ColoredTooltip
           title={t('operations_board_class_logs') || 'Class logs'}
           color="#3b82f6"
@@ -163,7 +166,7 @@ export default function BoardFooter({
     gap: '0.25rem',
     width: '100%',
     padding: '4px 12px',
-    borderTop: `1px solid ${isDark ? 'rgba(51,65,85,0.6)' : '#e2e8f0'}`,
+    borderTop: 'none',
   };
 
   const controls = (
@@ -179,15 +182,17 @@ export default function BoardFooter({
       embedded={embedded}
       expanded={expanded}
       onToggleExpand={onToggleExpand}
+      hideViewToggle={isCalendarTab}
     />
   );
 
   if (isCalendarTab && showLegend) {
+    const isInstructor = roleContext?.isInstructor;
     return (
       <div
         className="operations-board-footer-stack"
         data-testid="operations-board-footer-stack"
-        style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column' }}
+        style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.125rem' }}
       >
         <div
           className={`${gridStyles.statusLegend} operations-board-footer-legends`}
@@ -196,9 +201,10 @@ export default function BoardFooter({
         >
           <BoardLegend
             bare
-            showAttendance={false}
+            showAttendance
             showWorkflow={false}
-            showScheduleExtras
+            showYourClassOnly={isInstructor}
+            hideDivider
             roleContext={roleContext}
             style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.25rem', width: '100%' }}
           />
@@ -210,51 +216,61 @@ export default function BoardFooter({
         >
           <BoardLegend
             bare
-            showAttendance={lane === 'attendance'}
-            showWorkflow={lane === 'status'}
-            includeNotTaken={lane === 'status'}
+            showAttendance={false}
+            showWorkflow
+            includeNotTaken
             roleContext={roleContext}
-            style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.25rem', width: '100%' }}
+            style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.25rem', flex: 1 }}
             data-tour="operations-board-legend"
           />
         </div>
-        <footer
-          className={`${gridStyles.statusLegend} ${gridStyles.statusLegendBottom} operations-board-footer operations-board-footer-controls`}
-          data-testid="operations-board-footer"
-          style={{
-            justifyContent: 'flex-end',
-            gap: '0.75rem',
-            borderTop: `1px solid ${isDark ? 'rgba(51,65,85,0.6)' : '#e2e8f0'}`,
-          }}
-        >
-          {controls}
-        </footer>
       </div>
     );
   }
 
   return (
-    <footer
-      className={`${gridStyles.statusLegend} ${gridStyles.statusLegendBottom} operations-board-footer`}
-      data-testid="operations-board-footer"
-      style={{
-        marginTop: 'auto',
-        justifyContent: 'space-between',
-        gap: '0.75rem',
-      }}
+    <div
+      className="operations-board-footer-stack"
+      data-testid="operations-board-footer-stack"
+      style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.125rem' }}
     >
       {showLegend && (
-        <BoardLegend
-          bare
-          showAttendance={lane === 'attendance'}
-          showWorkflow={lane === 'status'}
-          roleContext={roleContext}
-          className="legend-items-row"
-          style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.25rem', flex: 1, minWidth: 0 }}
-          data-tour="operations-board-legend"
-        />
+        <>
+          <div
+            className={`${gridStyles.statusLegend} operations-board-footer-legends`}
+            style={legendRowStyle}
+            data-testid="operations-board-attendance-legend"
+          >
+            <BoardLegend
+              bare
+              showAttendance
+              showWorkflow={false}
+              roleContext={roleContext}
+              style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.25rem', width: '100%' }}
+            />
+          </div>
+          {lane === 'status' && (
+            <div
+              className={`${gridStyles.statusLegend} operations-board-footer-legends`}
+              style={legendRowStyle}
+              data-testid="operations-board-workflow-legend"
+            >
+              <BoardLegend
+                bare
+                showAttendance={false}
+                showWorkflow
+                roleContext={roleContext}
+                style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.25rem', flex: 1 }}
+                data-tour="operations-board-legend"
+              />
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', flexShrink: 0, padding: '0 8px' }}>
+                {controls}
+              </div>
+            </div>
+          )}
+        </>
       )}
-      {controls}
-    </footer>
+      {lane !== 'status' && controls}
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -15,6 +15,8 @@ import { getUsers } from '@services/business/userService.js';
 import { exportGeneric } from '@services/export/excelExportService.js';
 import { getStatusCodeFromRecord } from '@constants/attendanceTypes';
 import useQRPermissions from '@hooks/useQRPermissions';
+import PdfPreviewDialog from '@components/workspace/PdfPreviewDialog.jsx';
+import { findExistingAttendanceWorkflow } from '@services/business/workflowInitiationService.js';
 
 function ScheduleSpeedDial({
   session,
@@ -34,6 +36,9 @@ function ScheduleSpeedDial({
   const isDark = theme === 'dark';
   const { canExport } = useQRPermissions();
   const [exporting, setExporting] = useState(null);
+  const [dailyPreviewOpen, setDailyPreviewOpen] = useState(false);
+  const [dialOpen, setDialOpen] = useState(false);
+  const [existingWorkflow, setExistingWorkflow] = useState(null);
 
   const cls = session?.class;
   const subject = cls?.subject;
@@ -41,6 +46,18 @@ function ScheduleSpeedDial({
   const dateStr = selectedDate
     ? selectedDate.toISOString().split('T')[0]
     : new Date().toISOString().split('T')[0];
+
+  useEffect(() => {
+    if (!cls?.id || !dateStr) {
+      setExistingWorkflow(null);
+      return undefined;
+    }
+    let cancelled = false;
+    findExistingAttendanceWorkflow(cls.id, dateStr).then((result) => {
+      if (!cancelled) setExistingWorkflow(result.success ? result.data : null);
+    });
+    return () => { cancelled = true; };
+  }, [cls?.id, dateStr]);
 
   const runExport = useCallback(async (key, fn) => {
     setExporting(key);
@@ -156,7 +173,7 @@ function ScheduleSpeedDial({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
       console.error('[ScheduleSpeedDial] attendance summary export failed:', err);
     } finally {
@@ -173,8 +190,7 @@ function ScheduleSpeedDial({
         name: `${t('daily_official')} PDF`,
         icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
         disabled: exporting === 'export-daily-pdf',
-        onClick: () => runExport('export-daily-pdf', () =>
-          exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.PDF })),
+        onClick: () => setDailyPreviewOpen(true),
       });
       if (!pdfOnly) {
         items.push({
@@ -230,6 +246,7 @@ function ScheduleSpeedDial({
   const subjectName = cls?.code || subject?.name || session.classId;
 
   return (
+    <>
     <SpeedDial
       ariaLabel={subjectName}
       sx={{
@@ -244,7 +261,9 @@ function ScheduleSpeedDial({
       }}
       FabProps={{ size: 'small' }}
       icon={<SpeedDialIcon />}
-      onClose={onClose}
+      onClose={() => setDialOpen(false)}
+      onOpen={() => setDialOpen(true)}
+      open={dialOpen}
     >
       {actions.map((action) => (
         <SpeedDialAction
@@ -265,6 +284,21 @@ function ScheduleSpeedDial({
         />
       ))}
     </SpeedDial>
+      <PdfPreviewDialog
+        open={dailyPreviewOpen}
+        onClose={() => setDailyPreviewOpen(false)}
+        cls={cls}
+        program={program}
+        subject={subject}
+        academicTerm={academicTerm}
+        date={dateStr}
+        instructorName={slotInstructor}
+        user={user}
+        title={t('daily_official') || 'Daily Official'}
+        fileId={existingWorkflow?.fileId}
+        isApproved={String(existingWorkflow?.status || '').toUpperCase() === 'APPROVED'}
+      />
+    </>
   );
 }
 

@@ -75,7 +75,7 @@ function MetaItem({ label, value, align = 'start', mirrored = false }) {
 }
 
 export function DailyOfficialTemplate({ data, showWatermark = true }) {
-  const { header, rows, lang, statusKeys, serial } = data;
+  const { header, rows, lang, statusKeys, serial, generatedAt } = data;
   const labels = COLUMN_LABELS[lang] || COLUMN_LABELS.ar;
   const statusLabels = STATUS_LABELS[lang] || STATUS_LABELS.ar;
   const meta = META_LABELS[lang] || META_LABELS.ar;
@@ -195,6 +195,13 @@ export function DailyOfficialTemplate({ data, showWatermark = true }) {
           </tbody>
         </table>
         </div>
+        {generatedAt && (
+          <div className={styles.officialFooter}>
+            <span style={{ fontSize: '10px', color: '#6b7280' }}>
+              {isAr ? 'تم التوليد' : 'Generated'}: {generatedAt}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

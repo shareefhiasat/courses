@@ -214,7 +214,7 @@ export const downloadPersonalDriveFile = async (filePath) => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       
       return { success: true };
     } else {

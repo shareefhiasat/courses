@@ -22,6 +22,10 @@ export default function BoardFilterBar({
   onResetLaneWidths,
   showLaneReset = false,
   roleContext = {},
+  embedded = false,
+  expanded = false,
+  onToggleExpand,
+  viewMode = 'day',
 }) {
   const { t } = useLang();
   const theme = useTheme();
@@ -60,7 +64,11 @@ export default function BoardFilterBar({
       className="operations-board-filters"
       data-testid="operations-board-filters"
       sx={{
-        flexShrink: 0,
+        flexShrink: panelTab === 'calendar' ? undefined : 0,
+        flex: panelTab === 'calendar' ? 1 : undefined,
+        display: panelTab === 'calendar' ? 'flex' : undefined,
+        flexDirection: panelTab === 'calendar' ? 'column' : undefined,
+        minHeight: panelTab === 'calendar' ? 0 : undefined,
         borderRadius: 2,
         border: 0,
         bgcolor: theme.palette.mode === 'dark' ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.95)',
@@ -117,8 +125,9 @@ export default function BoardFilterBar({
               icon={<Users size={14} />}
               iconPosition="start"
               label={t('operations_board_tab_attendance') || 'Attendance'}
-              title={t('operations_board_tab_attendance') || 'Attendance'}
+              title={viewMode === 'week' ? (t('operations_board_attendance_week_disabled') || 'Attendance board is not available in week mode') : (t('operations_board_tab_attendance') || 'Attendance')}
               data-testid="operations-board-tab-attendance"
+              disabled={viewMode === 'week'}
             />
             <Tab
               value="status"
@@ -269,7 +278,7 @@ export default function BoardFilterBar({
       </Box>
 
       {panelTab === 'calendar' && (
-        <Box sx={{ p: 1 }} data-tour="operations-board-calendar">
+        <Box sx={{ p: 1, flex: 1, minHeight: 0, overflow: 'auto' }} data-tour="operations-board-calendar">
           <BoardScheduleCalendar
             selectedDate={selectedDate}
             onDateSelect={handleDateSelect}
@@ -277,6 +286,9 @@ export default function BoardFilterBar({
             onClassSessionClick={handleClassSessionClick}
             lane={lane}
             hideNotesParticipation={hideNotesParticipation}
+            embedded={embedded}
+            expanded={expanded}
+            onToggleExpand={onToggleExpand}
           />
         </Box>
       )}

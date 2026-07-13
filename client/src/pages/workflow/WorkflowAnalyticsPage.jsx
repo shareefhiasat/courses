@@ -118,7 +118,7 @@ const WorkflowAnalyticsPage = () => {
     a.href = url;
     a.download = `workflow-analytics-${formatForDateInput(new Date())}.csv`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 
     toast.success(t('workflow.analytics.exported', 'Analytics data exported successfully'));
   };

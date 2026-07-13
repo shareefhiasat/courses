@@ -12,7 +12,7 @@ const WORKFLOW_TYPE_TO_TAXONOMY = {
   ATTENDANCE_WEEKLY: {
     workflowCategory: 'ATTENDANCE',
     attendanceSubtype: 'WEEKLY_SUMMARY',
-    approvalFlow: 'HR_THEN_ADMIN',
+    approvalFlow: 'ADMIN_THEN_HR',
   },
   GENERAL_HR: {
     workflowCategory: 'GENERAL',
@@ -48,7 +48,7 @@ const APPROVAL_FLOW_TO_LEGACY_TYPE = {
 const CATEGORY_DEFAULTS = {
   ATTENDANCE: {
     DAILY: { approvalFlow: 'INSTRUCTOR_THEN_ADMIN_THEN_HR', workflowType: 'ATTENDANCE_DAILY' },
-    WEEKLY_SUMMARY: { approvalFlow: 'HR_THEN_ADMIN', workflowType: 'ATTENDANCE_WEEKLY' },
+    WEEKLY_SUMMARY: { approvalFlow: 'ADMIN_THEN_HR', workflowType: 'ATTENDANCE_WEEKLY' },
     EXCUSE: { approvalFlow: 'HR_ONLY', workflowType: 'GENERAL_HR' },
     WARNING: { approvalFlow: 'HR_ONLY', workflowType: 'GENERAL_HR' },
   },

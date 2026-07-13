@@ -54,7 +54,7 @@ export async function generateWeeklySummary(data) {
       workflowType: 'ATTENDANCE_WEEKLY',
       workflowCategory: 'ATTENDANCE',
       attendanceSubtype: 'WEEKLY_SUMMARY',
-      approvalFlow: 'HR_THEN_ADMIN',
+      approvalFlow: 'ADMIN_THEN_HR',
       title: `Weekly Attendance Summary - ${weekStart} to ${weekEnd}`,
       description: comments || `Weekly summary aggregating ${dailyDocuments.length} daily attendance documents`,
       fileData: excelFile.data,

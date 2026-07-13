@@ -10,6 +10,7 @@ import prisma from '../db/prismaClient.js';
 import { LMS_ROLES } from '../services/keycloakAdminService.js';
 import { approveWorkflow, rejectWorkflow, returnWorkflow, submitWorkflow, resubmitWorkflow } from '../workflows/workflowService.js';
 import { resolveApprovalFlow } from '../utils/workflowTaxonomy.js';
+import { checkAcademicClosure } from '../utils/academicClosure.js';
 
 import {
   createWorkflowDocumentWithUpload,
@@ -35,6 +36,8 @@ import {
   enrichWorkflowDocuments,
   getBoardWorkflowDocuments,
   ensureDailyWorkflows,
+  shareWorkflowFile,
+  ensureWorkflowOversightFileShares,
 } from '../services/workflowDocumentService.js';
 import { emit } from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
@@ -560,7 +563,7 @@ export const approveWorkflowDocumentController = async (req, res) => {
   try {
     const { id } = req.params;
     const { user } = req;
-    const { comment } = req.body;
+    const { comment, snapshotFileId, snapshotWeekFrom, snapshotWeekTo, filedFileId } = req.body;
 
     // Get current document to determine workflow type and status
     const document = await prisma.workflowDocument.findUnique({
@@ -590,7 +593,7 @@ export const approveWorkflowDocumentController = async (req, res) => {
     // Instructor may send SUBMITTED → Admin (first approve step). Admin/HR/SuperAdmin for later stages.
     const instructorCanSendToAdmin = isInstructor && document.status === 'SUBMITTED';
     const adminCanAdvance = isAdmin && ['SUBMITTED', 'UNDER_ADMIN_REVIEW'].includes(document.status);
-    const hrCanAdvance = isHR && document.status === 'UNDER_HR_REVIEW';
+    const hrCanAdvance = isHR && ['SUBMITTED', 'UNDER_HR_REVIEW'].includes(document.status);
 
     if (!user || !user.roles || (!isSuperAdmin && !instructorCanSendToAdmin && !adminCanAdvance && !hrCanAdvance)) {
       await logPermissionDenial({
@@ -644,10 +647,30 @@ export const approveWorkflowDocumentController = async (req, res) => {
       });
     }
 
-    // Update status
-    const result = await updateStatus(parseInt(id), nextStatus, user.dbId, comment);
+    // Build snapshot data if provided (for HR approval with weekly report snapshot)
+    const snapshotData = snapshotFileId ? { snapshotFileId, snapshotWeekFrom, snapshotWeekTo } : null;
+
+    // Update status — pass filedFileId when filing on Admin→HR transition
+    const result = await updateStatus(parseInt(id), nextStatus, user.dbId, comment, snapshotData, filedFileId || null);
 
     if (result.success) {
+      // Share the filed PDF with HR when filing on Admin→HR transition
+      if (filedFileId && nextStatus === 'UNDER_HR_REVIEW') {
+        try {
+          await shareWorkflowFile({
+            fileId: filedFileId,
+            submitterId: user.dbId,
+            approvalFlow: resolveApprovalFlow(document),
+            classId: result.data.classId,
+            workflowCategory: document.workflowCategory,
+            attendanceSubtype: document.attendanceSubtype,
+          });
+          await ensureWorkflowOversightFileShares(filedFileId);
+        } catch (shareErr) {
+          console.error('[approveWorkflowDocumentController] Failed to share filed PDF:', shareErr);
+        }
+      }
+
       if (global.chatWSBroadcast) {
         global.chatWSBroadcast('board:workflow_updated', {
           documentId: result.data.id,
@@ -712,6 +735,7 @@ export const approveWorkflowDocumentController = async (req, res) => {
           if (adminResult?.success) notifyResults.push({ target: 'Admin', count: adminResult.results.length });
         } else if (nextStatus === 'APPROVED') {
           // Notify all parties: HR + Admin watchers (submitter already notified above)
+          const snapshotFileId = result.data.snapshotFileId || null;
           const hrWatchResult = await emit(EVENTS.WORKFLOW_APPROVED, {
             ...buildNotificationNameVars(approver, 'Unknown User'),
             workflowName: result.data.title,
@@ -721,6 +745,7 @@ export const approveWorkflowDocumentController = async (req, res) => {
             senderId: user?.dbId || null,
             className: cls?.nameEn || null,
             classNameAr: cls?.nameAr || cls?.nameEn || null,
+            snapshotFileId,
             recipientType: 'role',
             recipientRole: LMS_ROLES.HR,
           }, user, { role: LMS_ROLES.HR });
@@ -735,6 +760,7 @@ export const approveWorkflowDocumentController = async (req, res) => {
             senderId: user?.dbId || null,
             className: cls?.nameEn || null,
             classNameAr: cls?.nameAr || cls?.nameEn || null,
+            snapshotFileId,
             recipientType: 'role',
             recipientRole: LMS_ROLES.ADMIN,
           }, user, { role: LMS_ROLES.ADMIN });
@@ -747,6 +773,7 @@ export const approveWorkflowDocumentController = async (req, res) => {
       res.status(200).json({
         success: true,
         data: result.data,
+        snapshotFileId: result.data.snapshotFileId || null,
         notificationsSent: notifyResults
       });
     } else {
@@ -1588,12 +1615,6 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
     }
 
     if (resolvedCategory === 'ATTENDANCE' && resolvedSubtype === 'WEEKLY_SUMMARY') {
-      if (!req.body.classId) {
-        return res.status(400).json({
-          success: false,
-          error: 'Class is required for weekly attendance summary'
-        });
-      }
       if (!dateFrom || !dateTo) {
         return res.status(400).json({
           success: false,
@@ -1603,6 +1624,26 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
     }
 
     // Reviewers are now optional - can be assigned later from file details tab
+
+    // Check if the period is closed for this scope
+    if (resolvedCategory === 'ATTENDANCE' && (dateFrom || date)) {
+      const checkDateFrom = dateFrom || date;
+      const checkDateTo = dateTo || date;
+      const closure = await checkAcademicClosure({
+        dateFrom: checkDateFrom,
+        dateTo: checkDateTo,
+        scopeType: 'PROGRAM',
+        programId: req.body.program ? Number(req.body.program) : null,
+        classId: req.body.classId ? Number(req.body.classId) : null,
+      });
+      if (closure) {
+        return res.status(403).json({
+          success: false,
+          error: 'This period is closed. Attendance changes are locked.',
+          closureId: closure.id,
+        });
+      }
+    }
 
     // If attaching existing file, validate ownership (disable workflow on shared files)
     if (attachFile && fileId) {
@@ -1863,16 +1904,18 @@ export const getLinkedWorkflowsController = async (req, res) => {
  */
 export const getBoardWorkflowDocumentsController = async (req, res) => {
   try {
-    const { date, classId, programId, subjectId, status, workflowType, workflowCategory, attendanceSubtype, search, limit, offset } = req.query;
+    const { date, dateFrom, dateTo, classId, programId, subjectId, status, workflowType, workflowCategory, attendanceSubtype, search, limit, offset } = req.query;
     const result = await getBoardWorkflowDocuments({
       date,
+      dateFrom,
+      dateTo,
       classId,
       programId,
       subjectId,
       status,
       workflowType,
       workflowCategory: workflowCategory || 'ATTENDANCE',
-      attendanceSubtype: attendanceSubtype || 'DAILY',
+      attendanceSubtype: attendanceSubtype || undefined,
       search,
       limit,
       offset,
@@ -1887,8 +1930,8 @@ export const getBoardWorkflowDocumentsController = async (req, res) => {
     if (!scope.unrestricted) {
       data = data.map((d) => ({
         ...d,
-        programId: d.class?.programId ?? d.programId,
-        subjectId: d.class?.subjectId ?? d.subjectId,
+        programId: d.class?.programId ?? (d.program ? parseInt(d.program, 10) : null) ?? d.programId,
+        subjectId: d.class?.subjectId ?? (d.subject ? parseInt(d.subject, 10) : null) ?? d.subjectId,
       }));
       data = filterRecordsByScope(data, scope, {
         classField: 'classId',
@@ -1933,6 +1976,88 @@ export const ensureDailyWorkflowsController = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/v1/workflow-documents/snapshot
+ * Get the latest approved workflow document with a weekly attendance violation snapshot for a given week.
+ */
+export const getWeeklySnapshotController = async (req, res) => {
+  try {
+    const { weekFrom, weekTo, classId, programId } = req.query;
+
+    if (!weekFrom || !weekTo) {
+      return res.status(400).json({
+        success: false,
+        error: 'weekFrom and weekTo query parameters are required'
+      });
+    }
+
+    const from = new Date(weekFrom);
+    const to = new Date(weekTo);
+
+    const where = {
+      status: 'APPROVED',
+      snapshotFileId: { not: null },
+      snapshotWeekFrom: { lte: to },
+      snapshotWeekTo: { gte: from },
+      OR: [
+        { workflowType: 'ATTENDANCE_WEEKLY' },
+        { attendanceSubtype: 'WEEKLY_SUMMARY' },
+      ],
+    };
+
+    if (classId) {
+      where.classId = parseInt(classId);
+    }
+    if (programId) {
+      where.program = String(programId);
+    }
+
+    const doc = await prisma.workflowDocument.findFirst({
+      where,
+      orderBy: { snapshotDate: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        program: true,
+        snapshotFileId: true,
+        snapshotDate: true,
+        updatedAt: true,
+        snapshotWeekFrom: true,
+        snapshotWeekTo: true,
+        classId: true,
+        submitterId: true,
+        fileId: true,
+        file: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        snapshotFile: {
+          select: {
+            id: true,
+            name: true,
+            mimeType: true,
+            size: true,
+            s3Key: true,
+            bucket: true,
+          }
+        },
+      },
+    });
+
+    if (!doc) {
+      return res.status(200).json({ success: true, data: null });
+    }
+
+    return res.status(200).json({ success: true, data: doc });
+  } catch (error) {
+    console.error('Error in getWeeklySnapshotController:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+};
+
 export default {
   createWorkflowDocumentController,
   getWorkflowDocumentController,
@@ -1955,4 +2080,5 @@ export default {
   getWorkflowsByContextController,
   getBoardWorkflowDocumentsController,
   ensureDailyWorkflowsController,
+  getWeeklySnapshotController,
 };

@@ -9,7 +9,7 @@ import {
   Box,
   Typography,
 } from '@mui/material';
-import { AlertTriangle, ArrowRight, Workflow as WorkflowIcon } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Workflow as WorkflowIcon, ClipboardCheck } from 'lucide-react';
 import { shortenWorkflowDisplayName } from './operationsBoardDisplayUtils.js';
 import { resolveWorkflowNotifyMeta } from './workflowBoardRules.js';
 
@@ -27,6 +27,8 @@ export default function WorkflowMoveConfirmDialog({
   loading = false,
   adminOverride = false,
   roleContext = {},
+  workflowType = '',
+  attendanceSubtype = '',
   t,
 }) {
   const fromCol = columns.find((c) => c.id === fromColumn);
@@ -73,7 +75,7 @@ export default function WorkflowMoveConfirmDialog({
         {title}
       </DialogTitle>
       <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 1 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
           {isOverride && (
             <Alert severity="error" variant="filled" icon={<AlertTriangle size={18} />} data-testid="workflow-move-override-alert">
               {t('operations_board_move_admin_override_alert')
@@ -81,7 +83,7 @@ export default function WorkflowMoveConfirmDialog({
             </Alert>
           )}
           {displayName && (
-            <Typography variant="body2" sx={{ fontWeight: 600, wordBreak: 'break-word' }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, wordBreak: 'break-word', color: 'text.secondary' }}>
               {displayName}
             </Typography>
           )}
@@ -89,39 +91,61 @@ export default function WorkflowMoveConfirmDialog({
             sx={{
               display: 'flex',
               alignItems: 'center',
-              gap: 1,
+              gap: 1.5,
               flexWrap: 'wrap',
+              px: 2,
+              py: 1.5,
+              borderRadius: 2,
+              bgcolor: 'action.hover',
             }}
             data-testid="workflow-move-status-transition"
           >
-            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, opacity: 0.75 }}>
-              <WorkflowIcon size={16} style={{ color: fromCol?.color || '#9ca3af', flexShrink: 0 }} />
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, opacity: 0.7 }}>
+              <WorkflowIcon size={18} style={{ color: fromCol?.color || '#9ca3af', flexShrink: 0 }} />
               <Typography variant="body2" sx={{ fontWeight: 500, color: fromCol?.color || 'text.secondary' }}>
                 {fromLabel}
               </Typography>
             </Box>
-            <ArrowRight size={16} style={{ flexShrink: 0, opacity: 0.6 }} />
+            <ArrowRight size={20} style={{ flexShrink: 0, opacity: 0.5 }} />
             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-              <WorkflowIcon size={18} style={{ color: toCol?.color || '#6b7280', flexShrink: 0 }} />
-              <Typography variant="body2" sx={{ fontWeight: 700, color: toCol?.color || 'text.primary' }}>
+              <WorkflowIcon size={20} style={{ color: toCol?.color || '#6b7280', flexShrink: 0 }} />
+              <Typography variant="body1" sx={{ fontWeight: 700, color: toCol?.color || 'text.primary' }}>
                 {toLabel}
               </Typography>
             </Box>
           </Box>
-          <Typography variant="body2">{body}</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>{body}</Typography>
+          {fromColumn === 'UNDER_HR_REVIEW' && toColumn === 'APPROVED' && (workflowType === 'ATTENDANCE_WEEKLY' || attendanceSubtype === 'WEEKLY_SUMMARY') && (
+            <Alert
+              severity="info"
+              icon={<ClipboardCheck size={18} />}
+              data-testid="workflow-move-snapshot-alert"
+            >
+              {t('workflow_snapshot_info_weekly', 'A weekly attendance violation report will be generated and attached as a back-reference to this workflow.')}
+            </Alert>
+          )}
+          {fromColumn === 'UNDER_HR_REVIEW' && toColumn === 'APPROVED' && (workflowType === 'ATTENDANCE_DAILY' || attendanceSubtype === 'DAILY') && (
+            <Alert
+              severity="info"
+              icon={<ClipboardCheck size={18} />}
+              data-testid="workflow-move-snapshot-alert-daily"
+            >
+              {t('workflow_snapshot_info_daily', 'A daily attendance report snapshot will be generated and attached as a back-reference to this workflow.')}
+            </Alert>
+          )}
           {notifyText && (
-            <Alert severity={isOverride ? 'warning' : 'info'} data-testid="workflow-move-notify-alert">
+            <Alert severity={isOverride ? 'warning' : 'info'} data-testid="workflow-move-notify-alert" sx={{ mt: 0.5 }}>
               {notifyText}
             </Alert>
           )}
           {lockWarningText && (
-            <Alert severity="warning" data-testid="workflow-move-lock-alert">
+            <Alert severity="warning" data-testid="workflow-move-lock-alert" sx={{ mt: 0.5 }}>
               {lockWarningText}
             </Alert>
           )}
         </Box>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
+      <DialogActions sx={{ px: 3, pb: 2.5, pt: 1 }}>
         <Button onClick={onClose} disabled={loading} data-testid="workflow-move-cancel">
           {t('operations_board_move_cancel') || 'Cancel'}
         </Button>

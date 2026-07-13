@@ -78,6 +78,7 @@ export function deriveAction(fromStatus, toStatus) {
   if (toStatus === 'UNDER_ADMIN_REVIEW' && fromStatus === 'UNDER_HR_REVIEW') return 'RETURN';
   if (toStatus === 'DRAFT' && (fromStatus === 'TAKEN' || fromStatus === 'SUBMITTED')) return 'RETURN';
   if (toStatus === 'TAKEN' && fromStatus === 'DRAFT') return 'MARK_TAKEN';
+  if (toStatus === 'SUBMITTED' && fromStatus === 'DRAFT') return 'SUBMIT';
   if (toStatus === 'SUBMITTED' && fromStatus === 'TAKEN') return 'SUBMIT';
   if (toStatus === 'SUBMITTED' && fromStatus === 'REJECTED') return 'RESUBMIT';
   if (
@@ -109,6 +110,8 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
 
     const params = new URLSearchParams();
     if (filters.date) params.append('date', filters.date);
+    if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters.dateTo) params.append('dateTo', filters.dateTo);
     if (filters.classId) params.append('classId', filters.classId);
     if (filters.programId) params.append('programId', filters.programId);
     if (filters.subjectId) params.append('subjectId', filters.subjectId);
@@ -116,18 +119,23 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
     if (filters.workflowType) params.append('workflowType', filters.workflowType);
     if (filters.search) params.append('search', filters.search);
     params.append('workflowCategory', 'ATTENDANCE');
-    params.append('attendanceSubtype', 'DAILY');
+    if (filters.attendanceSubtype) params.append('attendanceSubtype', filters.attendanceSubtype);
 
+    params.append('_t', Date.now());
     const queryString = params.toString();
     const url = `/workflow-documents/board?${queryString}`;
     const result = await apiService.get(url);
+    console.log('[fetchWorkflowBoardData] raw result:', { url, success: result.success, count: result.data?.length, firstId: result.data?.[0]?.id });
 
     if (!result.success) return { success: false, data: [], error: result.error };
 
     const documents = result.data || [];
     const lang = filters.lang || 'en';
     const boardData = documents.map((doc) => {
-      const classInstructor = doc.class?.instructor || doc.instructor || null;
+      const isWeeklySummary = doc.attendanceSubtype === 'WEEKLY_SUMMARY';
+      const classInstructor = isWeeklySummary
+        ? null
+        : (doc.class?.instructor || doc.instructor || null);
       const classInstructorName = classInstructor
         ? getLocalizedUserName(classInstructor, lang, classInstructor.displayName || '')
         : null;
@@ -150,6 +158,8 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
       workflowType: doc.workflowType,
       classId: doc.classId,
       className: doc.class?.nameEn || doc.class?.code,
+      programId: doc.class?.programId || null,
+      subjectId: doc.class?.subjectId || null,
       programName: doc.class?.program?.nameEn,
       subjectName: doc.class?.subject?.nameEn,
       date: doc.date,
@@ -158,6 +168,8 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
       description: doc.description,
       fileName: doc.file?.name || null,
       fileId: doc.file?.id || null,
+      snapshotFileId: doc.snapshotFileId || null,
+      snapshotFileName: doc.snapshotFile?.name || null,
       raw: doc,
       comments: doc.comments || [],
     };
@@ -386,13 +398,17 @@ export const fetchAttendanceBoardData = async (filters = {}) => {
   }
 };
 
-export const moveWorkflowCard = async (documentId, fromStatus, toStatus, reason = null) => {
+export const moveWorkflowCard = async (documentId, fromStatus, toStatus, reason = null, snapshotData = null, fileId = null) => {
   try {
     info(`${SERVICE_NAME}:moveWorkflowCard`, { documentId, fromStatus, toStatus });
     const action = deriveAction(fromStatus, toStatus);
 
     if (action === 'APPROVE') {
-      return await approveWorkflowDocument(documentId, { comment: reason });
+      return await approveWorkflowDocument(documentId, {
+        comment: reason,
+        ...(snapshotData || {}),
+        ...(fileId ? { filedFileId: fileId } : {}),
+      });
     }
     if (action === 'REJECT') {
       return await rejectWorkflowDocument(documentId, { comment: reason || 'Rejected from board' });

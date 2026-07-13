@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspens
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
-import { ChevronLeft, ChevronRight, FileText, FileSpreadsheet, CalendarDays, ClipboardList } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, FileSpreadsheet, CalendarDays, ClipboardList, FileCheck2, FileX2, CalendarPlus, Lock } from 'lucide-react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -18,7 +18,7 @@ import ScheduleContextMenu from '@components/workspace/ScheduleContextMenu';
 import ScheduleSpeedDial from '@components/workspace/ScheduleSpeedDial';
 import {
   Tabs, Tab, Box, Paper, Snackbar, Alert, LinearProgress,
-  CircularProgress, IconButton,
+  CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button,
 } from '@mui/material';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import DatePicker from '@components/ui/DatePicker/DatePicker';
@@ -27,10 +27,11 @@ import { getSubjects } from '@services/business/programService';
 import { loadWeeklyScheduleSources } from '@services/business/weeklyScheduleExportService';
 import {
   exportWeeklyScheduleForProgram,
-  exportDailyOfficialForDate,
   exportDailyOfficialTemplate,
   exportAttendanceOfficialForScope,
 } from '@services/business/accessScopeExportService.js';
+import { getApprovedSnapshotForWeek, getWeekRange, getClosureStatus, closePeriod, reopenPeriod, getInProgressWeeklyWorkflow } from '@services/business/workflowSnapshotService.js';
+import { initiateWeeklyWorkflow } from '@services/business/workflowInitiationService.js';
 import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
 import { prepareWeeklyScheduleData } from '@services/export/official-reports/engine/prepareWeeklyScheduleData';
 import { academicTermToYearTerm } from '@utils/academicTermUtils';
@@ -46,6 +47,8 @@ import {
   clampScheduleFontScale,
 } from '@constants/scheduleFontScale';
 import AttendanceViolationsModal from '@/components/qr-scanner/AttendanceViolationsModal';
+import PdfPreviewDialog from '@components/workspace/PdfPreviewDialog.jsx';
+import { findExistingAttendanceWorkflow } from '@services/business/workflowInitiationService.js';
 import '../pages/operations/OperationsBoardPage.css';
 
 const OperationsBoardPage = lazy(() => import('./operations/OperationsBoardPage.jsx'));
@@ -56,6 +59,16 @@ function toIsoDate(value) {
   if (!value) return new Date().toISOString().slice(0, 10);
   if (typeof value === 'string') return value.slice(0, 10);
   return new Date(value).toISOString().slice(0, 10);
+}
+
+function formatSnapshotDate(value) {
+  if (!value) return '—';
+  const iso = typeof value === 'string' ? value.slice(0, 10) : toIsoDate(value);
+  const d = new Date(`${iso}T12:00:00`);
+  if (isNaN(d.getTime())) return iso;
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}/${d.getFullYear()}`;
 }
 
 const SCHEDULE_WORK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
@@ -119,9 +132,24 @@ const WelcomePage = () => {
   const { canAccessScreen } = usePermissions();
   const showOperationsTab = canAccessScreen('operations') || canExport || isAdmin || isHR;
   const [exportingKey, setExportingKey] = useState(null);
+  const [gridPdfPreview, setGridPdfPreview] = useState(null);
   const [cohortClassIds, setCohortClassIds] = useState([]);
   const [cohortSubjectIds, setCohortSubjectIds] = useState([]);
+  const [weeklySnapshot, setWeeklySnapshot] = useState(null);
+  const [weekClosure, setWeekClosure] = useState(null);
+  const [weeklyWorkflowLoading, setWeeklyWorkflowLoading] = useState(false);
+  const [weeklyInProgressWorkflow, setWeeklyInProgressWorkflow] = useState(null);
+  const [closeWeekDialogOpen, setCloseWeekDialogOpen] = useState(false);
+  const [initiateWeeklyDialogOpen, setInitiateWeeklyDialogOpen] = useState(false);
   const [cohortSubjects, setCohortSubjects] = useState([]);
+  const [opsViewMode, setOpsViewMode] = useState(() => {
+    try {
+      const stored = localStorage.getItem('welcome_ops_view_mode');
+      return stored === 'week' ? 'week' : 'day';
+    } catch {
+      return 'day';
+    }
+  });
 
   // Attendance summary dialog state (reuses QR scanner's AttendanceViolationsModal)
   const [showAttSummaryModal, setShowAttSummaryModal] = useState(false);
@@ -166,7 +194,7 @@ const WelcomePage = () => {
 
   const weekDayDates = useMemo(() => getWeekDayDates(selectedDate), [selectedDate]);
 
-  useScheduleStatusRealtime({
+  const { refreshWeek: refreshScheduleStatus } = useScheduleStatusRealtime({
     classIds: cohortClassIds,
     weekDates: weekDayDates,
     setStatusMap,
@@ -767,44 +795,30 @@ const WelcomePage = () => {
       cellDate.setDate(cellDate.getDate() + dayOffset);
     }
     const dateStr = toIsoDate(cellDate);
-    const key = `daily-att-${cls.id}-${dateStr}-${format}`;
-    setExportingKey(key);
-    setSnackbar({
-      open: true,
-      message: `${t('daily_official') || 'Daily Official'} — ${t('exporting')}…`,
-      severity: 'info',
-      progress: 0,
-    });
+
+    let fileId = null;
+    let isApproved = false;
     try {
-      await exportDailyOfficialForDate({
-        cls,
-        program: selection?.program,
-        subject: cls.subject,
-        academicTerm: selection?.academicTerm,
-        lang,
-        user,
-        date: dateStr,
-        instructorName: slot?.instructor,
-        format,
-      });
-      setSnackbar({
-        open: true,
-        message: `${t('daily_official') || 'Daily Official'} — ${t('export_success') || 'Export successful'}`,
-        severity: 'success',
-        progress: null,
-      });
+      const wfResult = await findExistingAttendanceWorkflow(cls.id, dateStr);
+      if (wfResult.success && wfResult.data) {
+        fileId = wfResult.data.fileId || null;
+        isApproved = String(wfResult.data.status || '').toUpperCase() === 'APPROVED';
+      }
     } catch (err) {
-      console.error('[WelcomePage] daily attendance export failed:', err);
-      setSnackbar({
-        open: true,
-        message: `${t('daily_official') || 'Daily Official'} — ${t('export_failed') || 'Export failed'}`,
-        severity: 'error',
-        progress: null,
-      });
-    } finally {
-      setExportingKey(null);
+      console.error('[WelcomePage] findExistingAttendanceWorkflow failed:', err);
     }
-  }, [selection?.program, selection?.academicTerm, selectedDate, lang, t, user]);
+
+    setGridPdfPreview({
+      cls,
+      program: selection?.program,
+      subject: cls.subject,
+      academicTerm: selection?.academicTerm,
+      date: dateStr,
+      instructorName: slot?.instructor,
+      fileId,
+      isApproved,
+    });
+  }, [selection?.program, selection?.academicTerm, selectedDate]);
 
   const handleExportDailyTemplate = useCallback(async (format = EXPORT_FORMAT.PDF) => {
     if (!selection?.program || !selection?.academicTerm) {
@@ -852,6 +866,151 @@ const WelcomePage = () => {
       setExportingKey(null);
     }
   }, [selection?.program, selection?.academicTerm, lang, t, user]);
+
+  // Fetch the latest approved weekly attendance violation snapshot and closure status for the selected week (HR/Admin only)
+  useEffect(() => {
+    if (!isHR && !isAdmin && !isSuperAdmin) return;
+    if (!selectedDate) return;
+    const { weekFrom, weekTo } = getWeekRange(selectedDate);
+    let cancelled = false;
+    Promise.all([
+      getApprovedSnapshotForWeek({ weekFrom, weekTo, programId: selection?.program?.id }),
+      getClosureStatus({ dateFrom: weekFrom, dateTo: weekTo, scopeType: 'PROGRAM', programId: selection?.program?.id }),
+      getInProgressWeeklyWorkflow({ weekFrom, weekTo, programId: selection?.program?.id }),
+    ]).then(([snapRes, closureRes, inProgressRes]) => {
+      if (!cancelled) {
+        setWeeklySnapshot(snapRes?.data || null);
+        setWeekClosure(closureRes?.data || null);
+        setWeeklyInProgressWorkflow(inProgressRes?.data || null);
+      }
+    }).catch(() => {
+      if (!cancelled) {
+        setWeeklySnapshot(null);
+        setWeekClosure(null);
+        setWeeklyInProgressWorkflow(null);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [selectedDate, isHR, isAdmin, isSuperAdmin, selection?.program?.id]);
+
+  const openWeeklySnapshot = useCallback(() => {
+    if (weeklySnapshot?.snapshotFile?.id) {
+      window.open(`/api/v1/drive/files/${weeklySnapshot.snapshotFile.id}/download`, '_blank');
+    } else if (weeklySnapshot?.snapshotFileId) {
+      window.open(`/api/v1/drive/files/${weeklySnapshot.snapshotFileId}/download`, '_blank');
+    } else if (weeklySnapshot?.file?.id) {
+      window.open(`/api/v1/drive/files/${weeklySnapshot.file.id}/download`, '_blank');
+    } else if (weeklySnapshot?.fileId) {
+      window.open(`/api/v1/drive/files/${weeklySnapshot.fileId}/download`, '_blank');
+    } else if (weeklyInProgressWorkflow?.snapshotFileId) {
+      window.open(`/api/v1/drive/files/${weeklyInProgressWorkflow.snapshotFileId}/download`, '_blank');
+    } else if (weeklyInProgressWorkflow?.file?.id) {
+      window.open(`/api/v1/drive/files/${weeklyInProgressWorkflow.file.id}/download`, '_blank');
+    }
+  }, [weeklySnapshot, weeklyInProgressWorkflow]);
+
+  const getWeeklyWorkflowStatusColor = useCallback((status) => {
+    switch (status) {
+      case 'DRAFT': return '#9ca3af';
+      case 'SUBMITTED': return '#eab308';
+      case 'UNDER_ADMIN_REVIEW': return '#f59e0b';
+      case 'UNDER_HR_REVIEW': return '#f97316';
+      case 'APPROVED': return '#16a34a';
+      case 'REJECTED': return '#dc2626';
+      default: return '#9ca3af';
+    }
+  }, []);
+
+  const handleInitiateWeeklyWorkflow = useCallback(async () => {
+    if (!selectedDate || !selection?.program) return;
+    // If a weekly workflow already exists, navigate to Operations → Week mode to view it
+    if (weeklyInProgressWorkflow) {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('tab', 'operations');
+        next.set('lane', 'status');
+        next.set('date', toIsoDate(selectedDate));
+        return next;
+      });
+      try { localStorage.setItem('welcome_ops_view_mode', 'week'); } catch {}
+      return;
+    }
+    // Open confirmation dialog
+    setInitiateWeeklyDialogOpen(true);
+  }, [selectedDate, selection?.program, weeklyInProgressWorkflow, setSearchParams]);
+
+  const handleConfirmInitiateWeeklyWorkflow = useCallback(async () => {
+    if (!selectedDate || !selection?.program) return;
+    const { weekFrom, weekTo } = getWeekRange(selectedDate);
+    setInitiateWeeklyDialogOpen(false);
+    setWeeklyWorkflowLoading(true);
+    try {
+      const result = await initiateWeeklyWorkflow({
+        programId: selection.program.id,
+        programName: selection.program.name || selection.program.nameEn || '',
+        classIds: cohortClassIds,
+        weekFrom,
+        weekTo,
+        lang,
+        user,
+      });
+      if (result.success) {
+        setSnackbar({ open: true, message: t('weekly_workflow_created', 'Weekly workflow created successfully'), severity: 'success' });
+      } else {
+        setSnackbar({ open: true, message: result.error || t('weekly_workflow_error', 'Failed to create weekly workflow'), severity: 'error' });
+      }
+    } catch (err) {
+      setSnackbar({ open: true, message: err.message || t('weekly_workflow_error', 'Failed to create weekly workflow'), severity: 'error' });
+    } finally {
+      setWeeklyWorkflowLoading(false);
+    }
+  }, [selectedDate, selection?.program, cohortClassIds, lang, user, t]);
+
+  const handleCloseWeek = useCallback(async () => {
+    if (!selectedDate || !selection?.program) return;
+    const { weekFrom, weekTo } = getWeekRange(selectedDate);
+    try {
+      const result = await closePeriod({
+        closureType: 'WEEKLY',
+        dateFrom: weekFrom,
+        dateTo: weekTo,
+        scopeType: 'PROGRAM',
+        programId: selection.program.id,
+        workflowDocumentId: weeklySnapshot?.id || null,
+      });
+      if (result.success) {
+        setWeekClosure(result.data);
+        setCloseWeekDialogOpen(false);
+        setSnackbar({ open: true, message: t('week_closed_success', 'Week has been closed successfully'), severity: 'success' });
+      } else {
+        setSnackbar({ open: true, message: result.error || t('week_closed_error', 'Failed to close week'), severity: 'error' });
+      }
+    } catch (err) {
+      setSnackbar({ open: true, message: err.message || t('week_closed_error', 'Failed to close week'), severity: 'error' });
+    }
+  }, [selectedDate, selection?.program, weeklySnapshot, t]);
+
+  const handleReopenWeek = useCallback(async () => {
+    if (!selectedDate || !selection?.program) return;
+    const { weekFrom, weekTo } = getWeekRange(selectedDate);
+    try {
+      const result = await reopenPeriod({
+        closureType: 'WEEKLY',
+        dateFrom: weekFrom,
+        dateTo: weekTo,
+        scopeType: 'PROGRAM',
+        programId: selection.program.id,
+      });
+      if (result.success) {
+        setWeekClosure(null);
+        setSnackbar({ open: true, message: t('week_reopened_success', 'Week has been reopened'), severity: 'success' });
+      } else {
+        setSnackbar({ open: true, message: result.error || t('week_reopened_error', 'Failed to reopen week'), severity: 'error' });
+      }
+    } catch (err) {
+      setSnackbar({ open: true, message: err.message || t('week_reopened_error', 'Failed to reopen week'), severity: 'error' });
+    }
+  }, [selectedDate, selection?.program, t]);
 
   const openAttendanceSummaryModal = useCallback((format = EXPORT_FORMAT.PDF) => {
     if (!selection?.program || !selection?.academicTerm) {
@@ -1259,6 +1418,40 @@ const WelcomePage = () => {
                 )}
                 <Tab label={t('welcome_tab_overview') || 'Overview'} />
               </Tabs>
+              {(() => {
+                const classId = searchParams.get('classId');
+                let className = null;
+                if (classId && scheduleData) {
+                  for (const day of scheduleData.days || []) {
+                    for (const slot of Object.values(day.slots || {})) {
+                      if (slot && slot.classId && String(slot.classId) === String(classId)) {
+                        className = lang === 'ar' ? (slot.class?.nameAr || slot.subjectName) : (slot.class?.nameEn || slot.subjectName);
+                        break;
+                      }
+                    }
+                    if (className) break;
+                  }
+                }
+                if (!className) return null;
+                return (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 10px',
+                    borderRadius: '12px',
+                    background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)',
+                    border: `1px solid ${isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.2)'}`,
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    color: '#3b82f6',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}>
+                    {className}
+                  </div>
+                );
+              })()}
               {showSchedule && tabParam === 'schedule' && canExport && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                   {isHR && (
@@ -1297,6 +1490,192 @@ const WelcomePage = () => {
                       </IconButton>
                     </span>
                   </ColoredTooltip>
+                  )}
+                  {(isHR || isAdmin || isSuperAdmin) && (
+                    <>
+                      {/* Weekly workflow icon group */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        {/* Snapshot / View Approved Report icon */}
+                        <ColoredTooltip
+                          title={(() => {
+                            if (weekClosure?.isClosed) {
+                              const closeDate = weekClosure.closedAt ? formatSnapshotDate(weekClosure.closedAt) : '—';
+                              return t('weekly_snapshot_closed', 'Week Closed - View Official Report') + ` (${formatSnapshotDate(weeklySnapshot?.snapshotWeekFrom)} → ${formatSnapshotDate(weeklySnapshot?.snapshotWeekTo)}, ${t('closed_on', 'closed on')} ${closeDate})`;
+                            }
+                            if (weeklySnapshot) {
+                              const approvedDate = weeklySnapshot.updatedAt ? formatSnapshotDate(weeklySnapshot.updatedAt) : (weeklySnapshot.snapshotDate ? formatSnapshotDate(weeklySnapshot.snapshotDate) : '—');
+                              return t('weekly_snapshot_view', 'View Approved Weekly Report') + ` (${formatSnapshotDate(weeklySnapshot.snapshotWeekFrom)} → ${formatSnapshotDate(weeklySnapshot.snapshotWeekTo)}, ${t('approved_on', 'approved on')} ${approvedDate})`;
+                            }
+                            if (weeklyInProgressWorkflow?.status === 'APPROVED') {
+                              const approvedDate = weeklyInProgressWorkflow.updatedAt ? formatSnapshotDate(weeklyInProgressWorkflow.updatedAt) : '—';
+                              return t('weekly_snapshot_view', 'View Approved Weekly Report') + ` (${t('approved_on', 'approved on')} ${approvedDate})`;
+                            }
+                            return t('weekly_snapshot_none', 'No approved weekly report for this week');
+                          })()}
+                          color={weekClosure?.isClosed ? '#dc2626' : ((weeklySnapshot || weeklyInProgressWorkflow?.status === 'APPROVED') ? '#16a34a' : '#9ca3af')}
+                          placement="bottom"
+                        >
+                          <span>
+                            <IconButton
+                              size="small"
+                              disabled={!weeklySnapshot && weeklyInProgressWorkflow?.status !== 'APPROVED'}
+                              data-testid="tab-action-weekly-snapshot"
+                              sx={{ padding: '2px' }}
+                              onClick={openWeeklySnapshot}
+                            >
+                              {weekClosure?.isClosed
+                                ? <Lock size={16} style={{ color: '#dc2626' }} />
+                                : <FileCheck2 size={16} style={{ color: (weeklySnapshot || weeklyInProgressWorkflow?.status === 'APPROVED') ? '#16a34a' : '#9ca3af' }} />
+                              }
+                            </IconButton>
+                          </span>
+                        </ColoredTooltip>
+
+                        {/* Initiate / Status icon */}
+                        {(isHR || isSuperAdmin) && !weeklyInProgressWorkflow && (
+                          <ColoredTooltip
+                            title={weekClosure?.isClosed
+                              ? t('week_closed_cannot_initiate', 'Week is closed — cannot initiate a new workflow')
+                              : t('initiate_weekly_workflow', 'Initiate Weekly Workflow')
+                            }
+                            color={weekClosure?.isClosed ? '#9ca3af' : '#2563eb'}
+                            placement="bottom"
+                          >
+                            <span>
+                              <IconButton
+                                size="small"
+                                disabled={weeklyWorkflowLoading || weekClosure?.isClosed}
+                                data-testid="tab-action-initiate-weekly-workflow"
+                                sx={{ padding: '2px' }}
+                                onClick={handleInitiateWeeklyWorkflow}
+                              >
+                                {weeklyWorkflowLoading
+                                  ? <CircularProgress size={16} />
+                                  : <CalendarPlus size={16} style={{ color: weekClosure?.isClosed ? '#9ca3af' : '#2563eb' }} />
+                                }
+                              </IconButton>
+                            </span>
+                          </ColoredTooltip>
+                        )}
+                        {(isHR || isSuperAdmin) && weeklyInProgressWorkflow && weeklyInProgressWorkflow.status !== 'APPROVED' && (
+                          <ColoredTooltip
+                            title={weekClosure?.isClosed
+                              ? `${t('workflow_status', 'Status')}: ${weeklyInProgressWorkflow.status} — ${t('week_closed_cannot_modify', 'Week is closed')}`
+                              : `${t('workflow_status', 'Status')}: ${weeklyInProgressWorkflow.status} — ${t('click_to_view_on_board', 'Click to view on operations board')}`
+                            }
+                            color={weekClosure?.isClosed ? '#9ca3af' : getWeeklyWorkflowStatusColor(weeklyInProgressWorkflow.status)}
+                            placement="bottom"
+                          >
+                            <span>
+                              <IconButton
+                                size="small"
+                                disabled={weeklyWorkflowLoading || weekClosure?.isClosed}
+                                data-testid="tab-action-initiate-weekly-workflow"
+                                sx={{ padding: '2px' }}
+                                onClick={handleInitiateWeeklyWorkflow}
+                              >
+                                {weeklyWorkflowLoading
+                                  ? <CircularProgress size={16} />
+                                  : <CalendarPlus size={16} style={{ color: weekClosure?.isClosed ? '#9ca3af' : getWeeklyWorkflowStatusColor(weeklyInProgressWorkflow.status) }} />
+                                }
+                              </IconButton>
+                            </span>
+                          </ColoredTooltip>
+                        )}
+
+                        {/* Approved status icon */}
+                        {(isHR || isSuperAdmin) && weeklyInProgressWorkflow?.status === 'APPROVED' && !weekClosure?.isClosed && !weeklySnapshot && (
+                          <ColoredTooltip
+                            title={(() => {
+                              const approvedDate = weeklyInProgressWorkflow.updatedAt ? formatSnapshotDate(weeklyInProgressWorkflow.updatedAt) : '—';
+                              return t('workflow_status_approved', 'Weekly report approved') + ` (${t('approved_on', 'approved on')} ${approvedDate})`;
+                            })()}
+                            color="#16a34a"
+                            placement="bottom"
+                          >
+                            <span>
+                              <IconButton
+                                size="small"
+                                data-testid="tab-action-weekly-approved"
+                                sx={{ padding: '2px' }}
+                                onClick={handleInitiateWeeklyWorkflow}
+                              >
+                                <FileCheck2 size={16} style={{ color: '#16a34a' }} />
+                              </IconButton>
+                            </span>
+                          </ColoredTooltip>
+                        )}
+
+                        {/* Rejected status icon */}
+                        {(isHR || isSuperAdmin) && weeklyInProgressWorkflow?.status === 'REJECTED' && !weekClosure?.isClosed && (
+                          <ColoredTooltip
+                            title={(() => {
+                              const rejectedDate = weeklyInProgressWorkflow.updatedAt ? formatSnapshotDate(weeklyInProgressWorkflow.updatedAt) : '—';
+                              return t('workflow_status_rejected', 'Weekly report rejected') + ` (${t('rejected_on', 'rejected on')} ${rejectedDate})`;
+                            })()}
+                            color="#dc2626"
+                            placement="bottom"
+                          >
+                            <span>
+                              <IconButton
+                                size="small"
+                                data-testid="tab-action-weekly-rejected"
+                                sx={{ padding: '2px' }}
+                                onClick={handleInitiateWeeklyWorkflow}
+                              >
+                                <FileX2 size={16} style={{ color: '#dc2626' }} />
+                              </IconButton>
+                            </span>
+                          </ColoredTooltip>
+                        )}
+
+                        {/* Close Week icon */}
+                        {(isHR || isSuperAdmin) && (weeklySnapshot || weeklyInProgressWorkflow?.status === 'APPROVED') && !weekClosure?.isClosed && (
+                          <ColoredTooltip
+                            title={t('close_week', 'Close Week')}
+                            color="#dc2626"
+                            placement="bottom"
+                          >
+                            <span>
+                              <IconButton
+                                size="small"
+                                data-testid="tab-action-close-week"
+                                sx={{ padding: '2px' }}
+                                onClick={() => setCloseWeekDialogOpen(true)}
+                              >
+                                <Lock size={16} style={{ color: '#dc2626' }} />
+                              </IconButton>
+                            </span>
+                          </ColoredTooltip>
+                        )}
+
+                        {/* Reopen Week icon */}
+                        {(isHR || isSuperAdmin) && weekClosure?.isClosed && (
+                          <ColoredTooltip
+                            title={(() => {
+                              const closeDate = weekClosure.closedAt ? formatSnapshotDate(weekClosure.closedAt) : '—';
+                              return t('reopen_week', 'Reopen Week') + ` (${t('closed_on', 'closed on')} ${closeDate})`;
+                            })()}
+                            color="#f59e0b"
+                            placement="bottom"
+                          >
+                            <span>
+                              <IconButton
+                                size="small"
+                                data-testid="tab-action-reopen-week"
+                                sx={{ padding: '2px' }}
+                                onClick={handleReopenWeek}
+                              >
+                                <Lock size={16} style={{ color: '#f59e0b', transform: 'rotate(45deg)' }} />
+                              </IconButton>
+                            </span>
+                          </ColoredTooltip>
+                        )}
+                      </div>
+
+                      {/* Pipe separator between weekly group and export icons */}
+                      <div style={{ width: 1, height: 20, backgroundColor: '#d1d5db', margin: '0 4px' }} />
+                    </>
                   )}
                   <ColoredTooltip
                     title={
@@ -1370,40 +1749,6 @@ const WelcomePage = () => {
                   </ColoredTooltip>
                 </div>
               )}
-              {(() => {
-                const classId = searchParams.get('classId');
-                let className = null;
-                if (classId && scheduleData) {
-                  for (const day of scheduleData.days || []) {
-                    for (const slot of Object.values(day.slots || {})) {
-                      if (slot && slot.classId && String(slot.classId) === String(classId)) {
-                        className = lang === 'ar' ? (slot.class?.nameAr || slot.subjectName) : (slot.class?.nameEn || slot.subjectName);
-                        break;
-                      }
-                    }
-                    if (className) break;
-                  }
-                }
-                if (!className) return null;
-                return (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '2px 10px',
-                    borderRadius: '12px',
-                    background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)',
-                    border: `1px solid ${isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.2)'}`,
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
-                    color: '#3b82f6',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}>
-                    {className}
-                  </div>
-                );
-              })()}
               {showSchedule && tabParam === 'schedule' && (
                 <div data-tour="welcome-week-nav" style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginRight: '36px' }}>
                   <button
@@ -1480,14 +1825,18 @@ const WelcomePage = () => {
                 </div>
               )}
               {showSchedule && tabParam === 'operations' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0, justifyContent: 'center', marginRight: '36px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, justifyContent: 'center', marginRight: '36px' }}>
                   <button
                     onClick={() => {
                       const prev = new Date(selectedDate);
-                      prev.setDate(prev.getDate() - 1);
+                      if (opsViewMode === 'week') {
+                        prev.setDate(prev.getDate() - 7);
+                      } else {
+                        prev.setDate(prev.getDate() - 1);
+                      }
                       setSelectedDate(prev);
                     }}
-                    aria-label={t('calendar_previous') || 'Previous day'}
+                    aria-label={t('calendar_previous') || 'Previous'}
                     style={{
                       background: 'transparent',
                       border: 'none',
@@ -1501,8 +1850,35 @@ const WelcomePage = () => {
                     }}
                     data-testid="welcome-day-prev"
                   >
-                    {lang === 'ar' ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                  {lang === 'ar' ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
                   </button>
+                  {opsViewMode === 'week' ? (() => {
+                    const ws = new Date(selectedDate);
+                    ws.setDate(ws.getDate() - ws.getDay());
+                    const we = new Date(ws);
+                    we.setDate(we.getDate() + 4);
+                    const fmt = (x) => `${String(x.getDate()).padStart(2, '0')}/${String(x.getMonth() + 1).padStart(2, '0')}`;
+                    const jan1 = new Date(ws.getFullYear(), 0, 1);
+                    const dayOfYear = Math.floor((ws - jan1) / 86400000) + 1;
+                    const weekNum = Math.ceil(dayOfYear / 7);
+                    return (
+                      <span style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        color: isDark ? '#e2e8f0' : '#1e293b',
+                        whiteSpace: 'nowrap',
+                        padding: '0 6px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}>
+                        <span style={{ display: 'inline-block', width: 38, textAlign: 'right' }}>W{weekNum}</span>
+                        <span style={{ display: 'inline-block', width: 38, textAlign: 'center' }}>{fmt(ws)}</span>
+                        <span style={{ opacity: 0.5 }}>-</span>
+                        <span style={{ display: 'inline-block', width: 38, textAlign: 'center' }}>{fmt(we)}</span>
+                      </span>
+                    );
+                  })() : (
                   <DatePicker
                     value={selectedDate.toISOString().slice(0, 10)}
                     onChange={(value) => {
@@ -1516,13 +1892,18 @@ const WelcomePage = () => {
                     data-testid="welcome-working-date"
                     style={{ width: 100 }}
                   />
+                  )}
                   <button
                     onClick={() => {
                       const next = new Date(selectedDate);
-                      next.setDate(next.getDate() + 1);
+                      if (opsViewMode === 'week') {
+                        next.setDate(next.getDate() + 7);
+                      } else {
+                        next.setDate(next.getDate() + 1);
+                      }
                       setSelectedDate(next);
                     }}
-                    aria-label={t('calendar_next') || 'Next day'}
+                    aria-label={t('calendar_next') || 'Next'}
                     style={{
                       background: 'transparent',
                       border: 'none',
@@ -1538,6 +1919,42 @@ const WelcomePage = () => {
                   >
                     {lang === 'ar' ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
                   </button>
+                  <div style={{ display: 'flex', borderRadius: '6px', overflow: 'hidden', border: `1px solid ${isDark ? '#334155' : '#cbd5e1'}` }}>
+                    <button
+                      onClick={() => {
+                        setOpsViewMode('day');
+                        try { localStorage.setItem('welcome_ops_view_mode', 'day'); } catch {}
+                      }}
+                      style={{
+                        background: opsViewMode === 'day' ? (isDark ? '#1e40af' : '#2563eb') : 'transparent',
+                        color: opsViewMode === 'day' ? '#fff' : (isDark ? '#94a3b8' : '#64748b'),
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '2px 8px',
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {t('day') || 'Day'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setOpsViewMode('week');
+                        try { localStorage.setItem('welcome_ops_view_mode', 'week'); } catch {}
+                      }}
+                      style={{
+                        background: opsViewMode === 'week' ? (isDark ? '#1e40af' : '#2563eb') : 'transparent',
+                        color: opsViewMode === 'week' ? '#fff' : (isDark ? '#94a3b8' : '#64748b'),
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '2px 8px',
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {t('week') || 'Week'}
+                    </button>
+                  </div>
                 </div>
               )}
             </Box>
@@ -1562,12 +1979,12 @@ const WelcomePage = () => {
                       scheduleData={scheduleData}
                       statusMap={statusMap}
                       instructorId={isInstructor ? instructorId : null}
-                      interactiveAll={canInteractAll}
+                      interactiveAll={canInteractAll && !weekClosure?.isClosed}
                       selectedDate={selectedDate}
                       selectedSlot={selectedSlot}
-                      onCellClick={handleCellClick}
+                      onCellClick={weekClosure?.isClosed ? undefined : handleCellClick}
                       onDateChange={setSelectedDate}
-                      onGenerateDailyAttendance={handleGenerateDailyAttendance}
+                      onGenerateDailyAttendance={weekClosure?.isClosed ? undefined : handleGenerateDailyAttendance}
                       compact
                       fillHeight
                       fillWidth
@@ -1639,6 +2056,8 @@ const WelcomePage = () => {
                       fontScale={scheduleFontScale}
                       onOpenHistory={handleOpenHistory}
                       onDateChange={setSelectedDate}
+                      viewMode={opsViewMode}
+                      onBoardDataChanged={refreshScheduleStatus}
                     />
                   </Suspense>
                 </div>
@@ -1703,9 +2122,70 @@ const WelcomePage = () => {
         onSelectTerm={handleTermSelect}
       />
 
+      <Dialog
+        open={closeWeekDialogOpen}
+        onClose={() => setCloseWeekDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Lock size={20} color="#dc2626" />
+          {t('close_week_title', 'Close Week')}
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mt: 1 }}>
+            {t('close_week_warning', 'Closing this week will prevent further attendance changes. An official weekly report will be generated. This action can be reversed by reopening the week.')}
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setCloseWeekDialogOpen(false)}>
+            {t('cancel', 'Cancel')}
+          </Button>
+          <Button variant="contained" color="error" onClick={handleCloseWeek}>
+            {t('close_week_confirm', 'Close Week')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Initiate Weekly Workflow confirmation dialog */}
+      <Dialog
+        open={initiateWeeklyDialogOpen}
+        onClose={() => setInitiateWeeklyDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <CalendarPlus size={20} color="#2563eb" />
+          {t('initiate_weekly_workflow_title', 'Initiate Weekly Workflow')}
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mt: 1 }}>
+            {t('initiate_weekly_workflow_confirm', 'This will create a weekly attendance summary workflow for the selected week. The report will be generated from existing attendance data and submitted for review.')}
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setInitiateWeeklyDialogOpen(false)}>
+            {t('cancel', 'Cancel')}
+          </Button>
+          <Button variant="contained" color="primary" onClick={handleConfirmInitiateWeeklyWorkflow}>
+            {t('initiate_weekly_workflow_confirm_button', 'Initiate Workflow')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {weekClosure?.isClosed && (isHR || isAdmin || isSuperAdmin) && (
+        <Alert
+          severity="info"
+          icon={<Lock size={18} />}
+          sx={{ mx: 2, mb: 1, borderRadius: 1 }}
+        >
+          {t('week_closed_banner', 'This week is closed. Attendance changes are locked. Official report is available.')}
+        </Alert>
+      )}
+
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={snackbar.progress !== null ? null : 4000}
+        autoHideDuration={snackbar.progress != null ? null : 4000}
         onClose={(_, reason) => {
           if (reason === 'clickaway') return;
           setSnackbar((s) => ({ ...s, open: false }));
@@ -1719,7 +2199,7 @@ const WelcomePage = () => {
           sx={{ width: 320, overflow: 'hidden' }}
         >
           {snackbar.message}
-          {snackbar.progress !== null && (
+          {snackbar.progress != null && (
             <LinearProgress
               color={snackbar.severity}
               sx={{ mt: 1, borderRadius: 1 }}
@@ -1755,6 +2235,21 @@ const WelcomePage = () => {
         lang={lang}
         theme={theme}
         successResult={attSummarySuccess}
+      />
+
+      <PdfPreviewDialog
+        open={Boolean(gridPdfPreview)}
+        onClose={() => setGridPdfPreview(null)}
+        cls={gridPdfPreview?.cls}
+        program={gridPdfPreview?.program}
+        subject={gridPdfPreview?.subject}
+        academicTerm={gridPdfPreview?.academicTerm}
+        date={gridPdfPreview?.date}
+        instructorName={gridPdfPreview?.instructorName}
+        user={user}
+        title={t('daily_official') || 'Daily Official'}
+        fileId={gridPdfPreview?.fileId}
+        isApproved={gridPdfPreview?.isApproved}
       />
 
       <style>{`

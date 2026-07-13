@@ -18,7 +18,6 @@ import {
   fetchAttendanceBoardData,
   moveWorkflowCard,
   moveAttendanceCard,
-  markWorkflowAsTaken,
   WORKFLOW_COLUMNS,
   ATTENDANCE_COLUMNS,
 } from '@services/business/operationsBoardService.js';
@@ -36,9 +35,14 @@ import {
   canMoveWorkflowToColumn,
   shouldConfirmWorkflowMove,
   requiresAdminInstructorOverride,
+  resolveWorkflowNotifyMeta,
 } from '@components/operations-board/workflowBoardRules.js';
 import { resolveBoardStudentName, parseWorkflowCardName, shortenWorkflowDisplayName } from '@components/operations-board/operationsBoardDisplayUtils.js';
 import WorkflowMoveConfirmDialog from '@components/operations-board/WorkflowMoveConfirmDialog.jsx';
+import ApprovalSuccessDialog from '@components/workflow/ApprovalSuccessDialog.jsx';
+import { generateWeeklyViolationSnapshot, generateDailyViolationSnapshot } from '@services/business/workflowSnapshotService.js';
+import { exportDailyOfficialForDate } from '@services/business/accessScopeExportService.js';
+import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
 
 const VIEWS = { KANBAN: 'kanban', LIST: 'list', TABLE: 'table' };
 const LANES = { STATUS: 'status', ATTENDANCE: 'attendance' };
@@ -50,6 +54,7 @@ const MAX_LANE_WIDTH = 560;
 const COLLAPSED_LANE_WIDTH = 56;
 const LANE_GAP = 16;
 const LANE_COLLAPSE_KEY = 'operations_board_collapsed_lanes';
+const LANE_COLLAPSE_VERSION = 2; // bump when default collapse logic changes to invalidate stale localStorage
 
 function loadStoredLaneWidths() {
   try {
@@ -64,7 +69,12 @@ function loadCollapsedLanes() {
   try {
     const raw = localStorage.getItem(LANE_COLLAPSE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
-    return parsed && typeof parsed === 'object' ? parsed : {};
+    if (parsed && parsed._v !== LANE_COLLAPSE_VERSION) {
+      localStorage.removeItem(LANE_COLLAPSE_KEY);
+      return {};
+    }
+    const { _v, ...lanes } = parsed || {};
+    return lanes && typeof lanes === 'object' ? lanes : {};
   } catch {
     return {};
   }
@@ -81,6 +91,7 @@ function hasStoredCollapsed(boardKey) {
   try {
     const raw = localStorage.getItem(LANE_COLLAPSE_KEY);
     const parsed = raw ? JSON.parse(raw) : {};
+    if (parsed?._v !== LANE_COLLAPSE_VERSION) return false;
     return Array.isArray(parsed?.[boardKey]);
   } catch {
     return false;
@@ -165,10 +176,12 @@ export default function OperationsBoardPage({
   fontScale = 100,
   onOpenHistory = null,
   onDateChange = null,
+  viewMode = 'day',
+  onBoardDataChanged = null,
 }) {
   const { t, lang } = useLang();
   const { theme } = useTheme();
-  const { isInstructor, isAdmin, isHR, isSuperAdmin } = useAuth();
+  const { user, isInstructor, isAdmin, isHR, isSuperAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const roleContext = useMemo(() => ({
@@ -194,6 +207,7 @@ export default function OperationsBoardPage({
   const [collapsedLanes, setCollapsedLanes] = useState(loadCollapsedLanes);
   const [pendingWorkflowMove, setPendingWorkflowMove] = useState(null);
   const [workflowMoveLoading, setWorkflowMoveLoading] = useState(false);
+  const [approvalSnapshot, setApprovalSnapshot] = useState(null);
   const [participationRefreshKey, setParticipationRefreshKey] = useState(0);
   const resizingLaneRef = useRef(null);
   const boardViewportRef = useRef(null);
@@ -366,14 +380,28 @@ export default function OperationsBoardPage({
   useEffect(() => {
     if (hasStoredCollapsed('workflow')) return;
     const defaults = getDefaultCollapsedForRole(roleContext);
-    if (defaults.length === 0) return;
+    // In week mode, don't collapse DRAFT — weekly workflows start as DRAFT and need to be visible
+    const filteredDefaults = viewMode === 'week' ? defaults.filter((d) => d !== 'DRAFT') : defaults;
+    if (filteredDefaults.length === 0) return;
     setCollapsedLanes((prev) => {
       if (Array.isArray(prev?.workflow)) return prev;
-      const next = { ...prev, workflow: defaults };
-      try { localStorage.setItem(LANE_COLLAPSE_KEY, JSON.stringify(next)); } catch {}
+      const next = { ...prev, workflow: filteredDefaults };
+      try { localStorage.setItem(LANE_COLLAPSE_KEY, JSON.stringify({ ...next, _v: LANE_COLLAPSE_VERSION })); } catch {}
       return next;
     });
-  }, [roleContext]);
+  }, [roleContext, viewMode]);
+
+  // When switching to week mode, un-collapse DRAFT if it was collapsed
+  useEffect(() => {
+    if (viewMode !== 'week') return;
+    setCollapsedLanes((prev) => {
+      const current = Array.isArray(prev?.workflow) ? prev.workflow : [];
+      if (!current.includes('DRAFT')) return prev;
+      const next = { ...prev, workflow: current.filter((d) => d !== 'DRAFT') };
+      try { localStorage.setItem(LANE_COLLAPSE_KEY, JSON.stringify({ ...next, _v: LANE_COLLAPSE_VERSION })); } catch {}
+      return next;
+    });
+  }, [viewMode]);
 
   const toggleLaneCollapse = useCallback((boardKey, columnId) => {
     setCollapsedLanes((prev) => {
@@ -381,7 +409,7 @@ export default function OperationsBoardPage({
       if (current.has(columnId)) current.delete(columnId);
       else current.add(columnId);
       const next = { ...prev, [boardKey]: [...current] };
-      try { localStorage.setItem(LANE_COLLAPSE_KEY, JSON.stringify(next)); } catch {}
+      try { localStorage.setItem(LANE_COLLAPSE_KEY, JSON.stringify({ ...next, _v: LANE_COLLAPSE_VERSION })); } catch {}
       return next;
     });
   }, []);
@@ -433,10 +461,23 @@ export default function OperationsBoardPage({
     noWorkflowsToastShownRef.current = false;
   }, [lane]);
 
+  console.log('[OperationsBoardPage] viewMode:', viewMode);
   const filters = useMemo(() => {
     const f = {};
     const date = searchParams.get('date') || toIsoDate(welcomeContext?.date) || todayIso();
-    f.date = date;
+    if (viewMode === 'week') {
+      const anchor = new Date(`${date}T12:00:00`);
+      const weekStart = new Date(anchor);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 4);
+      f.dateFrom = toIsoDate(weekStart);
+      f.dateTo = toIsoDate(weekEnd);
+      f.attendanceSubtype = 'WEEKLY_SUMMARY';
+    } else {
+      f.date = date;
+      f.attendanceSubtype = 'DAILY';
+    }
     if (searchParams.get('classId')) f.classId = searchParams.get('classId');
     if (searchParams.get('programId')) f.programId = searchParams.get('programId');
     else if (welcomeContext?.programId) f.programId = String(welcomeContext.programId);
@@ -448,8 +489,10 @@ export default function OperationsBoardPage({
     if (welcomeContext?.classIds?.length) {
       f.classIds = welcomeContext.classIds.map((id) => parseInt(id, 10)).filter(Boolean);
     }
+    f.lang = lang;
+    console.log('[OperationsBoardPage] filters:', JSON.stringify(f));
     return f;
-  }, [searchParams, workflowId, welcomeContext]);
+  }, [searchParams, workflowId, welcomeContext, viewMode, lang]);
 
   // Auto-switch to attendance lane only when classId first appears (not on every lane change)
   const autoSwitchedClassIdRef = useRef(null);
@@ -466,6 +509,50 @@ export default function OperationsBoardPage({
       autoSwitchedClassIdRef.current = null;
     }
   }, [filters.classId, lane, updateParams]);
+
+  // Week mode only supports workflow lane, not attendance
+  useEffect(() => {
+    if (viewMode === 'week' && lane === LANES.ATTENDANCE) {
+      updateParams((next) => {
+        next.set('lane', LANES.STATUS);
+      });
+    }
+  }, [viewMode, lane, updateParams]);
+
+  // Auto-select a classId when attendance lane is active but none is selected.
+  // Fetches workflow board data for the current date and picks the first workflow's classId
+  // so the admin/instructor sees attendance data immediately without manually selecting a class.
+  const autoClassSelectRef = useRef(null);
+  useEffect(() => {
+    if (lane !== LANES.ATTENDANCE || filters.classId || viewMode === 'week' || !filters.date) return;
+    const dateStr = typeof filters.date === 'string' ? filters.date.slice(0, 10) : '';
+    if (!dateStr) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const wfResult = await fetchWorkflowBoardData({
+          date: dateStr,
+          programId: filters.programId,
+          workflowCategory: 'ATTENDANCE',
+          attendanceSubtype: 'DAILY',
+          lang,
+        });
+        if (cancelled) return;
+        if (wfResult.success && wfResult.data?.length) {
+          const first = wfResult.data[0];
+          if (first?.classId) {
+            autoClassSelectRef.current = String(first.classId);
+            updateParams((next) => {
+              next.set('classId', String(first.classId));
+            });
+          }
+        }
+      } catch (err) {
+        logError('OperationsBoardPage:autoClassSelect:error', { error: err.message });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [lane, filters.classId, filters.date, filters.programId, viewMode, lang, updateParams]);
 
   const setFilters = useCallback((newFilters) => {
     updateParams((next) => {
@@ -526,6 +613,7 @@ export default function OperationsBoardPage({
         result = await fetchWorkflowBoardData(filters);
       }
       if (result.success) {
+        console.log('[OperationsBoardPage] loaded data:', result.data.length, result.data.map((d) => ({ id: d.id, column: d.column, title: d.title })));
         setData(result.data);
         if (lane === LANES.STATUS && result.data.length === 0 && !noWorkflowsToastShownRef.current) {
           noWorkflowsToastShownRef.current = true;
@@ -678,8 +766,45 @@ export default function OperationsBoardPage({
     };
   }, [filters.classId, filters.date, dbCodeToBoardLane]);
 
-  const applyWorkflowMove = useCallback(async (activeId, fromColumn, toColumn, item) => {
-    const result = await moveWorkflowCard(item.rawId, fromColumn, toColumn);
+  const applyWorkflowMove = useCallback(async (activeId, fromColumn, toColumn, item, snapshotData = null) => {
+    let filedFileId = null;
+
+    // When moving to UNDER_HR_REVIEW, generate and upload the PDF (filing the document)
+    if (toColumn === 'UNDER_HR_REVIEW' && item.classId && item.date) {
+      try {
+        const cls = {
+          id: item.classId,
+          nameEn: item.className,
+          nameAr: item.className,
+          code: item.className,
+          programId: item.programId,
+          subjectId: item.subjectId,
+        };
+        const program = item.programName ? { nameEn: item.programName, code: String(item.programId || '') } : { code: String(item.programId || '') };
+        const subject = item.subjectName ? { nameEn: item.subjectName, code: String(item.subjectId || '') } : { code: String(item.subjectId || '') };
+        const exportResult = await exportDailyOfficialForDate({
+          cls,
+          program,
+          subject,
+          lang,
+          user: user,
+          date: item.date?.slice(0, 10),
+          format: EXPORT_FORMAT.PDF,
+          skipDownload: true,
+        });
+        filedFileId = exportResult?.fileId || null;
+        if (!filedFileId) {
+          console.warn('[applyWorkflowMove] PDF generation succeeded but no fileId returned');
+        }
+      } catch (pdfErr) {
+        console.error('[applyWorkflowMove] Failed to generate filed PDF:', pdfErr);
+        setError(t('operations_board_drag_error') + ' (PDF generation failed)');
+        loadData();
+        return false;
+      }
+    }
+
+    const result = await moveWorkflowCard(item.rawId, fromColumn, toColumn, null, snapshotData, filedFileId);
     if (!result.success) {
       setError(t('operations_board_drag_error'));
       loadData();
@@ -687,6 +812,7 @@ export default function OperationsBoardPage({
     }
     lastLocalChangeRef.current = { id: item.rawId, time: Date.now() };
     setData((prev) => prev.map((d) => (d.id === activeId ? { ...d, column: toColumn, status: toColumn } : d)));
+    if (onBoardDataChanged) onBoardDataChanged();
     const toCol = WORKFLOW_COLUMNS.find((c) => c.id === toColumn);
     const statusLabel = toCol ? (t(toCol.i18nKey) || toCol.name) : toColumn;
     const wfParts = parseWorkflowCardName(item.name || '');
@@ -699,7 +825,8 @@ export default function OperationsBoardPage({
       || (notifyMeta?.roles?.length > 0 && !notifyMeta.adminOverride),
     );
     showActionBanner({
-      pillColor: getWorkflowStatusColor(toColumn),
+      pillColor: '#059669',
+      icon: <CheckCircle2 size={16} className="shrink-0" />,
       message: shortLabel
         ? t('operations_board_workflow_action_banner', { label: shortLabel, status: statusLabel })
         : t('operations_board_action_banner', { name: item.className || 'Workflow', status: statusLabel }),
@@ -720,7 +847,7 @@ export default function OperationsBoardPage({
       },
     });
     return true;
-  }, [t, loadData, showActionBanner, clearActionBanner, roleContext]);
+  }, [t, loadData, showActionBanner, clearActionBanner, roleContext, onBoardDataChanged, lang, user]);
 
   const handleDragEnd = useCallback(async (activeId, fromColumn, toColumn) => {
     const item = data.find((d) => d.id === activeId);
@@ -800,8 +927,10 @@ export default function OperationsBoardPage({
           }
           return { ...d, column: toColumn, status: toColumn, rawId: result.data?.id || d.rawId, id: result.data?.id ? `att-${result.data.id}` : d.id };
         }));
+        if (onBoardDataChanged) onBoardDataChanged();
         const studentName = resolveBoardStudentName(item, lang);
-        const statusLabel = t(`operations_board_lane_${toColumn.toLowerCase()}`) || toColumn;
+        const attCol = ATTENDANCE_COLUMNS.find((c) => c.id === toColumn);
+        const statusLabel = attCol ? (t(attCol.i18nKey) || attCol.name) : toColumn;
         const statusColor = getAttendanceColor(toColumn);
         showActionBanner({
           pillColor: statusColor,
@@ -812,28 +941,29 @@ export default function OperationsBoardPage({
               <span
                 style={{
                   display: 'inline-block',
-                  width: 10,
-                  height: 10,
+                  width: 7,
+                  height: 7,
                   borderRadius: '50%',
                   backgroundColor: statusColor,
-                  boxShadow: '0 0 0 2px rgba(255,255,255,0.95)',
+                  boxShadow: '0 0 0 1.5px rgba(255,255,255,0.95)',
                   flexShrink: 0,
                 }}
               />
             );
             return (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 0, fontSize: '0.75rem' }}>
                 {parts[0]}
                 <span
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 6,
+                    gap: 4,
                     border: '1px solid rgba(255,255,255,0.9)',
                     borderRadius: 9999,
-                    padding: '2px 10px',
-                    marginInlineStart: 6,
+                    padding: '1px 8px',
+                    marginInlineStart: 4,
                     backgroundColor: statusColor,
+                    fontSize: '0.7rem',
                   }}
                 >
                   {statusDot}
@@ -880,7 +1010,7 @@ export default function OperationsBoardPage({
         });
       }
     }
-  }, [data, t, loadData, roleContext, lang, showActionBanner, clearActionBanner, applyWorkflowMove, showDragInvalidBanner, currentWorkflow]);
+  }, [data, t, loadData, roleContext, lang, showActionBanner, clearActionBanner, applyWorkflowMove, showDragInvalidBanner, currentWorkflow, onBoardDataChanged]);
 
   const handleBulkMove = useCallback(async (fromColumn, toColumn) => {
     if (fromColumn === toColumn) return;
@@ -934,9 +1064,12 @@ export default function OperationsBoardPage({
       }
       return { ...d, column: toColumn, status: toColumn };
     }));
+    if (onBoardDataChanged) onBoardDataChanged();
 
-    const fromLabel = t(`operations_board_lane_${fromColumn.toLowerCase()}`) || fromColumn;
-    const toLabel = t(`operations_board_lane_${toColumn.toLowerCase()}`) || toColumn;
+    const fromCol = [...WORKFLOW_COLUMNS, ...ATTENDANCE_COLUMNS].find((c) => c.id === fromColumn);
+    const toCol = [...WORKFLOW_COLUMNS, ...ATTENDANCE_COLUMNS].find((c) => c.id === toColumn);
+    const fromLabel = fromCol ? (t(fromCol.i18nKey) || fromCol.name) : fromColumn;
+    const toLabel = toCol ? (t(toCol.i18nKey) || toCol.name) : toColumn;
     const isWorkflowBulk = itemsToMove[0]?.type === 'workflow';
     const fromColor = isWorkflowBulk ? getWorkflowStatusColor(fromColumn) : getAttendanceColor(fromColumn);
     const toColor = isWorkflowBulk ? getWorkflowStatusColor(toColumn) : getAttendanceColor(toColumn);
@@ -955,23 +1088,24 @@ export default function OperationsBoardPage({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 6,
+              gap: 4,
               border: '1px solid rgba(255,255,255,0.9)',
               borderRadius: 9999,
-              padding: '2px 10px',
-              marginInlineStart: 6,
+              padding: '1px 8px',
+              marginInlineStart: 4,
               backgroundColor: color,
               flexShrink: 0,
+              fontSize: '0.7rem',
             }}
           >
             <span
               style={{
                 display: 'inline-block',
-                width: 10,
-                height: 10,
+                width: 7,
+                height: 7,
                 borderRadius: '50%',
                 backgroundColor: color,
-                boxShadow: '0 0 0 2px rgba(255,255,255,0.95)',
+                boxShadow: '0 0 0 1.5px rgba(255,255,255,0.95)',
                 flexShrink: 0,
               }}
             />
@@ -979,7 +1113,7 @@ export default function OperationsBoardPage({
           </span>
         );
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 0, flexWrap: 'wrap' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 0, flexWrap: 'nowrap', fontSize: '0.75rem' }}>
             {beforeFrom}
             {statusBadge(fromColor, fromLabel)}
             {beforeTo}
@@ -1007,19 +1141,86 @@ export default function OperationsBoardPage({
         });
       },
     });
-  }, [data, t, roleContext, showActionBanner, clearActionBanner, loadData, currentWorkflow, showDragInvalidBanner]);
+  }, [data, t, roleContext, showActionBanner, clearActionBanner, loadData, currentWorkflow, showDragInvalidBanner, onBoardDataChanged]);
 
   const handleConfirmWorkflowMove = useCallback(async () => {
     if (!pendingWorkflowMove) return;
     const { activeId, fromColumn, toColumn, item } = pendingWorkflowMove;
     setWorkflowMoveLoading(true);
     try {
-      await applyWorkflowMove(activeId, fromColumn, toColumn, item);
+      let snapshotData = null;
+      let snapResult = null;
+      // When HR approves, generate the appropriate snapshot based on workflow type
+      if (fromColumn === 'UNDER_HR_REVIEW' && toColumn === 'APPROVED') {
+        const wfType = item.workflowType || '';
+        const attSubtype = item.attendanceSubtype || '';
+        if (wfType === 'ATTENDANCE_WEEKLY' || attSubtype === 'WEEKLY_SUMMARY') {
+          snapResult = await generateWeeklyViolationSnapshot({
+            document: { date: item.date, dateFrom: item.dateFrom },
+            user: user,
+            lang,
+            programId: item.programId,
+            programName: item.programName,
+            classIds: item.classId ? [item.classId] : [],
+          });
+          if (snapResult.success) {
+            snapshotData = {
+              snapshotFileId: snapResult.fileId,
+              snapshotWeekFrom: snapResult.weekFrom,
+              snapshotWeekTo: snapResult.weekTo,
+            };
+          }
+        } else if (wfType === 'ATTENDANCE_DAILY' || attSubtype === 'DAILY') {
+          // For daily attendance, generate daily official report snapshot
+          const cls = {
+            id: item.classId,
+            programId: item.programId,
+            subjectId: item.subjectId,
+            code: item.className,
+            year: item.year,
+            term: item.term,
+          };
+          const program = { id: item.programId, nameEn: item.programName };
+          const subject = { id: item.subjectId };
+          const academicTerm = { id: item.academicTermId };
+          
+          snapResult = await exportDailyOfficialForDate({
+            cls,
+            program,
+            subject,
+            academicTerm,
+            lang,
+            user,
+            date: item.date,
+            instructorName: item.instructorName || '',
+            format: EXPORT_FORMAT.PDF,
+            skipDownload: true,
+            skipPersist: false,
+          });
+          if (snapResult?.fileId) {
+            snapshotData = {
+              snapshotFileId: snapResult.fileId,
+              date: item.date,
+            };
+          }
+        }
+      }
+      const success = await applyWorkflowMove(activeId, fromColumn, toColumn, item, snapshotData);
+      // Show success dialog if snapshot was generated
+      if (success && snapshotData) {
+        setApprovalSnapshot({
+          fileId: snapshotData.snapshotFileId,
+          filename: snapResult.filename,
+          weekFrom: snapshotData.snapshotWeekFrom || null,
+          weekTo: snapshotData.snapshotWeekTo || null,
+          date: snapshotData.date || null,
+        });
+      }
     } finally {
       setWorkflowMoveLoading(false);
       setPendingWorkflowMove(null);
     }
-  }, [pendingWorkflowMove, applyWorkflowMove]);
+  }, [pendingWorkflowMove, applyWorkflowMove, user, lang]);
 
   const handleCancelWorkflowMove = useCallback(() => {
     setPendingWorkflowMove(null);
@@ -1034,25 +1235,20 @@ export default function OperationsBoardPage({
   const handleCardUpdated = useCallback((cardId, patch) => {
     setData((prev) => prev.map((item) => (item.id === cardId ? { ...item, ...patch } : item)));
     setSelectedCard((prev) => (prev?.id === cardId ? { ...prev, ...patch } : prev));
-  }, []);
+    if (onBoardDataChanged) onBoardDataChanged();
+  }, [onBoardDataChanged]);
 
   const handleParticipationRefresh = useCallback(() => {
     setParticipationRefreshKey((k) => k + 1);
   }, []);
-
-  const handleMarkTaken = useCallback(async (card) => {
-    const result = await markWorkflowAsTaken(card.rawId);
-    if (result.success) loadData();
-    else setError(t('operations_board_drag_error'));
-  }, [loadData, t]);
 
   const attendanceColumns = useMemo(
     () => getAttendanceColumnsForRole(roleContext),
     [roleContext]
   );
   const workflowColumns = useMemo(
-    () => getWorkflowColumnsForRole(WORKFLOW_COLUMNS, roleContext),
-    [roleContext]
+    () => getWorkflowColumnsForRole(WORKFLOW_COLUMNS, roleContext, viewMode),
+    [roleContext, viewMode]
   );
   const columns = lane === LANES.ATTENDANCE ? attendanceColumns : workflowColumns;
   const boardCollapseKey = lane === LANES.ATTENDANCE ? 'attendance' : 'workflow';
@@ -1140,6 +1336,7 @@ export default function OperationsBoardPage({
     () => sortBoardData(filterBoardData(data, filters.search, lang), sortBy, lang),
     [data, filters.search, lang, sortBy]
   );
+  console.log('[OperationsBoardPage] displayData:', displayData.length, displayData.map((d) => ({ id: d.id, column: d.column })));
 
   useEffect(() => {
     if (!drawerOpen || !selectedCard?.id) return;
@@ -1276,7 +1473,10 @@ export default function OperationsBoardPage({
         )}
       </div>
 
-      <div data-tour="operations-board-filter-bar">
+      <div
+        data-tour="operations-board-filter-bar"
+        style={panelTab === 'calendar' ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' } : undefined}
+      >
         <BoardFilterBar
           filters={filters}
           onFilterChange={setFilters}
@@ -1288,6 +1488,10 @@ export default function OperationsBoardPage({
           onSortChange={handleSortChange}
           lane={lane}
           roleContext={roleContext}
+          embedded={embedded}
+          expanded={expanded}
+          onToggleExpand={onToggleExpand}
+          viewMode={viewMode}
           onLaneChange={(newLane) => {
             updateParams((next) => {
               next.set('lane', newLane);
@@ -1379,6 +1583,15 @@ export default function OperationsBoardPage({
         loading={workflowMoveLoading}
         adminOverride={pendingWorkflowMove?.adminOverride}
         roleContext={roleContext}
+        workflowType={pendingWorkflowMove?.item?.workflowType || ''}
+        attendanceSubtype={pendingWorkflowMove?.item?.attendanceSubtype || ''}
+        t={t}
+      />
+
+      <ApprovalSuccessDialog
+        open={Boolean(approvalSnapshot)}
+        onClose={() => setApprovalSnapshot(null)}
+        snapshot={approvalSnapshot}
         t={t}
       />
 
@@ -1394,7 +1607,7 @@ export default function OperationsBoardPage({
             >
               {actionBanner.icon || <CheckCircle2 size={16} className="shrink-0" />}
             </AnnouncementTag>
-            <AnnouncementTitle className="text-sm font-medium gap-1.5">
+            <AnnouncementTitle className="text-xs font-medium gap-1.5">
               {actionBanner.message}
               {actionBanner.notifySent && (
                 <span className="text-xs font-medium opacity-85 whitespace-nowrap">

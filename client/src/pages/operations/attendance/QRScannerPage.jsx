@@ -217,9 +217,7 @@ const QRScannerPage = () => {
     return formatForDateInput(qatarNow); // Format as yyyy-MM-dd
   });
   const [attendanceMode, setAttendanceMode] = useState(() => {
-    // Regular admin defaults to standup mode (only mode they can see)
-    if (isAdmin && !isSuperAdmin) return ATTENDANCE_TYPE_CATEGORY.STANDUP;
-    // Restore saved attendance mode from localStorage for others
+    // Restore saved attendance mode from localStorage
     try {
       const saved = localStorage.getItem('qrScanner_attendanceMode');
       if (saved === ATTENDANCE_TYPE_CATEGORY.STANDUP || saved === ATTENDANCE_TYPE_CATEGORY.REGULAR) return saved;
@@ -1033,6 +1031,8 @@ const QRScannerPage = () => {
 
     if (urlMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
       setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.STANDUP);
+    } else if (urlManual === '1' || urlManual === 'true') {
+      setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.REGULAR);
     }
 
     if (urlManual === '1' || urlManual === 'true') {
@@ -1100,13 +1100,20 @@ const QRScannerPage = () => {
         ]);
       } else {
         // In regular mode, use class-based queries
-        [enrollmentsResponse, usersResponse, penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
+        // Use allSettled so that 403 errors on optional endpoints (users, penalties, behaviors)
+        // don't prevent students from loading from enrollments alone
+        const [enrRes, usrRes, penRes, partRes, behRes] = await Promise.allSettled([
           getEnrollments({ classId }),
           getUsers(),
           getPenalties({ classId, limit: 1000 }),
           getParticipations({ classId, limit: 1000 }),
           getBehaviors({ classId, limit: 1000 })
         ]);
+        enrollmentsResponse = enrRes.status === 'fulfilled' ? enrRes.value : { success: false, data: [] };
+        usersResponse = usrRes.status === 'fulfilled' ? usrRes.value : { success: false, data: [] };
+        penaltiesResponse = penRes.status === 'fulfilled' ? penRes.value : { success: false, data: [] };
+        participationsResponse = partRes.status === 'fulfilled' ? partRes.value : { success: false, data: [] };
+        behaviorsResponse = behRes.status === 'fulfilled' ? behRes.value : { success: false, data: [] };
       }
 
       const allEnrollments = enrollmentsResponse.success ? enrollmentsResponse.data : [];
@@ -1150,9 +1157,27 @@ const QRScannerPage = () => {
       info('🔍 [DEBUG] Filtered enrollments:', filteredEnrollments.length);
 
       const studentIdSet = new Set(filteredEnrollments.map(e => e.userId));
-      const studentUsers = allUsers.filter(u =>
+      let studentUsers = allUsers.filter(u =>
         studentIdSet.has(u.id)
       );
+
+      // Fallback: if getUsers() failed (e.g. admin 403), construct student
+      // objects from enrollment data which may include nested user info
+      if (studentUsers.length === 0 && filteredEnrollments.length > 0) {
+        studentUsers = filteredEnrollments
+          .map(e => e.user || e.User || null)
+          .filter(Boolean);
+        // If enrollments don't have nested user objects, create minimal stubs
+        if (studentUsers.length === 0) {
+          studentUsers = filteredEnrollments.map(e => ({
+            id: e.userId,
+            studentNumber: e.studentNumber || null,
+            // Best-effort name from enrollment if available
+            nameEn: e.nameEn || e.user?.nameEn || null,
+            nameAr: e.nameAr || e.user?.nameAr || null,
+          }));
+        }
+      }
 
       setEnrollments(filteredEnrollments);
 
@@ -3092,7 +3117,7 @@ const QRScannerPage = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
 
         const successMessage = t('report_exported_successfully');
         showSuccess(successMessage);
@@ -3548,7 +3573,7 @@ const QRScannerPage = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
 
         persistAndLogExport({
           blob: excelBlob,
@@ -4509,7 +4534,7 @@ const QRScannerPage = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
         
         console.log('📊 Excel file downloaded:', filename);
         showSuccess(t('summary_report_exported_successfully'));
@@ -4728,7 +4753,7 @@ const QRScannerPage = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
         console.log('📊 Standup summary downloaded:', filename);
         showSuccess(t('summary_report_exported_successfully'));
       }
@@ -5250,17 +5275,16 @@ const QRScannerPage = () => {
                 border: '1px solid var(--border, #e5e7eb)',
                 flex: '0 0 auto'
               }}>
-                {!(isAdmin && !isSuperAdmin) && (
-                  <button
-                    onClick={() => {
-                      info('🔍 [DEBUG] Regular mode clicked', {
-                        currentMode: attendanceMode,
-                        newMode: ATTENDANCE_TYPE_CATEGORY.REGULAR,
-                        constants: ATTENDANCE_TYPE_CATEGORY
-                      });
-                      setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.REGULAR);
-                    }}
-                    style={{
+                <button
+                  onClick={() => {
+                    info('🔍 [DEBUG] Regular mode clicked', {
+                      currentMode: attendanceMode,
+                      newMode: ATTENDANCE_TYPE_CATEGORY.REGULAR,
+                      constants: ATTENDANCE_TYPE_CATEGORY
+                    });
+                    setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.REGULAR);
+                  }}
+                  style={{
                       padding: '0.5rem 0.75rem',
                       background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'var(--color-primary, #3b82f6)' : 'transparent',
                       color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : 'var(--text-muted, #6b7280)',
@@ -5281,7 +5305,6 @@ const QRScannerPage = () => {
                     {getThemedIcon('ui', 'check_circle', 14, attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : theme)}
                     <span>{t('attendance_mode')}</span>
                   </button>
-                )}
                 {canSeeStandupMode && (
                   <button
                     onClick={() => {

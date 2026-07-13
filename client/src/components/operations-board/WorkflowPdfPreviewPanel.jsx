@@ -1,14 +1,36 @@
 import React, { useEffect, useState } from 'react';
 import { Box, CircularProgress, IconButton, Typography } from '@mui/material';
-import { FileText, X, ExternalLink } from 'lucide-react';
+import { FileText, X, ExternalLink, ShieldCheck, Clock } from 'lucide-react';
 import { Button } from '@/components/kibo/ui/button';
 
+function formatGeneratedAt(value) {
+  if (!value) return '';
+  try {
+    const d = value instanceof Date ? value : new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+    return d.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return String(value);
+  }
+}
+
 /**
- * Inline PDF / file preview for a Smart Drive fileId (workflow attachment).
+ * Inline PDF / file preview for a Smart Drive fileId (workflow attachment)
+ * or a direct blobUrl (real-time generated preview).
  */
 export default function WorkflowPdfPreviewPanel({
   fileId,
   fileName,
+  blobUrl,
+  generatedAt,
+  isApproved = false,
+  externalLoading = false,
   open,
   onClose,
   t,
@@ -19,9 +41,26 @@ export default function WorkflowPdfPreviewPanel({
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!open || !fileId) {
+    if (!open) {
       setPreviewUrl(null);
       setError(null);
+      return undefined;
+    }
+    if (blobUrl) {
+      setPreviewUrl(blobUrl);
+      setError(null);
+      setLoading(false);
+      return undefined;
+    }
+    if (!fileId && !externalLoading) {
+      setPreviewUrl(null);
+      setError(null);
+      return undefined;
+    }
+    if (!fileId && externalLoading) {
+      setPreviewUrl(null);
+      setError(null);
+      setLoading(true);
       return undefined;
     }
     let cancelled = false;
@@ -48,11 +87,11 @@ export default function WorkflowPdfPreviewPanel({
     };
     load();
     return () => { cancelled = true; };
-  }, [open, fileId, t]);
+  }, [open, fileId, blobUrl, externalLoading, t]);
 
   if (!open) return null;
 
-  if (!fileId) {
+  if (!fileId && !blobUrl && !externalLoading) {
     return (
       <Box sx={{ py: 3, textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary">
@@ -61,6 +100,10 @@ export default function WorkflowPdfPreviewPanel({
       </Box>
     );
   }
+
+  const headerIcon = isApproved
+    ? <ShieldCheck size={18} style={{ color: '#16a34a' }} />
+    : <FileText size={18} color="#6b7280" />;
 
   return (
     <Box
@@ -71,7 +114,7 @@ export default function WorkflowPdfPreviewPanel({
         flexDirection: 'column',
         gap: 1,
         border: '1px solid',
-        borderColor: 'divider',
+        borderColor: isApproved ? '#16a34a' : 'divider',
         borderRadius: 1,
         p: compact ? 1 : 1.5,
         bgcolor: 'background.paper',
@@ -80,7 +123,7 @@ export default function WorkflowPdfPreviewPanel({
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <FileText size={18} color="#3b82f6" />
+        {headerIcon}
         <Typography variant="body2" fontWeight={600} sx={{ flex: 1 }} noWrap>
           {fileName || (t('operations_board_preview_pdf') || 'Preview PDF')}
         </Typography>
@@ -110,13 +153,15 @@ export default function WorkflowPdfPreviewPanel({
       {!loading && error && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, py: 2 }}>
           <Typography variant="body2" color="error">{error}</Typography>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => window.open(`/smart-drive?fileId=${fileId}`, '_blank')}
-          >
-            {t('operations_board_view_file') || 'View in Smart Drive'}
-          </Button>
+          {fileId && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => window.open(`/smart-drive?fileId=${fileId}`, '_blank')}
+            >
+              {t('operations_board_view_file') || 'View in Smart Drive'}
+            </Button>
+          )}
         </Box>
       )}
       {!loading && previewUrl && (
@@ -132,6 +177,14 @@ export default function WorkflowPdfPreviewPanel({
               borderRadius: 4,
             }}
           />
+        </Box>
+      )}
+      {generatedAt && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pt: 0.5, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Clock size={12} className="text-muted-foreground" />
+          <Typography variant="caption" color="text.secondary">
+            {t('operations_board_generated_at') || 'Generated'}: {formatGeneratedAt(generatedAt)}
+          </Typography>
         </Box>
       )}
     </Box>

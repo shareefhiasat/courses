@@ -30,8 +30,11 @@ import {
   parseWorkflowCardName,
 } from './operationsBoardDisplayUtils.js';
 import WorkflowPdfPreviewPanel from './WorkflowPdfPreviewPanel.jsx';
+import { exportDailyOfficialForDate } from '@services/business/accessScopeExportService.js';
+import { getClasses } from '@services/business/classService.js';
+import { getSubjects } from '@services/business/programService.js';
 import {
-  FileText, X, Eye, EyeOff,
+  FileText, X, Eye, EyeOff, CheckCircle2, ShieldCheck,
   Activity, User, StickyNote, MessageSquare, Award, Workflow as WorkflowIcon,
 } from 'lucide-react';
 import { formatDateTime } from '@utils/date-formatter.js';
@@ -153,6 +156,9 @@ export default function BoardStudentDrawer({
   const [loading, setLoading] = useState(false);
   const [savingParticipation, setSavingParticipation] = useState(false);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [previewBlobUrl, setPreviewBlobUrl] = useState(null);
+  const [previewGeneratedAt, setPreviewGeneratedAt] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [participationList, setParticipationList] = useState([]);
   const [attendanceNotesList, setAttendanceNotesList] = useState([]);
 
@@ -251,6 +257,8 @@ export default function BoardStudentDrawer({
     if (isNewCard) {
       setTab('activity');
       setPdfPreviewOpen(false);
+      setPreviewBlobUrl(null);
+      setPreviewGeneratedAt(null);
       setNotes(card.type === 'attendance' ? (card.notes || '') : '');
       setNewComment('');
       setNewParticipationNote('');
@@ -258,6 +266,54 @@ export default function BoardStudentDrawer({
       loadDetail();
     }
   }, [open, card?.id, loadDetail, user?.displayName, user?.name]);
+
+  const handleGeneratePreview = useCallback(async () => {
+    if (!card || card.type !== 'workflow') return;
+    if (card.snapshotFileId || card.fileId) {
+      setPdfPreviewOpen((v) => !v);
+      return;
+    }
+    if (pdfPreviewOpen) {
+      setPdfPreviewOpen(false);
+      return;
+    }
+    setPreviewLoading(true);
+    setPdfPreviewOpen(true);
+    try {
+      const dateStr = card.date ? String(card.date).slice(0, 10) : null;
+      if (!dateStr || !card.classId) {
+        setPreviewLoading(false);
+        return;
+      }
+      const classesRes = await getClasses({ isActive: true, limit: 500 });
+      const allClasses = classesRes?.success ? (classesRes.data || []) : [];
+      const cls = allClasses.find((c) => c.id === card.classId);
+      if (!cls) { setPreviewLoading(false); return; }
+      const subjectsRes = await getSubjects({ programId: cls.programId });
+      const allSubjects = subjectsRes?.success ? (subjectsRes.data || []) : [];
+      const subject = allSubjects.find((s) => s.id === cls.subjectId);
+      const result = await exportDailyOfficialForDate({
+        cls,
+        program: { id: cls.programId, nameEn: card.programName || cls.programName },
+        subject: subject ? { id: subject.id, nameEn: subject.nameEn, nameAr: subject.nameAr } : null,
+        academicTerm: null,
+        lang,
+        user,
+        date: dateStr,
+        skipDownload: true,
+        skipPersist: true,
+      });
+      if (result?.blob) {
+        const url = URL.createObjectURL(result.blob);
+        setPreviewBlobUrl(url);
+        setPreviewGeneratedAt(new Date().toLocaleString());
+      }
+    } catch (err) {
+      console.error('[BoardStudentDrawer] preview generation error:', err);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }, [card, pdfPreviewOpen, lang, user]);
 
   const handleSaveNotes = async () => {
     if (!card || !notes.trim()) return;
@@ -388,7 +444,7 @@ export default function BoardStudentDrawer({
   const displayTitle = card.type === 'workflow' ? workflowTitle : studentName;
   const displayClassName = card.type === 'workflow' ? workflowClassName : className;
   const studentNumber = card.studentNumber || card.user?.studentNumber || null;
-  const classInstructorName = card.classInstructorName || card.assignee || null;
+  const classInstructorName = card.classInstructorName || null;
   const isClassInstructor = Boolean(
     card.classInstructorId && user?.dbId && String(card.classInstructorId) === String(user.dbId),
   );
@@ -601,7 +657,7 @@ export default function BoardStudentDrawer({
 
         {card.type === 'workflow' && (
           <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 2 }}>
-            {card.status === 'DRAFT' && (
+            {card.status === 'DRAFT' && card.workflowType === 'ATTENDANCE_DAILY' && (
               <Button
                 size="sm"
                 onClick={handleMarkTaken}
@@ -612,12 +668,13 @@ export default function BoardStudentDrawer({
                 {t('operations_board_mark_taken')}
               </Button>
             )}
-            {card.fileId && (
+            {card.fileId && !card.snapshotFileId && (
               <Button
                 size="sm"
                 variant="outline"
                 className="h-8 w-fit gap-2 px-3"
-                onClick={() => setPdfPreviewOpen((v) => !v)}
+                onClick={handleGeneratePreview}
+                disabled={previewLoading}
                 data-testid="operations-board-preview-pdf-toggle"
               >
                 <FileText size={16} />
@@ -629,7 +686,32 @@ export default function BoardStudentDrawer({
                 ) : (
                   <>
                     <Eye size={16} />
-                    {t('operations_board_preview_pdf') || 'Preview PDF'}
+                    {previewLoading
+                      ? (t('operations_board_generating') || 'Generating…')
+                      : (t('operations_board_preview_pdf') || 'Preview PDF')}
+                  </>
+                )}
+              </Button>
+            )}
+            {card.snapshotFileId && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 w-fit gap-2 px-3"
+                onClick={handleGeneratePreview}
+                data-testid="operations-board-preview-snapshot-toggle"
+                style={{ borderColor: '#16a34a', color: '#16a34a' }}
+              >
+                <ShieldCheck size={16} />
+                {pdfPreviewOpen ? (
+                  <>
+                    <EyeOff size={16} />
+                    {t('operations_board_hide_snapshot') || 'Hide snapshot'}
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={16} />
+                    {t('operations_board_view_approved_snapshot') || 'View Approved Snapshot'}
                   </>
                 )}
               </Button>
@@ -637,11 +719,15 @@ export default function BoardStudentDrawer({
           </Box>
         )}
 
-        {card.type === 'workflow' && card.fileId && pdfPreviewOpen && (
+        {card.type === 'workflow' && pdfPreviewOpen && (card.snapshotFileId || card.fileId) && (
           <Box sx={{ mb: 2 }}>
             <WorkflowPdfPreviewPanel
-              fileId={card.fileId}
-              fileName={card.fileName}
+              fileId={card.snapshotFileId || card.fileId || undefined}
+              blobUrl={(!card.snapshotFileId && !card.fileId) ? previewBlobUrl : undefined}
+              generatedAt={(!card.snapshotFileId && !card.fileId) ? previewGeneratedAt : (card.raw?.file?.createdAt || card.createdAt || undefined)}
+              isApproved={Boolean(card.snapshotFileId)}
+              externalLoading={(!card.snapshotFileId && !card.fileId) ? previewLoading : false}
+              fileName={card.snapshotFileId ? (card.snapshotFileName || (t('operations_board_approved_snapshot') || 'Approved Snapshot')) : (card.fileName || (t('operations_board_preview_pdf') || 'Preview PDF'))}
               open={pdfPreviewOpen}
               onClose={() => setPdfPreviewOpen(false)}
               t={t}

@@ -37,6 +37,9 @@ import {
   Eye,
   EyeOff,
   Workflow as WorkflowIcon,
+  User,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '@components/ui/Calendar/Calendar.css';
@@ -54,10 +57,10 @@ const VIEW_ICONS = {
   agenda: List,
 };
 
-const CalendarToolbarContext = React.createContext({ t: () => {}, isDark: false, date: null, hideWeekend: false, onToggleWeekend: null, zoom: 100, onZoomChange: null, onZoomCommit: null });
+const CalendarToolbarContext = React.createContext({ t: () => {}, isDark: false, date: null, hideWeekend: false, onToggleWeekend: null, zoom: 100, onZoomChange: null, onZoomCommit: null, embedded: false, expanded: false, onToggleExpand: null });
 
 function CalendarToolbar({ label, view, views, onNavigate, onView }) {
-  const { t, isDark, date, hideWeekend, onToggleWeekend, zoom, onZoomChange, onZoomCommit } = React.useContext(CalendarToolbarContext);
+  const { t, isDark, date, hideWeekend, onToggleWeekend, zoom, onZoomChange, onZoomCommit, embedded, expanded, onToggleExpand } = React.useContext(CalendarToolbarContext);
   const navBtnSx = {
     p: '4px',
     borderRadius: '6px',
@@ -126,6 +129,23 @@ function CalendarToolbar({ label, view, views, onNavigate, onView }) {
           <ColoredTooltip title={hideWeekend ? (t('calendar_show_weekend') || 'Show weekend') : (t('calendar_hide_weekend') || 'Hide weekend')} color={NEUTRAL_TOOLTIP}>
             <IconButton size="small" onClick={onToggleWeekend} sx={viewBtnSx(!hideWeekend)}>
               {hideWeekend ? <EyeOff size={16} /> : <Eye size={16} />}
+            </IconButton>
+          </ColoredTooltip>
+        )}
+        {embedded && onToggleExpand && (
+          <ColoredTooltip
+            title={expanded ? (t('operations_board_collapse') || 'Collapse') : (t('operations_board_expand') || 'Expand')}
+            color="#8b5cf6"
+            placement="top"
+          >
+            <IconButton
+              size="small"
+              onClick={onToggleExpand}
+              data-testid="operations-board-expand"
+              aria-label={expanded ? (t('operations_board_collapse') || 'Collapse') : (t('operations_board_expand') || 'Expand')}
+              sx={viewBtnSx(false)}
+            >
+              {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </IconButton>
           </ColoredTooltip>
         )}
@@ -259,11 +279,18 @@ function EventStatusIndicators({ status, workflowKey, iconSize, t, zoomFactor = 
     .filter((item) => item.count > 0);
   const hasWorkflow = workflowKey && workflowKey !== SCHEDULE_WORKFLOW_STATUS.NOT_TAKEN;
   const workflowColor = getWorkflowEventColor(workflowKey);
+  const hasAttendance = Boolean(counts && (Object.values(counts).some((c) => c > 0) || status?.hasAttendance));
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
       {hasWorkflow && (
         <WorkflowIcon size={iconSize} style={{ color: workflowColor, flexShrink: 0 }} />
+      )}
+      {hasAttendance && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1px', flexShrink: 0 }}>
+          <CalendarIcon size={iconSize} style={{ color: '#3b82f6', flexShrink: 0 }} />
+          <User size={iconSize} style={{ color: '#3b82f6', flexShrink: 0 }} />
+        </div>
       )}
       {items.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', position: 'relative', height: iconSize }}>
@@ -307,6 +334,13 @@ function AttendanceSummaryTooltip({ event, t, lang = 'en', lane = 'status', hide
   return (
     <div style={{ maxWidth: 260 }}>
       <div style={{ fontWeight: 700, marginBottom: 4 }}>{event.title}</div>
+      {hasAttendance && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6, color: '#3b82f6' }}>
+          <CalendarIcon size={12} />
+          <User size={12} />
+          <span style={{ fontWeight: 600 }}>{t('operations_board_daily_attendance') || 'Daily Attendance'}</span>
+        </div>
+      )}
       {hasWorkflow && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
           <WorkflowIcon size={14} style={{ color: workflowColor, flexShrink: 0 }} />
@@ -556,6 +590,9 @@ export default function BoardScheduleCalendar({
   onClassSessionClick,
   lane = 'status',
   hideNotesParticipation = false,
+  embedded = false,
+  expanded = false,
+  onToggleExpand,
 }) {
   const { t, lang } = useLang();
   const theme = useTheme();
@@ -913,11 +950,11 @@ export default function BoardScheduleCalendar({
   }), [t, lang, zoomFactor, currentDate, isDark, hideWeekend, lane, hideNotesParticipation]);
 
   const toolbarContextValue = useMemo(() => ({
-    t, isDark, date: currentDate, hideWeekend, onToggleWeekend: toggleWeekend, zoom: calendarZoom, onZoomChange: handleZoomChange, onZoomCommit: handleZoomCommit,
-  }), [t, isDark, currentDate, hideWeekend, toggleWeekend, calendarZoom, handleZoomChange, handleZoomCommit]);
+    t, isDark, date: currentDate, hideWeekend, onToggleWeekend: toggleWeekend, zoom: calendarZoom, onZoomChange: handleZoomChange, onZoomCommit: handleZoomCommit, embedded, expanded, onToggleExpand,
+  }), [t, isDark, currentDate, hideWeekend, toggleWeekend, calendarZoom, handleZoomChange, handleZoomCommit, embedded, expanded, onToggleExpand]);
 
   return (
-    <Stack spacing={1} data-testid="operations-board-schedule-calendar">
+    <Stack spacing={1} data-testid="operations-board-schedule-calendar" sx={{ height: '100%', flex: 1, minHeight: 0 }}>
       {missingContext && (
         <Box sx={{ fontSize: '0.8125rem', color: 'text.secondary', px: 0.5 }}>
           {t('operations_board_calendar_need_context')}
@@ -928,7 +965,7 @@ export default function BoardScheduleCalendar({
         ref={calendarBoxRef}
         sx={{
           position: 'relative',
-          height: { xs: 560, md: 680 },
+          height: '100%',
           borderRadius: 2,
           overflow: 'hidden',
           border: 1,

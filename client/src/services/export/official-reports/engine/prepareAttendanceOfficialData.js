@@ -148,10 +148,20 @@ export function prepareAttendanceOfficialData({
     ? (lang === 'ar' ? ' (معاينة قبل الاعتماد)' : ' (Preview before approval)')
     : '';
 
+  const isAr = lang === 'ar';
+  const generatedAt = new Date().toLocaleString(isAr ? 'ar-SA' : 'en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
   return {
     serial,
     lang,
     preview,
+    generatedAt,
     title: `${baseTitle}${previewSuffix}`,
     header: {
       serial,

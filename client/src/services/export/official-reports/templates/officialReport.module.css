@@ -591,6 +591,21 @@
   padding-top: 8px;
 }
 
+.officialFooter {
+  margin-top: 12px;
+  padding-top: 8px;
+  font-size: 10px;
+  color: #6b7280;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.officialPageRtl .officialFooter {
+  direction: rtl;
+}
+
 .markCell {
   font-weight: 700;
 }

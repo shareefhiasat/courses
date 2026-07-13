@@ -52,6 +52,8 @@ const ADMIN_TRANSITIONS = {
 };
 
 const HR_TRANSITIONS = {
+  DRAFT: new Set(['SUBMITTED']),
+  SUBMITTED: new Set(['DRAFT', 'UNDER_ADMIN_REVIEW']),
   UNDER_HR_REVIEW: new Set(['UNDER_ADMIN_REVIEW', 'APPROVED', 'REJECTED']),
   APPROVED: new Set([]),
   REJECTED: new Set([]),
@@ -86,7 +88,7 @@ export function requiresAdminInstructorOverride(fromColumn, toColumn, roleContex
   return true;
 }
 
-export function getWorkflowColumnsForRole(allColumns, roleContext = {}) {
+export function getWorkflowColumnsForRole(allColumns, roleContext = {}, viewMode = 'day') {
   if (!allColumns?.length) return [];
   if (roleContext.isSuperAdmin) return allColumns;
   if (isInstructorOnly(roleContext)) {
@@ -96,9 +98,12 @@ export function getWorkflowColumnsForRole(allColumns, roleContext = {}) {
     return allColumns.filter((col) => ADMIN_LANES.has(col.id));
   }
   if (isHROnly(roleContext)) {
-    return allColumns.filter((col) =>
-      ['UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED', 'REJECTED', 'SUBMITTED'].includes(col.id),
-    );
+    const hrColumns = ['UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED', 'REJECTED', 'SUBMITTED'];
+    // In week mode, include DRAFT so HR can see weekly summary workflows
+    if (viewMode === 'week') {
+      hrColumns.push('DRAFT');
+    }
+    return allColumns.filter((col) => hrColumns.includes(col.id));
   }
   return allColumns;
 }
@@ -159,6 +164,24 @@ export function resolveWorkflowNotifyMeta(fromColumn, toColumn, roleContext = {}
     };
   }
 
+  if (fromColumn === 'DRAFT' && toColumn === 'SUBMITTED') {
+    return {
+      titleKey: 'operations_board_move_draft_to_submitted_title',
+      bodyKey: 'operations_board_move_draft_to_submitted_body',
+      notifyKey: null,
+      roles: [],
+      lockWarning: false,
+    };
+  }
+  if (fromColumn === 'SUBMITTED' && toColumn === 'DRAFT') {
+    return {
+      titleKey: 'operations_board_move_submitted_to_draft_title',
+      bodyKey: 'operations_board_move_submitted_to_draft_body',
+      notifyKey: null,
+      roles: [],
+      lockWarning: false,
+    };
+  }
   if (fromColumn === 'DRAFT' && toColumn === 'TAKEN') {
     return {
       titleKey: 'operations_board_move_draft_to_taken_title',
