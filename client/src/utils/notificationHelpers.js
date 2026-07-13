@@ -77,7 +77,7 @@ const WORKFLOW_EVENT_STATUS = {
   'workflow.amended': 'AMENDED',
 };
 
-const WORKFLOW_STATUS_ORDER = ['DRAFT', 'TAKEN', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'UNDER_REVIEW', 'AMENDED', 'APPROVED', 'REJECTED', 'OTHER'];
+const WORKFLOW_STATUS_ORDER = ['DRAFT', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'UNDER_REVIEW', 'AMENDED', 'APPROVED', 'REJECTED', 'OTHER'];
 
 export const getWorkflowStatusKey = (n) => {
   if (!(n.type || '').startsWith('WORKFLOW')) return null;
@@ -93,12 +93,11 @@ export const getWorkflowStatusKey = (n) => {
 /** Board-legend workflow status chips for notification filtering */
 export const WORKFLOW_NOTIFICATION_STATUS_FILTERS = [
   { id: 'DRAFT', color: WORKFLOW_STATUS_COLORS.DRAFT, labelKey: 'operations_board_lane_draft' },
-  { id: 'TAKEN', color: WORKFLOW_STATUS_COLORS.TAKEN, labelKey: 'operations_board_lane_taken' },
-  { id: 'SUBMITTED', color: WORKFLOW_STATUS_COLORS.SUBMITTED, labelKey: 'operations_board_lane_submitted' },
+  { id: 'SUBMITTED', color: WORKFLOW_STATUS_COLORS.SUBMITTED, labelKey: 'operations_board_lane_confirmed' },
   { id: 'UNDER_ADMIN_REVIEW', color: WORKFLOW_STATUS_COLORS.UNDER_ADMIN_REVIEW, labelKey: 'operations_board_lane_admin_review' },
   { id: 'UNDER_HR_REVIEW', color: WORKFLOW_STATUS_COLORS.UNDER_HR_REVIEW, labelKey: 'operations_board_lane_hr_review', matchKeys: ['UNDER_HR_REVIEW', 'UNDER_REVIEW'] },
   { id: 'APPROVED', color: WORKFLOW_STATUS_COLORS.APPROVED, labelKey: 'operations_board_lane_approved' },
-  { id: 'REJECTED', color: WORKFLOW_STATUS_COLORS.REJECTED, labelKey: 'operations_board_lane_rejected' },
+  { id: 'REJECTED', color: WORKFLOW_STATUS_COLORS.REJECTED, labelKey: 'operations_board_lane_rejected', hideForHR: true },
 ];
 
 export function getWorkflowSubgroupColor(status) {

@@ -20,8 +20,7 @@ const SERVICE_NAME = 'OperationsBoardService';
 
 export const WORKFLOW_COLUMNS = [
   { id: 'DRAFT', name: 'Draft', i18nKey: 'operations_board_lane_draft', color: WORKFLOW_STATUS_COLORS.DRAFT },
-  { id: 'TAKEN', name: 'Taken', i18nKey: 'operations_board_lane_taken', color: WORKFLOW_STATUS_COLORS.TAKEN },
-  { id: 'SUBMITTED', name: 'Submitted', i18nKey: 'operations_board_lane_submitted', color: WORKFLOW_STATUS_COLORS.SUBMITTED },
+  { id: 'SUBMITTED', name: 'Confirmed', i18nKey: 'operations_board_lane_confirmed', color: WORKFLOW_STATUS_COLORS.SUBMITTED },
   { id: 'UNDER_ADMIN_REVIEW', name: 'Admin', i18nKey: 'operations_board_lane_admin_review', color: WORKFLOW_STATUS_COLORS.UNDER_ADMIN_REVIEW },
   { id: 'UNDER_HR_REVIEW', name: 'HR', i18nKey: 'operations_board_lane_hr_review', color: WORKFLOW_STATUS_COLORS.UNDER_HR_REVIEW },
   { id: 'APPROVED', name: 'Approved', i18nKey: 'operations_board_lane_approved', color: WORKFLOW_STATUS_COLORS.APPROVED },
@@ -76,10 +75,8 @@ export function deriveAction(fromStatus, toStatus) {
   if (toStatus === 'REJECTED') return 'REJECT';
   if (toStatus === 'SUBMITTED' && fromStatus === 'UNDER_ADMIN_REVIEW') return 'RETURN';
   if (toStatus === 'UNDER_ADMIN_REVIEW' && fromStatus === 'UNDER_HR_REVIEW') return 'RETURN';
-  if (toStatus === 'DRAFT' && (fromStatus === 'TAKEN' || fromStatus === 'SUBMITTED')) return 'RETURN';
-  if (toStatus === 'TAKEN' && fromStatus === 'DRAFT') return 'MARK_TAKEN';
+  if (toStatus === 'DRAFT' && fromStatus === 'SUBMITTED') return 'RETURN';
   if (toStatus === 'SUBMITTED' && fromStatus === 'DRAFT') return 'SUBMIT';
-  if (toStatus === 'SUBMITTED' && fromStatus === 'TAKEN') return 'SUBMIT';
   if (toStatus === 'SUBMITTED' && fromStatus === 'REJECTED') return 'RESUBMIT';
   if (
     (toStatus === 'UNDER_ADMIN_REVIEW' && fromStatus === 'SUBMITTED')
@@ -467,8 +464,9 @@ export const moveAttendanceCard = async (attendanceId, newStatus, notes = null, 
     }
     return result;
   } catch (err) {
-    logError(`${SERVICE_NAME}:moveAttendanceCard:error`, { error: err.message });
-    return { success: false, error: err.message };
+    const apiError = err?.response?.data?.error || err?.response?.data?.message || err.message;
+    logError(`${SERVICE_NAME}:moveAttendanceCard:error`, { error: apiError, status: err?.response?.status, data: err?.response?.data });
+    return { success: false, error: apiError };
   }
 };
 

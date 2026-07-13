@@ -43,6 +43,8 @@ import {
   Cloud, Layers, Package, Bookmark,
   // History icon
   History,
+  // Circle icon for notification filters
+  Circle,
 } from 'lucide-react';
 
 // Additional imports for UI badge functions
@@ -259,6 +261,7 @@ export const ICON_TYPES = {
     database: <Database size={16} />,
     file: <FileText size={16} />,
     check_circle: <CheckCircle size={16} />,
+    circle: <Circle size={16} />,
     x_circle: <XCircle size={16} />,
     file_signature: <FileSignature size={16} />,
     help: <HelpCircle size={16} />,

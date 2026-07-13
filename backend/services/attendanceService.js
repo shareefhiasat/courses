@@ -555,7 +555,7 @@ export const updateAttendance = async (id, updateData, user = null) => {
 
     // Prepare update data
     const data = {
-      updatedBy: user?.id ? (isNaN(parseInt(user.id)) ? null : parseInt(user.id)) : null,
+      updatedBy: user?.dbId || (user?.id && !isNaN(parseInt(user.id)) ? parseInt(user.id) : null),
       updatedAt: new Date()
     };
     
@@ -649,14 +649,18 @@ export const updateAttendance = async (id, updateData, user = null) => {
     }
 
     if (global.chatWSBroadcast) {
-      global.chatWSBroadcast('board:attendance_updated', {
-        attendanceId: updatedAttendance.id,
-        userId: updatedAttendance.userId,
-        classId: updatedAttendance.classId,
-        date: updatedAttendance.date,
-        status: { code: updatedAttendance.status.code, nameEn: updatedAttendance.status.nameEn, nameAr: updatedAttendance.status.nameAr },
-        notes: updatedAttendance.notes,
-      });
+      try {
+        global.chatWSBroadcast('board:attendance_updated', {
+          attendanceId: updatedAttendance.id,
+          userId: updatedAttendance.userId,
+          classId: updatedAttendance.classId,
+          date: updatedAttendance.date,
+          status: { code: updatedAttendance.status.code, nameEn: updatedAttendance.status.nameEn, nameAr: updatedAttendance.status.nameAr },
+          notes: updatedAttendance.notes,
+        });
+      } catch (wsErr) {
+        console.error('[Attendance Service] WebSocket broadcast failed:', wsErr);
+      }
     }
 
     // Notify class instructor when an admin overrides attendance
@@ -694,7 +698,8 @@ export const updateAttendance = async (id, updateData, user = null) => {
     console.error('Update attendance error:', error);
     return {
       success: false,
-      error: 'Internal server error',
+      error: error.message || 'Internal server error',
+      code: error.code || 500,
       data: null
     };
   }
@@ -779,7 +784,8 @@ export const deleteAttendance = async (id, user = null) => {
     console.error('Delete attendance error:', error);
     return {
       success: false,
-      error: 'Internal server error',
+      error: error.message || 'Internal server error',
+      code: error.code || 500,
       data: null
     };
   }

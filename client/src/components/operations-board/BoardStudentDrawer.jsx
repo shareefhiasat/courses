@@ -16,9 +16,11 @@ import { getLectureLog } from '@services/business/attendanceLogService.js';
 import { getParticipationsByClassAndDate, createParticipation } from '@services/business/participationService.js';
 import {
   shouldHideAttendancePrivacyTabs,
+  shouldHideNotesCommentsOnly,
   filterActivityEntriesForHR,
   maskAttendanceColumnForHR,
   isHROnlyViewer,
+  isInstructorOnlyViewer,
 } from './hrAttendancePrivacy.js';
 import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -146,6 +148,7 @@ export default function BoardStudentDrawer({
   const { t, lang } = useLang();
   const { user } = useAuth();
   const [tab, setTab] = useState('activity');
+  const instructorViewer = isInstructorOnlyViewer(roleContext);
   const [history, setHistory] = useState([]);
   const [comments, setComments] = useState([]);
   const [attendanceLog, setAttendanceLog] = useState([]);
@@ -172,7 +175,7 @@ export default function BoardStudentDrawer({
           setHistory(histResult.data?.history || []);
           setComments(histResult.data?.comments || card.raw?.comments || []);
         }
-        if (card.classId && card.date && !shouldHideAttendancePrivacyTabs(roleContext)) {
+        if (card.classId && card.date && !isHROnlyViewer(roleContext)) {
           const partResult = await getParticipationsByClassAndDate(card.classId, card.date);
           if (partResult?.success && partResult.data) {
             setParticipationList(partResult.data);
@@ -190,7 +193,7 @@ export default function BoardStudentDrawer({
         }
         if (card.classId && card.date) {
           fetches.push(getLectureLog(card.classId, card.date));
-          if (!shouldHideAttendancePrivacyTabs(roleContext)) {
+          if (!isHROnlyViewer(roleContext)) {
             fetches.push(getParticipationsByClassAndDate(card.classId, card.date));
           }
         }
@@ -222,7 +225,7 @@ export default function BoardStudentDrawer({
           } else {
             setLectureLogEntries([]);
           }
-          if (!shouldHideAttendancePrivacyTabs(roleContext)) {
+          if (!isHROnlyViewer(roleContext)) {
             const partResult = results[lecIdx];
             if (partResult?.success && partResult.data) {
               setParticipationList(partResult.data.filter((p) => String(p.userId) === String(card.userId)));
@@ -255,7 +258,10 @@ export default function BoardStudentDrawer({
     const isNewCard = openedCardIdRef.current !== card.id;
     openedCardIdRef.current = card.id;
     if (isNewCard) {
-      setTab('activity');
+      const defaultTab = instructorViewer
+        ? (card.type === 'attendance' ? 'notes' : (card.classId && card.date ? 'participation' : 'notes'))
+        : 'activity';
+      setTab(defaultTab);
       setPdfPreviewOpen(false);
       setPreviewBlobUrl(null);
       setPreviewGeneratedAt(null);
@@ -463,6 +469,7 @@ export default function BoardStudentDrawer({
   const statusLabel = statusColumn ? t(statusColumn.i18nKey) || statusColumn.name : displayColumn;
 
   const hidePrivacyTabs = shouldHideAttendancePrivacyTabs(roleContext);
+  const hideNotesComments = shouldHideNotesCommentsOnly(roleContext);
   const hrViewer = isHROnlyViewer(roleContext);
 
   const buildStatusEntry = (h, prefix = '') => {
@@ -519,23 +526,29 @@ export default function BoardStudentDrawer({
   activityEntries = filterActivityEntriesForHR(activityEntries, roleContext);
 
   const drawerTabs = [
-    { key: 'activity', label: t('operations_board_tab_activity'), icon: Activity },
-    ...(card.type === 'attendance'
+    ...(!instructorViewer ? [{ key: 'activity', label: t('operations_board_tab_activity'), icon: Activity }] : []),
+    ...(!instructorViewer && card.type === 'attendance'
       ? [{ key: 'profile', label: t('operations_board_tab_profile') || 'Profile', icon: User }]
-      : [{ key: 'details', label: t('operations_board_tab_details') || 'Details', icon: FileText }]),
-    ...(!hidePrivacyTabs ? [{ key: 'notes', label: t('operations_board_tab_notes'), icon: StickyNote }] : []),
-    ...(card.type === 'attendance' && !hidePrivacyTabs
+      : !instructorViewer
+        ? [{ key: 'details', label: t('operations_board_tab_details') || 'Details', icon: FileText }]
+        : []),
+    ...(!hrViewer ? [{ key: 'notes', label: t('operations_board_tab_notes'), icon: StickyNote }] : []),
+    ...(card.type === 'attendance' && !hrViewer
       ? [{ key: 'participation', label: t('operations_board_participation') || 'Participation', icon: Award }]
       : []),
     ...(card.type === 'workflow'
       ? [
-        { key: 'comments', label: t('operations_board_tab_comments'), icon: MessageSquare },
-        ...(card.classId && card.date && !hidePrivacyTabs
+        ...(!hideNotesComments ? [{ key: 'comments', label: t('operations_board_tab_comments'), icon: MessageSquare }] : []),
+        ...(card.classId && card.date && !hrViewer
           ? [{ key: 'participation', label: t('operations_board_participation') || 'Participation', icon: Award }]
           : []),
       ]
       : []),
   ];
+
+  const validTab = drawerTabs.some((tb) => tb.key === tab);
+  const effectiveTab = validTab ? tab : (drawerTabs[0]?.key || 'notes');
+
   const attendanceNoteEntries = attendanceNotesList
     .map((n) => ({
       ...n,
@@ -737,7 +750,7 @@ export default function BoardStudentDrawer({
         )}
 
         <Tabs
-          value={tab}
+          value={effectiveTab}
           onChange={(_, value) => setTab(value)}
           data-drawer-tabs="true"
           sx={{
@@ -789,7 +802,7 @@ export default function BoardStudentDrawer({
           ))}
         </Tabs>
 
-        {tab === 'activity' && (
+        {effectiveTab === 'activity' && (
           <Box sx={{ flex: 1, overflow: 'auto', pt: 1 }} data-testid="operations-board-activity-feed">
             {loading ? (
               <p className="text-sm text-muted-foreground">{t('operations_board_loading')}</p>
@@ -808,7 +821,7 @@ export default function BoardStudentDrawer({
           </Box>
         )}
 
-        {tab === 'profile' && card.type === 'attendance' && (
+        {effectiveTab === 'profile' && card.type === 'attendance' && (
           <Box sx={{ flex: 1, overflow: 'auto' }} data-testid="operations-board-profile">
             {(() => {
               const u = card.user || {};
@@ -841,7 +854,7 @@ export default function BoardStudentDrawer({
           </Box>
         )}
 
-        {tab === 'details' && card.type === 'workflow' && (
+        {effectiveTab === 'details' && card.type === 'workflow' && (
           <Box sx={{ flex: 1, overflow: 'auto', pt: 1 }} data-testid="operations-board-workflow-details">
             <div className="operations-board-profile-list">
               {[
@@ -860,7 +873,7 @@ export default function BoardStudentDrawer({
           </Box>
         )}
 
-        {tab === 'notes' && (
+        {effectiveTab === 'notes' && (
           <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }} data-testid="operations-board-notes-panel">
             <Box sx={{ flex: 1, overflow: 'auto', pt: 1, mb: 2 }}>
               {card.type === 'workflow' ? (
@@ -890,7 +903,7 @@ export default function BoardStudentDrawer({
           </Box>
         )}
 
-        {tab === 'participation' && (card.type === 'attendance' || card.type === 'workflow') && (
+        {effectiveTab === 'participation' && (card.type === 'attendance' || card.type === 'workflow') && (
           <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }} data-testid="operations-board-participation-panel">
             <Box sx={{ flex: 1, overflow: 'auto', pt: 1, mb: 2 }}>
               <DrawerTimeline
@@ -927,7 +940,7 @@ export default function BoardStudentDrawer({
           </Box>
         )}
 
-        {tab === 'comments' && card.type === 'workflow' && (
+        {effectiveTab === 'comments' && card.type === 'workflow' && (
           <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <Box sx={{ flex: 1, overflow: 'auto', pt: 1, mb: 2 }}>
               <DrawerTimeline

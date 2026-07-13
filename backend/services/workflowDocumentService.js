@@ -194,7 +194,6 @@ export async function shareWorkflowFile({
  */
 const IN_PROGRESS_STATUSES = [
   'DRAFT',
-  'TAKEN',
   'SUBMITTED',
   'UNDER_REVIEW',
   'UNDER_HR_REVIEW',
@@ -2077,7 +2076,7 @@ export async function ensureWorkflowOversightFileShares(fileId) {
     });
     if (!doc) return false;
     const status = String(doc.status || '').toUpperCase();
-    if (!['DRAFT', 'TAKEN', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED', 'REJECTED'].includes(status)) {
+    if (!['DRAFT', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED', 'REJECTED'].includes(status)) {
       return false;
     }
     await shareWorkflowFile({

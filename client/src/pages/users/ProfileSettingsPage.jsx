@@ -707,6 +707,7 @@ const ProfileSettingsPage = () => {
           </CardBody>
         </Card>
 
+        {!isInstructor && (
         <Card data-tour="profile-notifications">
           <CardBody>
             <div className={styles.cardHeader}>
@@ -817,6 +818,7 @@ const ProfileSettingsPage = () => {
             </div>
           </CardBody>
         </Card>
+        )}
 
         <div className={styles.actions} data-tour="profile-save">
           <Button

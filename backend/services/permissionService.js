@@ -37,7 +37,6 @@ function actorIsAdminOrHr(roles = []) {
 
 const WORKFLOW_OVERSIGHT_STATUSES = new Set([
   'DRAFT',
-  'TAKEN',
   'SUBMITTED',
   'UNDER_ADMIN_REVIEW',
   'UNDER_HR_REVIEW',

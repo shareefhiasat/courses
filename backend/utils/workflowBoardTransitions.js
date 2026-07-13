@@ -1,30 +1,31 @@
 import { LMS_ROLES } from '../services/keycloakAdminService.js';
 
 const INSTRUCTOR_TRANSITIONS = {
-  DRAFT: new Set(['TAKEN']),
-  TAKEN: new Set(['DRAFT', 'SUBMITTED']),
-  SUBMITTED: new Set(['TAKEN', 'UNDER_ADMIN_REVIEW']),
+  DRAFT: new Set(['SUBMITTED']),
+  SUBMITTED: new Set(['DRAFT', 'UNDER_ADMIN_REVIEW']),
 };
 
 const ADMIN_TRANSITIONS = {
-  SUBMITTED: new Set(['UNDER_ADMIN_REVIEW']),
-  UNDER_ADMIN_REVIEW: new Set(['SUBMITTED', 'UNDER_HR_REVIEW', 'REJECTED']),
-  UNDER_HR_REVIEW: new Set(['UNDER_ADMIN_REVIEW']),
+  DRAFT: new Set(['SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED', 'REJECTED']),
+  SUBMITTED: new Set(['DRAFT', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED', 'REJECTED']),
+  UNDER_ADMIN_REVIEW: new Set(['DRAFT', 'SUBMITTED', 'UNDER_HR_REVIEW', 'APPROVED', 'REJECTED']),
+  UNDER_HR_REVIEW: new Set(['DRAFT', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'APPROVED']),
+  APPROVED: new Set(['DRAFT', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'REJECTED']),
+  REJECTED: new Set(['DRAFT', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED']),
 };
 
-const INSTRUCTOR_WORKFLOW_LANES = new Set(['DRAFT', 'TAKEN', 'SUBMITTED']);
+const INSTRUCTOR_WORKFLOW_LANES = new Set(['DRAFT', 'SUBMITTED']);
 
 const HR_TRANSITIONS = {
   DRAFT: new Set(['SUBMITTED']),
   SUBMITTED: new Set(['DRAFT', 'UNDER_ADMIN_REVIEW']),
-  UNDER_HR_REVIEW: new Set(['UNDER_ADMIN_REVIEW', 'APPROVED', 'REJECTED']),
+  UNDER_HR_REVIEW: new Set(['UNDER_ADMIN_REVIEW', 'APPROVED']),
 };
 
 const INSTRUCTOR_LOCKED_STATUSES = new Set([
   'UNDER_ADMIN_REVIEW',
   'UNDER_HR_REVIEW',
   'APPROVED',
-  'REJECTED',
 ]);
 
 function isInstructorOnly(roles = []) {
@@ -48,15 +49,17 @@ function canRoleMove(fromStatus, toStatus, roles = []) {
   if (!fromStatus || !toStatus || fromStatus === toStatus) return false;
   if (roles.includes(LMS_ROLES.SUPER_ADMIN)) return true;
 
+  // Admin can freely move to any status
+  if (isAdminOnly(roles)) {
+    return ADMIN_TRANSITIONS[fromStatus]?.has(toStatus) || false;
+  }
+
   const allowed = new Set();
   if (roles.includes(LMS_ROLES.INSTRUCTOR)) {
     INSTRUCTOR_TRANSITIONS[fromStatus]?.forEach((t) => allowed.add(t));
   }
   if (roles.includes(LMS_ROLES.ADMIN)) {
     ADMIN_TRANSITIONS[fromStatus]?.forEach((t) => allowed.add(t));
-    if (!roles.includes(LMS_ROLES.INSTRUCTOR)) {
-      INSTRUCTOR_TRANSITIONS[fromStatus]?.forEach((t) => allowed.add(t));
-    }
   }
   if (roles.includes(LMS_ROLES.HR)) {
     HR_TRANSITIONS[fromStatus]?.forEach((t) => allowed.add(t));

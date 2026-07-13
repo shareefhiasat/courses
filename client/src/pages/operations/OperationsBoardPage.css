@@ -130,6 +130,15 @@
 
 .operations-board-page .operations-attendance-card {
   max-width: 100%;
+  border-left: 3px solid var(--card-status-color, transparent) !important;
+  border-left-width: 3px !important;
+  border-left-style: solid !important;
+  border-left-color: var(--card-status-color, transparent) !important;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease !important;
+}
+
+.operations-board-page .operations-attendance-card:hover {
+  box-shadow: 0 0 0 1px var(--card-status-color, transparent), 0 4px 12px -2px var(--card-status-color, rgba(0,0,0,0.15)) !important;
 }
 
 .operations-board-page .operations-attendance-card > div {
@@ -334,6 +343,7 @@
 .operations-board-page [class*="min-h-40"] [class*="cursor-grab"] {
   background-color: hsl(var(--card)) !important;
   border: 1px solid hsl(var(--border)) !important;
+  border-left: 3px solid var(--card-status-color, hsl(var(--border))) !important;
   border-radius: calc(var(--radius) - 4px) !important;
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
   padding: 0.75rem !important;
@@ -341,8 +351,9 @@
 }
 
 .operations-board-page [class*="min-h-40"] [class*="cursor-grab"]:hover {
-  box-shadow: 0 0 15px rgba(139, 92, 246, 0.4) !important;
-  border-color: rgba(139, 92, 246, 0.5) !important;
+  box-shadow: 0 0 0 1px var(--card-status-color, transparent), 0 4px 12px -2px var(--card-status-color, rgba(139, 92, 246, 0.4)) !important;
+  border-color: var(--card-status-color, rgba(139, 92, 246, 0.5)) !important;
+  border-left-color: var(--card-status-color, hsl(var(--border))) !important;
 }
 
 .operations-board-page [class*="min-h-40"] [class*="cursor-grab"] p {
@@ -557,8 +568,41 @@
 }
 
 /* Font scale support: scale board card text and legends via --ops-font-scale */
+/* Base aligned to schedule grid: 11px * scale */
 .operations-board-page [class*="cursor-grab"] {
-  font-size: calc(0.875rem * var(--ops-font-scale, 1));
+  font-size: calc(11px * var(--ops-font-scale, 1));
+}
+
+/* Font scale: drawer tabs */
+.operations-board-page [data-testid="operations-board-drawer"] .MuiTab-root {
+  font-size: calc(0.78rem * var(--ops-font-scale, 1)) !important;
+  min-height: calc(2rem * var(--ops-font-scale, 1)) !important;
+  height: calc(2rem * var(--ops-font-scale, 1)) !important;
+}
+
+/* Font scale: drawer header title and meta */
+.operations-board-page [data-testid="operations-board-drawer"] h6,
+.operations-board-page [data-testid="operations-board-drawer"] [class*="text-sm"],
+.operations-board-page [data-testid="operations-board-drawer"] [class*="text-xs"] {
+  font-size: calc(1em * var(--ops-font-scale, 1));
+}
+
+/* Font scale: drawer content sections */
+.operations-board-page [data-testid="operations-board-drawer"] [data-testid="operations-board-activity-feed"],
+.operations-board-page [data-testid="operations-board-drawer"] [data-testid="operations-board-notes-panel"],
+.operations-board-page [data-testid="operations-board-drawer"] [data-testid="operations-board-participation-panel"],
+.operations-board-page [data-testid="operations-board-drawer"] [data-testid="operations-board-profile"],
+.operations-board-page [data-testid="operations-board-drawer"] [data-testid="operations-board-workflow-details"] {
+  font-size: calc(11px * var(--ops-font-scale, 1));
+}
+
+/* Font scale: drawer content text elements */
+.operations-board-page [data-testid="operations-board-drawer"] p,
+.operations-board-page [data-testid="operations-board-drawer"] span,
+.operations-board-page [data-testid="operations-board-drawer"] label,
+.operations-board-page [data-testid="operations-board-drawer"] textarea,
+.operations-board-page [data-testid="operations-board-drawer"] input {
+  font-size: calc(1em * var(--ops-font-scale, 1));
 }
 
 .operations-board-page [class*="cursor-grab"] p,
@@ -569,38 +613,70 @@
 .operations-board-page [class*="cursor-grab"] p.text-sm,
 .operations-board-page [class*="cursor-grab"] p.font-medium,
 .operations-board-page [class*="cursor-grab"] .text-sm {
-  font-size: calc(0.875rem * var(--ops-font-scale, 1)) !important;
+  font-size: calc(11px * var(--ops-font-scale, 1)) !important;
 }
 
 .operations-board-page [class*="cursor-grab"] p.text-xs,
 .operations-board-page [class*="cursor-grab"] .text-xs {
-  font-size: calc(0.75rem * var(--ops-font-scale, 1)) !important;
+  font-size: calc(10px * var(--ops-font-scale, 1)) !important;
 }
 
 .operations-board-page [class*="cursor-grab"] [class*="text-[10px]"] {
-  font-size: calc(0.625rem * var(--ops-font-scale, 1)) !important;
+  font-size: calc(9px * var(--ops-font-scale, 1)) !important;
+}
+
+.operations-board-page [class*="cursor-grab"] [class*="text-[0.65rem]"] {
+  font-size: calc(9px * var(--ops-font-scale, 1)) !important;
 }
 
 /* Scale attendance summary chips (P:2 L:0 A:0 / 2) */
 .operations-board-page [class*="cursor-grab"] [class*="text-[0.7rem]"] {
-  font-size: calc(0.7rem * var(--ops-font-scale, 1)) !important;
+  font-size: calc(10px * var(--ops-font-scale, 1)) !important;
   gap: calc(0.375rem * var(--ops-font-scale, 1)) !important;
 }
 
 /* Scale avatar size */
 .operations-board-page [class*="cursor-grab"] [class*="h-5 w-5"] {
-  height: calc(1.25rem * var(--ops-font-scale, 1)) !important;
-  width: calc(1.25rem * var(--ops-font-scale, 1)) !important;
+  height: calc(18px * var(--ops-font-scale, 1)) !important;
+  width: calc(18px * var(--ops-font-scale, 1)) !important;
+}
+
+.operations-board-page [class*="cursor-grab"] [class*="h-6 w-6"] {
+  height: calc(20px * var(--ops-font-scale, 1)) !important;
+  width: calc(20px * var(--ops-font-scale, 1)) !important;
 }
 
 .operations-board-page [class*="cursor-grab"] [class*="h-8 w-8"] {
-  height: calc(2rem * var(--ops-font-scale, 1)) !important;
-  width: calc(2rem * var(--ops-font-scale, 1)) !important;
+  height: calc(26px * var(--ops-font-scale, 1)) !important;
+  width: calc(26px * var(--ops-font-scale, 1)) !important;
+}
+
+.operations-board-page [class*="cursor-grab"] [class*="h-10 w-10"] {
+  height: calc(32px * var(--ops-font-scale, 1)) !important;
+  width: calc(32px * var(--ops-font-scale, 1)) !important;
+}
+
+/* Scale small status dots */
+.operations-board-page [class*="cursor-grab"] [class*="h-2 w-2"] {
+  height: calc(7px * var(--ops-font-scale, 1)) !important;
+  width: calc(7px * var(--ops-font-scale, 1)) !important;
+}
+
+/* Scale small icons (h-3 w-3) */
+.operations-board-page [class*="cursor-grab"] [class*="h-3 w-3"] {
+  height: calc(10px * var(--ops-font-scale, 1)) !important;
+  width: calc(10px * var(--ops-font-scale, 1)) !important;
+}
+
+/* Scale lucide Star icons inside cards (notes/participation indicators) */
+.operations-board-page [class*="cursor-grab"] svg.lucide-star {
+  height: calc(10px * var(--ops-font-scale, 1)) !important;
+  width: calc(10px * var(--ops-font-scale, 1)) !important;
 }
 
 /* Scale status label text */
 .operations-board-page [class*="cursor-grab"] [class*="StatusLabel"] {
-  font-size: calc(0.75rem * var(--ops-font-scale, 1)) !important;
+  font-size: calc(10px * var(--ops-font-scale, 1)) !important;
 }
 
 /* Scale legend text in board footer */
@@ -612,16 +688,16 @@
 .operations-board-page .operations-board-lane-header,
 .operations-board-page [class*="min-h-40"] > [class*="m-0 p-2"] span,
 .operations-board-page [class*="min-h-40"] > [class*="m-0 p-2"] {
-  font-size: calc(0.9375rem * var(--ops-font-scale, 1)) !important;
+  font-size: calc(12px * var(--ops-font-scale, 1)) !important;
 }
 
 .operations-board-page [class*="min-h-40"] > [class*="m-0 p-2"] [class*="text-xs"] {
-  font-size: calc(0.75rem * var(--ops-font-scale, 1)) !important;
+  font-size: calc(10px * var(--ops-font-scale, 1)) !important;
 }
 
 /* Table view font scale + row height */
 .operations-board-page [data-testid="operations-board-table"] {
-  font-size: calc(0.875rem * var(--ops-font-scale, 1));
+  font-size: calc(11px * var(--ops-font-scale, 1));
 }
 
 .operations-board-page [data-testid="operations-board-table"] thead tr {
@@ -681,14 +757,13 @@
 
 .operations-board-page .operations-board-lane,
 .operations-board-page .operations-board-lane-permitted {
-  border-color: rgba(15, 23, 42, 0.22) !important;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+  box-shadow: none;
 }
 
 .operations-board-page .operations-board-lane-header {
   border-bottom: 1px solid rgba(15, 23, 42, 0.16) !important;
   background: rgba(15, 23, 42, 0.03);
-  padding: 0.375rem !important;
+  padding: 0.1875rem 0.375rem !important;
 }
 
 .operations-board-page .MuiTabs-indicator {
@@ -729,11 +804,12 @@
   height: 100%;
 }
 
-/* Permitted lane: white background with subtle gray outline */
+/* Permitted lane: white background with lane-colored outline */
 .operations-board-page .operations-board-lane-permitted,
 .operations-board-lane-permitted {
   background-color: hsl(var(--background, 0 0% 100%)) !important;
-  border: 1px solid var(--border, #dee2e6) !important;
+  border: 2px solid var(--lane-color, var(--border, #dee2e6)) !important;
+  border-color: var(--lane-color, var(--border, #dee2e6)) !important;
   border-radius: 8px !important;
 }
 
@@ -741,7 +817,8 @@
 .operations-board-page .operations-board-lane-readonly,
 .operations-board-lane-readonly {
   background-color: var(--background-secondary, #f8f9fa) !important;
-  border: 1px solid var(--border, #dee2e6) !important;
+  border: 1px solid var(--lane-color, var(--border, #dee2e6)) !important;
+  border-color: var(--lane-color, var(--border, #dee2e6)) !important;
   border-radius: 8px !important;
   opacity: 0.5;
 }
@@ -782,11 +859,11 @@
   background: transparent;
   cursor: pointer;
   padding: 0.25rem;
-  color: hsl(var(--muted-foreground));
+  color: var(--lane-color, hsl(var(--muted-foreground)));
 }
 
 .operations-board-lane-collapse-toggle:hover {
-  color: hsl(var(--foreground));
+  color: var(--lane-color, hsl(var(--foreground)));
 }
 
 .operations-board-lane-collapsed-dot {
@@ -805,6 +882,7 @@
 
 .operations-board-lane-collapse-icon {
   opacity: 0.55;
+  color: var(--lane-color, hsl(var(--muted-foreground)));
 }
 
 .operations-board-lane-collapse-btn {
@@ -813,14 +891,14 @@
   justify-content: center;
   border: none;
   background: transparent;
-  color: hsl(var(--muted-foreground));
+  color: var(--lane-color, hsl(var(--muted-foreground)));
   cursor: pointer;
   padding: 0.2rem;
   border-radius: 4px;
 }
 
 .operations-board-lane-collapse-btn:hover {
-  color: hsl(var(--foreground));
+  color: var(--lane-color, hsl(var(--foreground)));
   background: hsl(var(--muted));
 }
 
@@ -1062,13 +1140,15 @@
 }
 .operations-board-page .operations-attendance-card:hover,
 .operations-board-page [class*='operations-attendance-card']:hover {
-  border-color: rgba(139, 92, 246, 0.55) !important;
-  box-shadow: 0 0 15px rgba(139, 92, 246, 0.45) !important;
+  border-color: var(--card-status-color, rgba(139, 92, 246, 0.55)) !important;
+  border-left-color: var(--card-status-color, hsl(var(--border))) !important;
+  box-shadow: 0 0 0 1px var(--card-status-color, transparent), 0 4px 12px -2px var(--card-status-color, rgba(139, 92, 246, 0.4)) !important;
 }
 
 .operations-board-page [class*='min-h-40'] .operations-attendance-card:hover {
-  border-color: rgba(139, 92, 246, 0.55) !important;
-  box-shadow: 0 0 15px rgba(139, 92, 246, 0.45) !important;
+  border-color: var(--card-status-color, rgba(139, 92, 246, 0.55)) !important;
+  border-left-color: var(--card-status-color, hsl(var(--border))) !important;
+  box-shadow: 0 0 0 1px var(--card-status-color, transparent), 0 4px 12px -2px var(--card-status-color, rgba(139, 92, 246, 0.4)) !important;
 }
 
 @keyframes ops-purple-pulse {

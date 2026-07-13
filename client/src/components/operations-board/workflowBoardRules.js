@@ -1,25 +1,22 @@
 /**
  * Role-based lane visibility and drag targets for the workflow operations board.
  *
- * Flow: Draft → Taken → Submitted → Admin → HR → Approved | Rejected
- * Instructor: Draft ↔ Taken ↔ Submitted (and Submitted → Admin)
- * Admin: Submitted ↔ Admin ↔ HR (and Admin → Submitted)
- * HR: HR ↔ Admin, HR → Approved | Rejected
+ * Flow: Draft → Confirmed → Admin → HR → Approved
+ * Instructor: Draft ↔ Confirmed (and Confirmed → Admin)
+ * Admin: Full control — can move to any status freely
+ * HR: HR ↔ Admin, HR → Approved (Rejected hidden from HR)
  */
 
 const INSTRUCTOR_LANES = new Set([
   'DRAFT',
-  'TAKEN',
   'SUBMITTED',
   'UNDER_ADMIN_REVIEW',
   'UNDER_HR_REVIEW',
   'APPROVED',
-  'REJECTED',
 ]);
 
 const ADMIN_LANES = new Set([
   'DRAFT',
-  'TAKEN',
   'SUBMITTED',
   'UNDER_ADMIN_REVIEW',
   'UNDER_HR_REVIEW',
@@ -29,9 +26,8 @@ const ADMIN_LANES = new Set([
 
 /** Adjacent / allowed transitions by role (from → to). */
 const INSTRUCTOR_TRANSITIONS = {
-  DRAFT: new Set(['TAKEN']),
-  TAKEN: new Set(['DRAFT', 'SUBMITTED']),
-  SUBMITTED: new Set(['TAKEN', 'UNDER_ADMIN_REVIEW']),
+  DRAFT: new Set(['SUBMITTED']),
+  SUBMITTED: new Set(['DRAFT', 'UNDER_ADMIN_REVIEW']),
 };
 
 /** Statuses locked from instructor board moves once sent to admin review. */
@@ -39,24 +35,25 @@ export const INSTRUCTOR_LOCKED_STATUSES = new Set([
   'UNDER_ADMIN_REVIEW',
   'UNDER_HR_REVIEW',
   'APPROVED',
-  'REJECTED',
 ]);
 
-/** Instructor-controlled workflow lanes (Draft / Taken / Sent). */
-export const INSTRUCTOR_WORKFLOW_LANES = new Set(['DRAFT', 'TAKEN', 'SUBMITTED']);
+/** Instructor-controlled workflow lanes (Draft / Confirmed). */
+export const INSTRUCTOR_WORKFLOW_LANES = new Set(['DRAFT', 'SUBMITTED']);
 
 const ADMIN_TRANSITIONS = {
-  SUBMITTED: new Set(['UNDER_ADMIN_REVIEW']),
-  UNDER_ADMIN_REVIEW: new Set(['SUBMITTED', 'UNDER_HR_REVIEW', 'REJECTED']),
-  UNDER_HR_REVIEW: new Set(['UNDER_ADMIN_REVIEW']),
+  DRAFT: new Set(['SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED', 'REJECTED']),
+  SUBMITTED: new Set(['DRAFT', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED', 'REJECTED']),
+  UNDER_ADMIN_REVIEW: new Set(['DRAFT', 'SUBMITTED', 'UNDER_HR_REVIEW', 'APPROVED', 'REJECTED']),
+  UNDER_HR_REVIEW: new Set(['DRAFT', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'APPROVED']),
+  APPROVED: new Set(['DRAFT', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'REJECTED']),
+  REJECTED: new Set(['DRAFT', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED']),
 };
 
 const HR_TRANSITIONS = {
   DRAFT: new Set(['SUBMITTED']),
   SUBMITTED: new Set(['DRAFT', 'UNDER_ADMIN_REVIEW']),
-  UNDER_HR_REVIEW: new Set(['UNDER_ADMIN_REVIEW', 'APPROVED', 'REJECTED']),
+  UNDER_HR_REVIEW: new Set(['UNDER_ADMIN_REVIEW', 'APPROVED']),
   APPROVED: new Set([]),
-  REJECTED: new Set([]),
 };
 
 export function isInstructorOnly({ isInstructor, isAdmin, isHR, isSuperAdmin }) {
@@ -98,7 +95,7 @@ export function getWorkflowColumnsForRole(allColumns, roleContext = {}, viewMode
     return allColumns.filter((col) => ADMIN_LANES.has(col.id));
   }
   if (isHROnly(roleContext)) {
-    const hrColumns = ['UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED', 'REJECTED', 'SUBMITTED'];
+    const hrColumns = ['UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED', 'SUBMITTED'];
     // In week mode, include DRAFT so HR can see weekly summary workflows
     if (viewMode === 'week') {
       hrColumns.push('DRAFT');
@@ -113,13 +110,12 @@ export function canMoveWorkflowToColumn(fromColumn, toColumn, roleContext = {}) 
   if (roleContext.isSuperAdmin) {
     return Boolean(resolveWorkflowNotifyMeta(fromColumn, toColumn));
   }
+  // Admin can freely move to any status
+  if (isAdminOnly(roleContext)) {
+    return ADMIN_TRANSITIONS[fromColumn]?.has(toColumn) || false;
+  }
   if (isInstructorOnly(roleContext)) {
     return INSTRUCTOR_TRANSITIONS[fromColumn]?.has(toColumn) || false;
-  }
-  if (isAdminOnly(roleContext)) {
-    if (ADMIN_TRANSITIONS[fromColumn]?.has(toColumn)) return true;
-    if (INSTRUCTOR_TRANSITIONS[fromColumn]?.has(toColumn)) return true;
-    return false;
   }
   if (isHROnly(roleContext)) {
     return HR_TRANSITIONS[fromColumn]?.has(toColumn) || false;
@@ -166,8 +162,8 @@ export function resolveWorkflowNotifyMeta(fromColumn, toColumn, roleContext = {}
 
   if (fromColumn === 'DRAFT' && toColumn === 'SUBMITTED') {
     return {
-      titleKey: 'operations_board_move_draft_to_submitted_title',
-      bodyKey: 'operations_board_move_draft_to_submitted_body',
+      titleKey: 'operations_board_move_draft_to_confirmed_title',
+      bodyKey: 'operations_board_move_draft_to_confirmed_body',
       notifyKey: null,
       roles: [],
       lockWarning: false,
@@ -175,45 +171,8 @@ export function resolveWorkflowNotifyMeta(fromColumn, toColumn, roleContext = {}
   }
   if (fromColumn === 'SUBMITTED' && toColumn === 'DRAFT') {
     return {
-      titleKey: 'operations_board_move_submitted_to_draft_title',
-      bodyKey: 'operations_board_move_submitted_to_draft_body',
-      notifyKey: null,
-      roles: [],
-      lockWarning: false,
-    };
-  }
-  if (fromColumn === 'DRAFT' && toColumn === 'TAKEN') {
-    return {
-      titleKey: 'operations_board_move_draft_to_taken_title',
-      bodyKey: 'operations_board_move_draft_to_taken_body',
-      notifyKey: null,
-      roles: [],
-      lockWarning: false,
-    };
-  }
-  if (fromColumn === 'TAKEN' && toColumn === 'DRAFT') {
-    return {
-      titleKey: 'operations_board_move_taken_to_draft_title',
-      bodyKey: 'operations_board_move_taken_to_draft_body',
-      notifyKey: null,
-      roles: [],
-      lockWarning: false,
-    };
-  }
-  if (fromColumn === 'TAKEN' && toColumn === 'SUBMITTED') {
-    return {
-      titleKey: 'operations_board_move_taken_to_sent_title',
-      bodyKey: 'operations_board_move_taken_to_sent_body',
-      notifyKey: 'operations_board_move_notify_role',
-      roleKey: 'operations_board_role_admin',
-      roles: ['Admin', 'HR'],
-      lockWarning: false,
-    };
-  }
-  if (fromColumn === 'SUBMITTED' && toColumn === 'TAKEN') {
-    return {
-      titleKey: 'operations_board_move_sent_to_taken_title',
-      bodyKey: 'operations_board_move_sent_to_taken_body',
+      titleKey: 'operations_board_move_confirmed_to_draft_title',
+      bodyKey: 'operations_board_move_confirmed_to_draft_body',
       notifyKey: null,
       roles: [],
       lockWarning: false,
@@ -274,15 +233,11 @@ export function resolveWorkflowNotifyMeta(fromColumn, toColumn, roleContext = {}
       lockWarning: false,
     };
   }
-  // HR approve/reject
-  if (fromColumn === 'UNDER_HR_REVIEW' && (toColumn === 'APPROVED' || toColumn === 'REJECTED')) {
+  // HR approve
+  if (fromColumn === 'UNDER_HR_REVIEW' && toColumn === 'APPROVED') {
     return {
-      titleKey: toColumn === 'APPROVED'
-        ? 'operations_board_move_hr_to_approved_title'
-        : 'operations_board_move_hr_to_rejected_title',
-      bodyKey: toColumn === 'APPROVED'
-        ? 'operations_board_move_hr_to_approved_body'
-        : 'operations_board_move_hr_to_rejected_body',
+      titleKey: 'operations_board_move_hr_to_approved_title',
+      bodyKey: 'operations_board_move_hr_to_approved_body',
       notifyKey: 'operations_board_move_notify_all_parties',
       roles: ['Admin', 'HR', 'instructor'],
       lockWarning: false,

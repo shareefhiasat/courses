@@ -5,6 +5,11 @@ export function isHROnlyViewer(roleContext = {}) {
   return Boolean(roleContext.isHR && !roleContext.isAdmin && !roleContext.isSuperAdmin);
 }
 
+/** Instructor-only viewers (not also Admin/HR/SuperAdmin). */
+export function isInstructorOnlyViewer(roleContext = {}) {
+  return Boolean(roleContext.isInstructor && !roleContext.isAdmin && !roleContext.isHR && !roleContext.isSuperAdmin);
+}
+
 /** Map Late → Present for HR-facing attendance display. @deprecated HR sees real attendance statuses. */
 export function maskAttendanceColumnForHR(columnId, roleContext = {}) {
   return columnId;
@@ -24,11 +29,16 @@ export function getHRLegendAttendanceColumns(roleContext = {}) {
 }
 
 export function shouldHideAttendancePrivacyTabs(roleContext = {}) {
-  return isHROnlyViewer(roleContext);
+  return isHROnlyViewer(roleContext) || isInstructorOnlyViewer(roleContext);
 }
 
 export function shouldHideNotesParticipation(roleContext = {}) {
   return isHROnlyViewer(roleContext);
+}
+
+/** Hide notes and comments tabs for instructors (participation stays visible). */
+export function shouldHideNotesCommentsOnly(roleContext = {}) {
+  return isInstructorOnlyViewer(roleContext);
 }
 
 export function filterActivityEntriesForHR(entries, roleContext = {}) {

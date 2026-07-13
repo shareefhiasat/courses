@@ -18,7 +18,6 @@ import { getTimeFormatPreference, setTimeFormatPreference } from '@utils/date';
 import { adjustColor, hexToRgbString, normalizeHexColor, DEFAULT_ACCENT } from '@utils/color';
 import Select from '../Select/Select';
 import DraggableClock from '../DraggableClock/DraggableClock';
-import PortalTooltip from '../PortalTooltip/PortalTooltip';
 import ColoredTooltip from '../mui/ColoredTooltip';
 import MyDataScopeDrawer from '../MyDataScopeDrawer/MyDataScopeDrawer';
 import Slider from '@mui/material/Slider';
@@ -252,7 +251,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
             )}
 
           {/* Collapse/Expand Navbar Button */}
-          <PortalTooltip content={isNavbarCollapsed ? t('expand_navbar') : t('collapse_navbar')} position="bottom">
+          <ColoredTooltip title={isNavbarCollapsed ? t('expand_navbar') : t('collapse_navbar')} placement="bottom" color={DEFAULT_ACCENT}>
           <button
             onClick={toggleNavbar}
             className="navbar-collapse-btn"
@@ -260,7 +259,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
           >
             {getThemedIcon('ui', isNavbarCollapsed ? 'chevron_down' : 'chevron_up', 18, '#D4AF37')}
           </button>
-          </PortalTooltip>
+          </ColoredTooltip>
 
           {/* Brand */}
           <div className="navbar-brand" style={{
@@ -402,7 +401,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
 
           {/* Impersonation Banner */}
           {impersonating && (
-            <PortalTooltip content={t('exit_impersonation')} position="bottom">
+            <ColoredTooltip title={t('exit_impersonation')} placement="bottom" color="#f59e0b">
             <button
               onClick={() => {
                 stopImpersonation();
@@ -427,7 +426,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
             >
               {getThemedIcon('ui', 'user', 16, theme === 'light' ? 'white' : theme)} {t('viewing_as_student')} <span style={{ marginLeft: '0.5rem' }}>✕</span>
             </button>
-            </PortalTooltip>
+            </ColoredTooltip>
           )}
 
 
@@ -494,7 +493,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 )}
 
                 {!isStudent && (
-                  <PortalTooltip content={t('welcome')} position="bottom">
+                  <ColoredTooltip title={t('welcome')} placement="bottom" color={DEFAULT_ACCENT}>
                     <button
                       type="button"
                       className="nav-icon-btn"
@@ -518,12 +517,12 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     >
                       {getThemedIcon('ui', 'home', 16, 'currentColor')}
                     </button>
-                  </PortalTooltip>
+                  </ColoredTooltip>
                 )}
 
-                <NotificationBell />
+                {!isInstructor && <NotificationBell />}
 
-                <PortalTooltip content={lang === 'en' ? 'العربية' : 'English'} position="bottom">
+                <ColoredTooltip title={lang === 'en' ? 'العربية' : 'English'} placement="bottom" color={DEFAULT_ACCENT}>
                 <button
                   className="nav-icon-btn nav-help"
                   onClick={toggleLang}
@@ -543,9 +542,10 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 >
                   {lang === 'en' ? getThemedIcon('ui', 'globe', 15, theme === 'light' ? 'var(--text-primary)' : '#fff') : getThemedIcon('ui', 'globe2', 15, theme === 'light' ? 'var(--text-primary)' : '#fff')}
                 </button>
-                </PortalTooltip>
+                </ColoredTooltip>
 
-                <PortalTooltip content={t('my_data_access')} position="bottom">
+                {!isInstructor && (
+                <ColoredTooltip title={t('my_data_access')} placement="bottom" color={DEFAULT_ACCENT}>
                 <button
                   className="nav-icon-btn nav-help"
                   onClick={() => setShowAccessDrawer(true)}
@@ -565,9 +565,10 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 >
                   {getThemedIcon('ui', 'shield', 15, theme === 'light' ? 'var(--text-primary)' : '#fff')}
                 </button>
-                </PortalTooltip>
+                </ColoredTooltip>
+                )}
 
-                <PortalTooltip content={tourBadgeCount > 0 ? t('tour_help_count', { count: tourBadgeCount }) : t('tour_help')} position="bottom">
+                <ColoredTooltip title={tourBadgeCount > 0 ? t('tour_help_count', { count: tourBadgeCount }) : t('tour_help')} placement="bottom" color={DEFAULT_ACCENT}>
                 <button
                   className="nav-icon-btn nav-help"
                   onClick={() => {
@@ -606,10 +607,10 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     </span>
                   )}
                 </button>
-                </PortalTooltip>
+                </ColoredTooltip>
 
                 {isSuperAdmin && (
-                  <PortalTooltip content={t('help_center')} position="bottom">
+                  <ColoredTooltip title={t('help_center')} placement="bottom" color={DEFAULT_ACCENT}>
                   <button
                     className="nav-icon-btn"
                     onClick={() => window.open(`${import.meta.env.VITE_HELP_URL || 'http://localhost:3000'}/${lang}`, '_blank', 'noopener,noreferrer')}
@@ -629,10 +630,10 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   >
                     {getThemedIcon('ui', 'info', 16, theme === 'light' ? 'var(--text-primary)' : '#fff')}
                   </button>
-                  </PortalTooltip>
+                  </ColoredTooltip>
                 )}
 
-                <PortalTooltip content={theme==='light'?t('dark_mode'):t('light_mode')} position="bottom">
+                <ColoredTooltip title={theme==='light'?t('dark_mode'):t('light_mode')} placement="bottom" color={DEFAULT_ACCENT}>
                 <button
                   className="nav-icon-btn"
                   onClick={toggleTheme}
@@ -651,7 +652,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 >
                   {theme==='light'?getThemedIcon('ui', 'moon', 15, 'var(--text-primary)'):getThemedIcon('ui', 'sun', 15, '#fff')}
                 </button>
-                </PortalTooltip>
+                </ColoredTooltip>
                 {/* Temporarily hidden - Minified filter toggle button
                 <button
                   className="nav-icon-btn"
@@ -755,32 +756,32 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 {/* Multiple role badges stacked on the outer side */}
                 <div style={{ position:'absolute', [lang === 'ar' ? 'left' : 'right']:-8, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   {isSuperAdmin && (
-                    <PortalTooltip content={t('super_admin')} position="left">
+                    <ColoredTooltip title={t('super_admin')} placement="left" color={getUserRoleColor('super_admin')}>
                     <div style={{ background: 'transparent', color: '#ffffff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'none' }}>
                       {React.cloneElement(getUserRoleIcon('super_admin'), { fill: getUserRoleColor('super_admin') })}
                     </div>
-                    </PortalTooltip>
+                    </ColoredTooltip>
                   )}
                   {isAdmin && !isSuperAdmin && (
-                    <PortalTooltip content={t('admin')} position="left">
+                    <ColoredTooltip title={t('admin')} placement="left" color={getUserRoleColor('admin')}>
                     <div style={{ background: 'transparent', color: '#ffffff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'none' }}>
                       {React.cloneElement(getUserRoleIcon('admin'), { fill: getUserRoleColor('admin') })}
                     </div>
-                    </PortalTooltip>
+                    </ColoredTooltip>
                   )}
                   {isInstructor && (
-                    <PortalTooltip content={t('instructor')} position="left">
+                    <ColoredTooltip title={t('instructor')} placement="left" color={getUserRoleColor('instructor')}>
                     <div style={{ background: 'transparent', color: '#ffffff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'none' }}>
                       {React.cloneElement(getUserRoleIcon('instructor'), { fill: getUserRoleColor('instructor') })}
                     </div>
-                    </PortalTooltip>
+                    </ColoredTooltip>
                   )}
                   {isHR && (
-                    <PortalTooltip content={t('hr')} position="left">
+                    <ColoredTooltip title={t('hr')} placement="left" color={getUserRoleColor('hr')}>
                     <div style={{ background: 'transparent', color: '#ffffff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'none' }}>
                       {React.cloneElement(getUserRoleIcon('hr'), { fill: getUserRoleColor('hr') })}
                     </div>
-                    </PortalTooltip>
+                    </ColoredTooltip>
                   )}
                 </div>
                 {showDropdown && (
@@ -873,23 +874,23 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 </>
               )}
 
-              <NotificationBell />
+              {!isInstructor && <NotificationBell />}
               
-              <PortalTooltip content={lang==='en'?'العربية':'English'} position="bottom">
+              <ColoredTooltip title={lang==='en'?'العربية':'English'} placement="bottom" color={DEFAULT_ACCENT}>
               <button onClick={toggleLang} className="icon-btn">
                 {lang==='en'?'EN':'AR'}
               </button>
-              </PortalTooltip>
-              <PortalTooltip content={density==='compact'?t('normal_view'):t('compact_view')} position="bottom">
+              </ColoredTooltip>
+              <ColoredTooltip title={density==='compact'?t('normal_view'):t('compact_view')} placement="bottom" color={DEFAULT_ACCENT}>
               <button onClick={()=>setDensity(d=>d==='compact'?'normal':'compact')} className="icon-btn">
                 {density==='compact'?getThemedIcon('ui', 'zoom_in', 16, theme === 'light' ? 'var(--text-primary)' : theme):getThemedIcon('ui', 'ruler', 16, theme === 'light' ? 'var(--text-primary)' : theme)}
               </button>
-              </PortalTooltip>
-              <PortalTooltip content={theme==='light'?t('dark_mode'):t('light_mode')} position="bottom">
+              </ColoredTooltip>
+              <ColoredTooltip title={theme==='light'?t('dark_mode'):t('light_mode')} placement="bottom" color={DEFAULT_ACCENT}>
               <button onClick={toggleTheme} className="icon-btn">
                 {theme==='light'?getThemedIcon('ui', 'moon', 16, 'var(--text-primary)'):getThemedIcon('ui', 'sun', 16, theme)}
               </button>
-              </PortalTooltip>
+              </ColoredTooltip>
               
               <div className="navbar-user" onClick={() => setShowDropdown(!showDropdown)} ref={menuRef}>
                 <div className="user-avatar" style={{ overflow: 'hidden' }}>
@@ -1059,7 +1060,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
 
       {/* Floating restore button when navbar is collapsed */}
       {isNavbarCollapsed && (
-        <PortalTooltip content={t('expand_navbar')} position="left">
+        <ColoredTooltip title={t('expand_navbar')} placement="left" color={DEFAULT_ACCENT}>
         <button
           onClick={toggleNavbar}
           aria-label={t('expand_navbar')}
@@ -1102,7 +1103,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
         >
           {getThemedIcon('ui', 'chevron_down', isMobile ? 12 : 14, theme)}
         </button>
-        </PortalTooltip>
+        </ColoredTooltip>
       )}
 
       <MyDataScopeDrawer isOpen={showAccessDrawer} onClose={() => setShowAccessDrawer(false)} />

@@ -11,7 +11,7 @@ import {
   KanbanCards,
   KanbanCard,
 } from '@/components/kibo-ui/kanban';
-import { Star } from 'lucide-react';
+import { Star, ChevronRight, ChevronLeft } from 'lucide-react';
 import BoardStudentAvatar from './BoardStudentAvatar.jsx';
 import BoardLaneHeader from './BoardLaneHeader.jsx';
 import {
@@ -112,6 +112,7 @@ function AttendanceCardHoverTooltip({ item, stats, participationCount, t, lang, 
   const statusColor = statusCol?.color || ATTENDANCE_BOARD_COLORS.NOT_TAKEN;
   const maskedStats = maskAttendanceStatsForHR(stats, roleContext);
   const hidePrivacy = isHROnlyViewer(roleContext);
+  const isInstructorOnly = roleContext?.isInstructor && !roleContext?.isAdmin && !roleContext?.isHR && !roleContext?.isSuperAdmin;
   const labelColor = '#64748b';
   const nameColor = '#1e293b';
 
@@ -136,7 +137,7 @@ function AttendanceCardHoverTooltip({ item, stats, participationCount, t, lang, 
         />
         <span style={{ color: statusColor, fontWeight: 600 }}>{statusLabel}</span>
       </div>
-      {maskedStats && maskedStats.total > 0 && (
+      {maskedStats && maskedStats.total > 0 && !isInstructorOnly && (
         <div style={{ marginBottom: 4 }}>
           <div style={{ fontWeight: 600, fontSize: '0.7rem', marginBottom: 3 }}>
             {t('attendance_summary') || 'Attendance Summary'}
@@ -191,8 +192,10 @@ export default function AttendanceBoard({
   onToggleLaneCollapse,
   onBulkMove,
   participationRefreshKey = 0,
+  fontScale = 100,
 }) {
   const hrViewer = isHROnlyViewer(roleContext);
+  const isInstructorOnly = roleContext?.isInstructor && !roleContext?.isAdmin && !roleContext?.isHR && !roleContext?.isSuperAdmin;
   const sourceData = hrViewer ? mapAttendanceBoardDataForHR(data, roleContext) : data;
 
   const [boardData, setBoardData] = useState(() => {
@@ -237,7 +240,7 @@ export default function AttendanceBoard({
   }, [classId, date, participationRefreshKey]);
 
   useEffect(() => {
-    if (!classId) { setAttendanceStats(null); return; }
+    if (!classId || isInstructorOnly) { setAttendanceStats(null); return; }
     let cancelled = false;
     fetchAttendanceStats(classId).then((result) => {
       if (!cancelled && result.success) {
@@ -245,7 +248,7 @@ export default function AttendanceBoard({
       }
     });
     return () => { cancelled = true; };
-  }, [classId]);
+  }, [classId, isInstructorOnly]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
@@ -312,6 +315,38 @@ export default function AttendanceBoard({
     setBoardData(sortDataForBoard(data, sortBy, classId, date, lang));
   }, [data, sortBy, classId, date, lang]);
 
+  const handleQuickAdvance = useCallback((item, e) => {
+    e.stopPropagation();
+    const colIds = columns.map((c) => c.id);
+    const currentIdx = colIds.indexOf(item.column);
+    const nextIdx = currentIdx + 1;
+    if (nextIdx >= colIds.length) return;
+    const toColumn = colIds[nextIdx];
+    if (!canMoveAttendanceToColumn(toColumn, roleContext)) return;
+    setBoardData((prev) => {
+      const next = prev.map((d) => (d.id === item.id ? { ...d, column: toColumn } : d));
+      if (sortBy === 'system') persistCardOrder(next);
+      return next;
+    });
+    onDragEnd?.(item.id, item.column, toColumn);
+  }, [columns, roleContext, sortBy, persistCardOrder, onDragEnd]);
+
+  const handleQuickRevert = useCallback((item, e) => {
+    e.stopPropagation();
+    const colIds = columns.map((c) => c.id);
+    const currentIdx = colIds.indexOf(item.column);
+    const prevIdx = currentIdx - 1;
+    if (prevIdx < 0) return;
+    const toColumn = colIds[prevIdx];
+    if (!canMoveAttendanceToColumn(toColumn, roleContext)) return;
+    setBoardData((prev) => {
+      const next = prev.map((d) => (d.id === item.id ? { ...d, column: toColumn } : d));
+      if (sortBy === 'system') persistCardOrder(next);
+      return next;
+    });
+    onDragEnd?.(item.id, item.column, toColumn);
+  }, [columns, roleContext, sortBy, persistCardOrder, onDragEnd]);
+
   return (
     <KanbanProvider
       columns={columns}
@@ -335,6 +370,9 @@ export default function AttendanceBoard({
           key={column.id}
           data-testid={`operations-board-column-${column.id}`}
           className={`operations-board-lane ${laneClass}${collapsed ? ' operations-board-lane-collapsed' : ''}`}
+          style={{
+            '--lane-color': column.color || ATTENDANCE_BOARD_COLORS.NOT_TAKEN,
+          }}
         >
           {!collapsed && onLaneResize && (
             <div
@@ -365,6 +403,7 @@ export default function AttendanceBoard({
             onBulkMove={onBulkMove}
             columns={columns}
             canMoveTo={(from, to) => canMoveAttendanceToColumn(to, roleContext)}
+            fontScale={fontScale}
           />
           <KanbanCards id={column.id} className={collapsed ? 'operations-board-lane-cards-collapsed' : undefined}>
             {(item) => {
@@ -381,6 +420,7 @@ export default function AttendanceBoard({
                     key={item.id}
                     name={studentName}
                     className="operations-attendance-card operations-board-card-collapsed"
+                    style={{ '--card-status-color': statusColor }}
                   >
                     <div
                       className="flex justify-center"
@@ -398,6 +438,10 @@ export default function AttendanceBoard({
                   </KanbanCard>
                 );
               }
+              const colIds = columns.map((c) => c.id);
+              const currentIdx = colIds.indexOf(item.column);
+              const canAdvance = currentIdx >= 0 && currentIdx < colIds.length - 1 && canMoveAttendanceToColumn(colIds[currentIdx + 1], roleContext);
+              const canRevert = currentIdx > 0 && canMoveAttendanceToColumn(colIds[currentIdx - 1], roleContext);
               return (
                 <KanbanCard
                   column={column.id}
@@ -405,6 +449,7 @@ export default function AttendanceBoard({
                   key={item.id}
                   name={studentName}
                   className="operations-attendance-card"
+                  style={{ '--card-status-color': statusColor }}
                 >
                   <ColoredTooltip
                     title={(
@@ -423,6 +468,13 @@ export default function AttendanceBoard({
                     <div
                       className="relative flex items-center gap-2.5"
                       onClick={(e) => {
+                        if (canAdvance) {
+                          handleQuickAdvance(item, e);
+                        } else if (canRevert) {
+                          handleQuickRevert(item, e);
+                        }
+                      }}
+                      onDoubleClick={(e) => {
                         e.stopPropagation();
                         onCardClick(item);
                       }}
@@ -451,7 +503,12 @@ export default function AttendanceBoard({
                           <BoardStatusDot column={displayColumn} />
                           <p className="m-0 truncate text-sm font-medium leading-tight">{studentName}</p>
                         </div>
-                        {stats && stats.total > 0 && (
+                        {item.studentNumber && (
+                          <div className="text-[0.65rem] text-muted-foreground leading-tight" style={{ opacity: 0.7 }}>
+                            {item.studentNumber}
+                          </div>
+                        )}
+                        {stats && stats.total > 0 && !isInstructorOnly && (
                           <div className="mt-1 flex items-center gap-1.5 text-[0.7rem] text-muted-foreground" data-testid={`attendance-summary-${item.id}`}>
                             <span className="inline-flex items-center gap-0.5">
                               <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: ATTENDANCE_BOARD_COLORS.PRESENT }} />
@@ -471,6 +528,63 @@ export default function AttendanceBoard({
                           </div>
                         )}
                       </div>
+                      {(canRevert || canAdvance) && (
+                        <div
+                          className="flex flex-col items-stretch shrink-0"
+                          style={{ gap: 0 }}
+                        >
+                          {canRevert && (
+                            <button
+                              onClick={(e) => handleQuickRevert(item, e)}
+                              title={t('operations_board_quick_revert') || 'Move to previous status'}
+                              data-testid={`card-quick-revert-${item.id}`}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 22,
+                                height: '50%',
+                                minHeight: 18,
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                color: statusColor,
+                                flexShrink: 0,
+                                transition: 'background 0.15s',
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = `${statusColor}1a`; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                            >
+                              <ChevronLeft size={14} />
+                            </button>
+                          )}
+                          {canAdvance && (
+                            <button
+                              onClick={(e) => handleQuickAdvance(item, e)}
+                              title={t('operations_board_quick_advance') || 'Move to next status'}
+                              data-testid={`card-quick-advance-${item.id}`}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: 22,
+                                height: '50%',
+                                minHeight: 18,
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                color: statusColor,
+                                flexShrink: 0,
+                                transition: 'background 0.15s',
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = `${statusColor}1a`; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                            >
+                              <ChevronRight size={14} />
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </ColoredTooltip>
                 </KanbanCard>

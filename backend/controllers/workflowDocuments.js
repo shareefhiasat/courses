@@ -387,7 +387,7 @@ export const updateWorkflowDocumentStatusController = async (req, res) => {
           newStatus: status,
         };
 
-        if (status === 'SUBMITTED' && ['DRAFT', 'TAKEN'].includes(previousStatus)) {
+        if (status === 'SUBMITTED' && previousStatus === 'DRAFT') {
           // Instructor submitted — notify Admins and HR that a draft is ready for review pipeline
           await emit(EVENTS.WORKFLOW_SUBMITTED, {
             ...basePayload,

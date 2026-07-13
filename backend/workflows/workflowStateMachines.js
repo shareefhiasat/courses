@@ -214,14 +214,7 @@ export const instructorThenAdminThenHRMachine = createMachine({
   states: {
     DRAFT: {
       on: {
-        MARK_TAKEN: { target: 'TAKEN' },
         SUBMIT: { target: 'SUBMITTED' }
-      }
-    },
-    TAKEN: {
-      on: {
-        SUBMIT: { target: 'SUBMITTED' },
-        RETURN: { target: 'DRAFT' }
       }
     },
     SUBMITTED: {

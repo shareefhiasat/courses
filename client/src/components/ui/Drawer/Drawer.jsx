@@ -24,6 +24,7 @@ const Drawer = ({
   className = '',
   resizable = false,
   hideCloseButton = false,
+  ...rest
 }) => {
   const { isRTL } = useLang();
   const isHorizontal = position === 'right' || position === 'left';
@@ -73,7 +74,7 @@ const Drawer = ({
         className={styles.overlay}
         onClick={closeOnOverlay ? onClose : undefined}
       />
-      <div className={drawerClasses} style={resizable && isHorizontal ? { width: drawerWidth } : undefined}>
+      <div className={drawerClasses} style={resizable && isHorizontal ? { width: drawerWidth } : undefined} {...rest}>
         {(title || !hideCloseButton) && (
           <div className={styles.header}>
             {title && <h2 className={styles.title}>{title}</h2>}

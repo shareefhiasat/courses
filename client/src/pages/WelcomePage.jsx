@@ -111,6 +111,7 @@ const WelcomePage = () => {
   const [selectedSession, setSelectedSession] = useState(null);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [selectedDate, setSelectedDate] = useState(() => {
+    if (isInstructor) return new Date();
     const urlDate = searchParams.get('date');
     if (urlDate) {
       const parsed = new Date(`${urlDate}T12:00:00`);
@@ -127,10 +128,12 @@ const WelcomePage = () => {
 
   const instructorId = user?.dbId;
   const canInteractAll = isAdmin || isSuperAdmin || isHR;
+  const isInstructorOnly = isInstructor && !isAdmin && !isHR && !isSuperAdmin;
   const hideNotesParticipation = isHR && !isAdmin && !isSuperAdmin;
+  const hideNotesComments = (isHR && !isAdmin && !isSuperAdmin) || isInstructorOnly;
   const { canExport } = useQRPermissions();
   const { canAccessScreen } = usePermissions();
-  const showOperationsTab = canAccessScreen('operations') || canExport || isAdmin || isHR;
+  const showOperationsTab = (canAccessScreen('operations') || canExport || isAdmin || isHR || isInstructor);
   const [exportingKey, setExportingKey] = useState(null);
   const [gridPdfPreview, setGridPdfPreview] = useState(null);
   const [cohortClassIds, setCohortClassIds] = useState([]);
@@ -144,6 +147,7 @@ const WelcomePage = () => {
   const [cohortSubjects, setCohortSubjects] = useState([]);
   const [opsViewMode, setOpsViewMode] = useState(() => {
     try {
+      if (isInstructor && !isAdmin && !isHR && !isSuperAdmin) return 'day';
       const stored = localStorage.getItem('welcome_ops_view_mode');
       return stored === 'week' ? 'week' : 'day';
     } catch {
@@ -180,13 +184,14 @@ const WelcomePage = () => {
   const visibleTabs = useMemo(() => {
     const tabs = ['schedule'];
     if (showOperationsTab) tabs.push('operations');
-    tabs.push('overview');
+    if (!isInstructorOnly) tabs.push('overview');
     return tabs;
-  }, [showOperationsTab]);
+  }, [showOperationsTab, isInstructorOnly]);
 
   const showSchedule = useMemo(() => Boolean(selection?.program && selection?.academicTerm), [selection]);
 
   const tabParam = searchParams.get('tab') || 'schedule';
+  const classIdParam = searchParams.get('classId') || null;
   const activeTab = Math.max(0, visibleTabs.indexOf(visibleTabs.includes(tabParam) ? tabParam : 'schedule'));
   const boardExpanded = searchParams.get('expanded') === '1';
   const scheduleExpanded = searchParams.get('scheduleExpanded') === '1';
@@ -208,6 +213,7 @@ const WelcomePage = () => {
 
   // Sync selectedDate when the URL date param changes (e.g., browser back/forward)
   useEffect(() => {
+    if (isInstructor) return; // Instructors are locked to today
     const urlDate = searchParams.get('date');
     if (!urlDate) return;
     const parsed = new Date(`${urlDate}T12:00:00`);
@@ -229,13 +235,18 @@ const WelcomePage = () => {
   }, [selection, selectedDate, cohortClassIds]);
 
   const handleTabChange = useCallback((_, value) => {
+    const targetTab = visibleTabs[value] || 'schedule';
+    if (targetTab === 'operations' && isInstructorOnly && !classIdParam) {
+      setSnackbar({ open: true, message: t('choose_class_today_ops') || 'Please choose a class from today\'s schedule to open Operations.', severity: 'info' });
+      return;
+    }
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
-      next.set('tab', visibleTabs[value] || 'schedule');
-      if (visibleTabs[value] !== 'operations') next.delete('expanded');
+      next.set('tab', targetTab);
+      if (targetTab !== 'operations') next.delete('expanded');
       return next;
     });
-  }, [setSearchParams, visibleTabs]);
+  }, [setSearchParams, visibleTabs, isInstructorOnly, classIdParam, t]);
 
   const handleToggleBoardExpand = useCallback(() => {
     setSearchParams((prev) => {
@@ -527,7 +538,7 @@ const WelcomePage = () => {
       : null;
     const classId = searchParams.get('classId') || null;
     let className = null;
-    if (classId && scheduleData) {
+    if (classId && scheduleData && !isInstructorOnly) {
       for (const day of scheduleData.days || []) {
         for (const slot of Object.values(day.slots || {})) {
           if (slot && slot.classId && String(slot.classId) === String(classId)) {
@@ -642,6 +653,35 @@ const WelcomePage = () => {
       instructor: slot.instructor,
     } : null);
     if (!session) return;
+
+    // Instructors: block clicking on past/future classes
+    if (isInstructorOnly) {
+      const DAY_CODES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const dayOffset = DAY_CODES.indexOf(slot?.dayCode);
+      let cellDate = selectedDate;
+      if (dayOffset >= 0) {
+        const weekStart = new Date(selectedDate);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        cellDate = new Date(weekStart);
+        cellDate.setDate(cellDate.getDate() + dayOffset);
+      }
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const cellDay = new Date(cellDate);
+      cellDay.setHours(0, 0, 0, 0);
+      if (cellDay.getTime() !== today.getTime()) {
+        const isPast = cellDay.getTime() < today.getTime();
+        setSnackbar({
+          open: true,
+          message: isPast
+            ? (t('instructor_past_class_blocked') || "You can't click on a class from the past. Only today's classes are available for operations.")
+            : (t('instructor_future_class_blocked') || "You can't click on a future class. Only today's classes are available for operations."),
+          severity: 'info',
+        });
+        return;
+      }
+    }
+
     setSelectedSession(session);
     setSelectedSlot({
       classId: session.classId,
@@ -667,11 +707,11 @@ const WelcomePage = () => {
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         next.set('classId', String(session.classId));
-        next.set('date', toIsoDate(cellDate));
+        if (!isInstructor) next.set('date', toIsoDate(cellDate));
         return next;
       });
     }
-    if (openMenu && anchor && typeof anchor.x === 'number') {
+    if (openMenu && anchor && typeof anchor.x === 'number' && !isInstructorOnly) {
       const virtualEl = document.createElement('div');
       virtualEl.style.position = 'fixed';
       virtualEl.style.left = `${anchor.x}px`;
@@ -681,7 +721,7 @@ const WelcomePage = () => {
       document.body.appendChild(virtualEl);
       setMenuAnchorEl(virtualEl);
     }
-  }, [setSearchParams, selectedDate]);
+  }, [setSearchParams, selectedDate, isInstructorOnly, t]);
 
   // Allow double-clicking another schedule cell to open its menu even when a menu is already open.
   // The MUI menu backdrop consumes the first click, so the cell's own onDoubleClick may not fire.
@@ -1416,43 +1456,11 @@ const WelcomePage = () => {
                 {showOperationsTab && (
                   <Tab label={t('welcome_tab_operations') || 'Operations'} />
                 )}
-                <Tab label={t('welcome_tab_overview') || 'Overview'} />
+                {!isInstructorOnly && (
+                  <Tab label={t('welcome_tab_overview') || 'Overview'} />
+                )}
               </Tabs>
-              {(() => {
-                const classId = searchParams.get('classId');
-                let className = null;
-                if (classId && scheduleData) {
-                  for (const day of scheduleData.days || []) {
-                    for (const slot of Object.values(day.slots || {})) {
-                      if (slot && slot.classId && String(slot.classId) === String(classId)) {
-                        className = lang === 'ar' ? (slot.class?.nameAr || slot.subjectName) : (slot.class?.nameEn || slot.subjectName);
-                        break;
-                      }
-                    }
-                    if (className) break;
-                  }
-                }
-                if (!className) return null;
-                return (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '2px 10px',
-                    borderRadius: '12px',
-                    background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)',
-                    border: `1px solid ${isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.2)'}`,
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
-                    color: '#3b82f6',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}>
-                    {className}
-                  </div>
-                );
-              })()}
-              {showSchedule && tabParam === 'schedule' && canExport && (
+              {showSchedule && tabParam === 'schedule' && canExport && !isInstructorOnly && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                   {isHR && (
                   <ColoredTooltip
@@ -1749,7 +1757,7 @@ const WelcomePage = () => {
                   </ColoredTooltip>
                 </div>
               )}
-              {showSchedule && tabParam === 'schedule' && (
+              {showSchedule && tabParam === 'schedule' && !isInstructorOnly && (
                 <div data-tour="welcome-week-nav" style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginRight: '36px' }}>
                   <button
                     onClick={() => {
@@ -1937,6 +1945,7 @@ const WelcomePage = () => {
                     >
                       {t('day') || 'Day'}
                     </button>
+                    {!isInstructorOnly && (
                     <button
                       onClick={() => {
                         setOpsViewMode('week');
@@ -1954,6 +1963,7 @@ const WelcomePage = () => {
                     >
                       {t('week') || 'Week'}
                     </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -1983,7 +1993,7 @@ const WelcomePage = () => {
                       selectedDate={selectedDate}
                       selectedSlot={selectedSlot}
                       onCellClick={weekClosure?.isClosed ? undefined : handleCellClick}
-                      onDateChange={setSelectedDate}
+                      onDateChange={isInstructorOnly ? null : setSelectedDate}
                       onGenerateDailyAttendance={weekClosure?.isClosed ? undefined : handleGenerateDailyAttendance}
                       compact
                       fillHeight
@@ -1992,8 +2002,11 @@ const WelcomePage = () => {
                       expanded={scheduleExpanded}
                       onToggleExpand={handleToggleScheduleExpand}
                       hideNotesParticipation={hideNotesParticipation}
+                      hideNotesComments={hideNotesComments}
+                      hideTooltips={isInstructorOnly}
+                      hideLegend={isInstructorOnly}
                     />
-                    {selectedSlot && !menuAnchorEl && selectedSession && (
+                    {selectedSlot && !menuAnchorEl && selectedSession && !isInstructorOnly && (
                       <ScheduleSpeedDial
                         session={selectedSession}
                         selectedDate={clickedDate || selectedDate}
@@ -2041,25 +2054,33 @@ const WelcomePage = () => {
                 style={boardExpanded ? undefined : { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
               >
                 <div className="welcome-operations-panel" data-testid="operations-board-shell">
-                  <Suspense
-                    fallback={(
-                      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, py: 6 }}>
-                        <CircularProgress size={28} />
-                      </Box>
-                    )}
-                  >
-                    <OperationsBoardPage
-                      embedded
-                      expanded={boardExpanded}
-                      onToggleExpand={handleToggleBoardExpand}
-                      welcomeContext={welcomeBoardContext}
-                      fontScale={scheduleFontScale}
-                      onOpenHistory={handleOpenHistory}
-                      onDateChange={setSelectedDate}
-                      viewMode={opsViewMode}
-                      onBoardDataChanged={refreshScheduleStatus}
-                    />
-                  </Suspense>
+                  {isInstructorOnly && !classIdParam ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', flex: 1, py: 8, gap: 2 }}>
+                      <Alert severity="info" sx={{ maxWidth: 480 }}>
+                        {t('choose_class_today_ops') || 'Please choose a class from today\'s schedule to open Operations.'}
+                      </Alert>
+                    </Box>
+                  ) : (
+                    <Suspense
+                      fallback={(
+                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, py: 6 }}>
+                          <CircularProgress size={28} />
+                        </Box>
+                      )}
+                    >
+                      <OperationsBoardPage
+                        embedded
+                        expanded={boardExpanded}
+                        onToggleExpand={handleToggleBoardExpand}
+                        welcomeContext={welcomeBoardContext}
+                        fontScale={scheduleFontScale}
+                        onOpenHistory={handleOpenHistory}
+                        onDateChange={setSelectedDate}
+                        viewMode={opsViewMode}
+                        onBoardDataChanged={refreshScheduleStatus}
+                      />
+                    </Suspense>
+                  )}
                 </div>
               </div>
             )}

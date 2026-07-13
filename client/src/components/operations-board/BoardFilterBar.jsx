@@ -1,7 +1,8 @@
 import React, { useCallback } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { Box, Tab, Tabs, ToggleButton, ToggleButtonGroup, IconButton } from '@mui/material';
-import { ArrowUpDown, ArrowDownAZ, Columns3, Calendar, KanbanSquare, Workflow, Users } from 'lucide-react';
+import { ArrowUpDown, ArrowDownAZ, Columns3, Calendar, KanbanSquare, Workflow, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import DatePicker from '@components/ui/DatePicker/DatePicker';
 import { Input } from '@/components/kibo/ui/input';
 import { useLang } from '@contexts/LangContext';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
@@ -27,9 +28,10 @@ export default function BoardFilterBar({
   onToggleExpand,
   viewMode = 'day',
 }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const theme = useTheme();
   const hideNotesParticipation = shouldHideNotesParticipation(roleContext);
+  const isInstructor = roleContext?.isInstructor && !roleContext?.isAdmin && !roleContext?.isHR && !roleContext?.isSuperAdmin;
 
   const selectedDate = filters.date || new Date().toISOString().slice(0, 10);
 
@@ -76,7 +78,7 @@ export default function BoardFilterBar({
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.25 }}>
-        {onLaneChange && (
+        {onLaneChange && !isInstructor && (
           <Tabs
             value={lane}
             onChange={(_, value) => onLaneChange?.(value)}
@@ -129,6 +131,7 @@ export default function BoardFilterBar({
               data-testid="operations-board-tab-attendance"
               disabled={viewMode === 'week'}
             />
+            {!isInstructor && (
             <Tab
               value="status"
               icon={<Workflow size={14} />}
@@ -137,9 +140,10 @@ export default function BoardFilterBar({
               title={t('operations_board_tab_workflow') || 'Workflow'}
               data-testid="operations-board-tab-workflow"
             />
+            )}
           </Tabs>
         )}
-        {onLaneChange && (
+        {onLaneChange && !isInstructor && (
           <Tabs
             value={panelTab}
             onChange={(_, value) => onPanelTabChange?.(value)}
@@ -202,7 +206,7 @@ export default function BoardFilterBar({
         )}
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, justifyContent: 'flex-end' }}>
-          {panelTab === 'board' && (
+          {panelTab === 'board' && !isInstructor && (
             <Box
               data-tour="operations-board-search"
               sx={{
@@ -227,7 +231,7 @@ export default function BoardFilterBar({
               />
             </Box>
           )}
-          {showLaneReset && onResetLaneWidths && (
+          {showLaneReset && onResetLaneWidths && !isInstructor && (
             <ColoredTooltip
               title={t('operations_board_reset_lanes') || 'Reset lane widths'}
               color="#3b82f6"
@@ -244,7 +248,7 @@ export default function BoardFilterBar({
               </IconButton>
             </ColoredTooltip>
           )}
-          {(panelTab === 'board' || panelTab === 'table') && onSortChange && (
+          {(panelTab === 'board' || panelTab === 'table') && onSortChange && !isInstructor && (
             <ToggleButtonGroup
               size="small"
               value={sortBy}

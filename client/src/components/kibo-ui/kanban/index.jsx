@@ -30,23 +30,31 @@ const KanbanContext = createContext({
 export const KanbanBoard = ({
   id,
   children,
-  className
+  className,
+  style,
+  ...props
 }) => {
   const { isOver, setNodeRef } = useDroppable({
     id,
   });
 
   const isOpsLane = className?.includes?.('operations-board-lane');
+  const laneColor = style?.['--lane-color'];
 
   return (
     <div
       className={cn(
         "flex size-full min-h-40 flex-col divide-y rounded-md border bg-transparent text-xs shadow-sm ring-2 transition-all",
         isOpsLane ? "overflow-visible" : "overflow-hidden",
-        isOver ? "ring-purple-500 shadow-[0_0_12px_rgba(139,92,246,0.5)]" : "ring-transparent",
+        isOver ? "shadow-[0_0_12px_rgba(0,0,0,0.15)]" : "ring-transparent",
         className
       )}
-      ref={setNodeRef}>
+      style={{
+        ...style,
+        ...(isOver && laneColor ? { '--tw-ring-color': laneColor } : {}),
+      }}
+      ref={setNodeRef}
+      {...props}>
       {children}
     </div>
   );
@@ -58,7 +66,9 @@ export const KanbanCard = (
     name,
     children,
     className,
-    dragColor
+    dragColor,
+    style: cardStyle,
+    ...cardProps
   }
 ) => {
   const {
@@ -78,8 +88,8 @@ export const KanbanCard = (
     transform: CSS.Transform.toString(transform),
   };
 
-  const ringColor = dragColor || '#a855f7';
-  const glowColor = dragColor || 'rgba(139,92,246,0.4)';
+  const ringColor = dragColor || cardStyle?.['--card-status-color'] || '#6b7280';
+  const glowColor = dragColor || cardStyle?.['--card-status-color'] || '#6b7280';
 
   const dragStyle = isDragging ? {
     '--tw-ring-color': `${ringColor}66`,
@@ -87,7 +97,7 @@ export const KanbanCard = (
 
   const overlayStyle = {
     '--tw-ring-color': ringColor,
-    boxShadow: `0 0 18px ${glowColor}`,
+    boxShadow: `0 0 18px ${glowColor}99, 0 4px 12px rgba(0,0,0,0.15)`,
   };
 
   return (
@@ -96,10 +106,11 @@ export const KanbanCard = (
         <Card
           className={cn(
             "cursor-grab gap-4 rounded-md p-3 shadow-sm transition-shadow transition-[box-shadow,border-color]",
-            isDragging && "pointer-events-none cursor-grabbing opacity-30 ring-2",
+            isDragging && "pointer-events-none cursor-grabbing opacity-30",
             className
           )}
-          style={dragStyle}>
+          style={{ ...dragStyle, ...cardStyle }}
+          {...cardProps}>
           {children ?? <p className="m-0 font-medium text-sm">{name}</p>}
         </Card>
       </div>
@@ -107,7 +118,7 @@ export const KanbanCard = (
         <t.In>
           <Card
             className={cn(
-              "cursor-grab gap-4 rounded-md p-3 shadow-sm ring-2 animate-pulse",
+              "cursor-grab gap-4 rounded-md p-3 shadow-sm animate-pulse",
               isDragging && "cursor-grabbing",
               className
             )}

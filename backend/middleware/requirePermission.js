@@ -187,19 +187,38 @@ export function requireAttendanceEdit(req, res, next) {
 }
 
 /**
- * Attendance delete: super admin only.
+ * Attendance delete (revert to NOT_TAKEN):
+ * - Super admin and admin always allowed
+ * - HR allowed if they hold canDeleteAttendance / canEditAttendance
+ * - Instructor/others allowed if they hold canDeleteAttendance / canEditAttendance / canMarkAttendance / canManualInput
  */
 export function requireAttendanceDelete(req, res, next) {
   if (!req.user) {
     return res.status(401).json({ success: false, error: 'Authentication required' });
   }
   const roles = getEffectiveRoles(req.user.roles || []);
-  if (isSuperAdmin(roles)) {
+  if (isSuperAdmin(roles) || hasRole(roles, LMS_ROLES.ADMIN)) {
     return next();
   }
-  return res.status(403).json({
-    success: false,
-    error: 'Only super admin can delete attendance records',
+  const keys = [
+    'qr-scanner.canDeleteAttendance',
+    'qr-scanner.canEditAttendance',
+    'qr-scanner.canMarkAttendance',
+    'qr-scanner.canManualInput',
+  ];
+  (async () => {
+    for (const key of keys) {
+      const allowed = await permissionsService.checkPermissionForRoles(roles, key);
+      if (allowed) return next();
+    }
+    return res.status(403).json({
+      success: false,
+      error: 'Insufficient permissions',
+      operationKeys: keys,
+    });
+  })().catch((err) => {
+    console.error('[requireAttendanceDelete]', err);
+    return res.status(500).json({ success: false, error: 'Permission check failed' });
   });
 }
 

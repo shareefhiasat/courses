@@ -71,6 +71,8 @@ const DatePicker = ({
   theme = 'light',
   showIcon = true,
   compact = false,
+  style,
+  ...rest
 }) => {
   const [focused, setFocused] = useState(false);
   const [textValue, setTextValue] = useState(value || '');
@@ -159,6 +161,8 @@ const DatePicker = ({
       data-theme={theme}
       data-empty={!value ? 'true' : 'false'}
       dir={useTextInput ? 'ltr' : undefined}
+      style={style}
+      {...rest}
     >
       {label && (
         <label className={styles.label}>

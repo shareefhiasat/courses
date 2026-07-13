@@ -83,7 +83,8 @@ function loadCollapsedLanes() {
 function getDefaultCollapsedForRole(roleContext = {}) {
   const { isHR, isAdmin, isSuperAdmin } = roleContext;
   if (isSuperAdmin) return [];
-  if (isAdmin || isHR) return ['DRAFT', 'TAKEN', 'REJECTED'];
+  if (isAdmin) return ['DRAFT', 'REJECTED'];
+  if (isHR) return ['DRAFT'];
   return [];
 }
 
@@ -188,7 +189,8 @@ export default function OperationsBoardPage({
     isInstructor, isAdmin, isHR, isSuperAdmin,
   }), [isInstructor, isAdmin, isHR, isSuperAdmin]);
 
-  const lane = searchParams.get('lane') || (searchParams.get('mode') === 'attendance' ? LANES.ATTENDANCE : LANES.STATUS);
+  const isInstructorOnly = isInstructor && !isAdmin && !isHR && !isSuperAdmin;
+  const lane = isInstructorOnly ? LANES.ATTENDANCE : (searchParams.get('lane') || (searchParams.get('mode') === 'attendance' ? LANES.ATTENDANCE : LANES.STATUS));
   const rawView = searchParams.get('view') || VIEWS.KANBAN;
   const view = rawView === VIEWS.LIST ? VIEWS.TABLE : (rawView === VIEWS.TABLE ? VIEWS.TABLE : VIEWS.KANBAN);
   const workflowId = searchParams.get('workflowId');
@@ -546,13 +548,18 @@ export default function OperationsBoardPage({
               next.set('classId', String(first.classId));
             });
           }
+        } else if (welcomeContext?.classIds?.length) {
+          autoClassSelectRef.current = String(welcomeContext.classIds[0]);
+          updateParams((next) => {
+            next.set('classId', String(welcomeContext.classIds[0]));
+          });
         }
       } catch (err) {
         logError('OperationsBoardPage:autoClassSelect:error', { error: err.message });
       }
     })();
     return () => { cancelled = true; };
-  }, [lane, filters.classId, filters.date, filters.programId, viewMode, lang, updateParams]);
+  }, [lane, filters.classId, filters.date, filters.programId, viewMode, lang, updateParams, welcomeContext]);
 
   const setFilters = useCallback((newFilters) => {
     updateParams((next) => {
@@ -1529,6 +1536,7 @@ export default function OperationsBoardPage({
             onToggleLaneCollapse={(columnId) => toggleLaneCollapse(boardCollapseKey, columnId)}
             onBulkMove={handleBulkMove}
             participationRefreshKey={participationRefreshKey}
+            fontScale={fontScale}
           />
         ) : (
           <WorkflowBoard
@@ -1570,6 +1578,7 @@ export default function OperationsBoardPage({
         date={filters.date}
         roleContext={roleContext}
         panelTab={panelTab}
+        showLegend={!isInstructorOnly}
       />
 
       <WorkflowMoveConfirmDialog

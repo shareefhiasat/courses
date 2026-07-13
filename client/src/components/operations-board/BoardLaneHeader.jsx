@@ -22,7 +22,8 @@ export default function BoardLaneHeader({
   laneType = 'attendance',
   fontScale = 100,
 }) {
-  const icon = (base) => Math.max(12, Math.round(base * fontScale / 100));
+  const icon = (base) => Math.max(10, Math.round(base * fontScale / 100 * 0.75));
+  const text = (base) => `${Math.max(8, Math.round(base * 11 * fontScale / 100))}px`;
   const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
   const bulkMenuRef = useRef(null);
 
@@ -121,6 +122,14 @@ export default function BoardLaneHeader({
                         setBulkMenuOpen(false);
                         onBulkMove(column.id, target.id);
                       }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = `${target.color}1a`;
+                        e.currentTarget.style.color = target.color;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '';
+                        e.currentTarget.style.color = '';
+                      }}
                       data-testid={`operations-board-bulk-move-${column.id}-to-${target.id}`}
                     >
                       <span className="h-2 w-2 rounded-full" style={{ backgroundColor: target.color }} />
@@ -153,6 +162,7 @@ export default function BoardLaneHeader({
                 background: `${column.color}22`,
                 boxShadow: `0 1px 3px ${column.color}40`,
                 padding: '0 4px',
+                fontSize: text(0.75),
               }}
             >
               {count}
@@ -160,7 +170,7 @@ export default function BoardLaneHeader({
           )}
           <span
             className="text-center font-semibold text-sm truncate min-w-0"
-            style={{ color: column.color }}
+            style={{ color: column.color, fontSize: text(0.875) }}
           >
             {title}
           </span>
@@ -170,7 +180,7 @@ export default function BoardLaneHeader({
           {laneType !== 'workflow' && (
             <span
               className="text-xs font-semibold tabular-nums shrink-0"
-              style={{ color: column.color }}
+              style={{ color: column.color, fontSize: text(0.75) }}
             >
               {count}
             </span>

@@ -5,7 +5,7 @@ const INSTRUCTOR_LANE_IDS = new Set(['NOT_TAKEN', 'PRESENT', 'LATE']);
 const INSTRUCTOR_MOVE_TARGETS = new Set(['NOT_TAKEN', 'PRESENT', 'LATE']);
 /** Admin sees instructor-marked Present/Late plus review lanes; Late was missing so Late cards vanished. */
 const ADMIN_LANE_IDS = new Set(['NOT_TAKEN', 'PRESENT', 'LATE', 'ABSENT', 'HUMAN_CASE', 'EXCUSED']);
-const ADMIN_MOVE_TARGETS = new Set(['PRESENT', 'LATE', 'ABSENT', 'HUMAN_CASE', 'EXCUSED']);
+const ADMIN_MOVE_TARGETS = new Set(['NOT_TAKEN', 'PRESENT', 'LATE', 'ABSENT', 'HUMAN_CASE', 'EXCUSED']);
 /** HR sees full attendance picture including Late (no Late→Present masking). */
 const HR_LANE_IDS = new Set(['NOT_TAKEN', 'PRESENT', 'LATE', 'ABSENT', 'EXCUSED', 'HUMAN_CASE']);
 // HR is a read-only viewer for daily attendance; only Admin/Instructor/Super-Admin may edit
@@ -48,22 +48,26 @@ export function getAllowedAttendanceActions(roleContext = {}) {
 }
 
 const ROLE_WORKFLOW_EDIT_STATUSES = {
-  instructor: new Set(['DRAFT', 'TAKEN']),
-  admin: new Set(['DRAFT', 'TAKEN', 'SUBMITTED', 'UNDER_ADMIN_REVIEW']),
+  instructor: new Set(['DRAFT']),
+  admin: new Set(['DRAFT', 'SUBMITTED', 'UNDER_ADMIN_REVIEW']),
   hr: new Set(['UNDER_HR_REVIEW']),
 };
 
 /**
  * Enforce workflow ownership for attendance edits.
- * Instructors may edit while the workflow is still with them (DRAFT/TAKEN).
- * Admins may edit at any stage the workflow is with the instructor or with them (DRAFT/TAKEN/SUBMITTED/UNDER_ADMIN_REVIEW).
+ * Instructors may edit while the workflow is still with them (DRAFT).
+ * Admins may edit at any stage the workflow is with the instructor or with them (DRAFT/SUBMITTED/UNDER_ADMIN_REVIEW).
+ * Admins can freely change status to any status.
  * HR may edit only while the workflow is under HR review.
  * Super-admins may always edit.
- * When no workflow exists yet, instructors and admins are allowed to take initial attendance.
+ * When no workflow exists yet, admins are allowed to initiate attendance (starts at DRAFT).
  */
 export function canEditAttendanceForWorkflow(workflowStatus, roleContext = {}) {
   const { isInstructor, isAdmin, isHR, isSuperAdmin } = roleContext;
   if (isSuperAdmin) return true;
+  if (isAdmin) return true;
+  const isInstructorOnly = isInstructor && !isAdmin && !isHR && !isSuperAdmin;
+  if (isInstructorOnly) return true;
   if (!workflowStatus) {
     return isInstructor || isAdmin;
   }

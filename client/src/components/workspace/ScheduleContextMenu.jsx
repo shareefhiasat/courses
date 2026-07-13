@@ -32,10 +32,11 @@ function ScheduleContextMenu({
   onOpenOperations,
   onOpenNotifications,
 }) {
-  const { user, isAdmin, isHR, isSuperAdmin } = useAuth();
+  const { user, isAdmin, isHR, isSuperAdmin, isInstructor } = useAuth();
   const { t, lang } = useLang();
   const { canExport, canSeeStandupMode } = useQRPermissions();
   const hrOnly = isHROnlyViewer({ isHR, isAdmin, isSuperAdmin });
+  const instructorOnly = isInstructor && !isAdmin && !isHR && !isSuperAdmin;
   const [exporting, setExporting] = useState(null);
   const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
   const [existingWorkflow, setExistingWorkflow] = useState(null);
@@ -254,6 +255,8 @@ function ScheduleContextMenu({
     } else if (isAdmin) {
       attendanceChildren.push(boardItem, manualItem);
       if (standupItem) attendanceChildren.push(standupItem);
+    } else if (instructorOnly) {
+      attendanceChildren.push(boardItem);
     } else {
       attendanceChildren.push(manualItem, boardItem);
       if (standupItem) attendanceChildren.push(standupItem);
@@ -273,7 +276,6 @@ function ScheduleContextMenu({
           APPROVED: '#16a34a',
           REJECTED: '#dc2626',
           DRAFT: '#f59e0b',
-          TAKEN: '#f59e0b',
           SUBMITTED: '#f59e0b',
           UNDER_ADMIN_REVIEW: '#f59e0b',
           UNDER_HR_REVIEW: '#f59e0b',
@@ -281,6 +283,8 @@ function ScheduleContextMenu({
         const color = statusColors[status] || '#f59e0b';
         const statusLabel = t(`workflow_status_${status.toLowerCase()}`, status);
         const iconColor = status === 'APPROVED' ? '#16a34a' : status === 'REJECTED' ? '#dc2626' : '#f59e0b';
+        const displayStatus = (hrOnly && status === 'REJECTED') ? null : status;
+        if (!displayStatus) return [];
         return [{
           id: 'daily-attendance-existing',
           labelNode: (
@@ -310,15 +314,19 @@ function ScheduleContextMenu({
         onClick: handleInitiateWorkflow,
       }];
 
-    items.push({
-      id: 'workflow',
-      labelKey: 'workspace_menu_workflow',
-      labelFallback: 'Workflow',
-      icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
-      children: workflowChildren,
-    });
+    if (!instructorOnly) {
+      items.push({
+        id: 'workflow',
+        labelKey: 'workspace_menu_workflow',
+        labelFallback: 'Workflow',
+        icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
+        children: workflowChildren,
+      });
+    }
 
-    items.push({ divider: true });
+    if (!instructorOnly) {
+      items.push({ divider: true });
+    }
 
     items.push({
       id: 'open-notifications',
@@ -327,15 +335,17 @@ function ScheduleContextMenu({
       onClick: handleOpenFilteredNotifications,
     });
 
-    items.push({
-      id: 'open-history',
-      label: t('history') || 'History',
-      icon: getThemedIcon('ui', 'history', 18, 'currentColor'),
-      onClick: handleHistory,
-    });
+    if (!instructorOnly) {
+      items.push({
+        id: 'open-history',
+        label: t('history') || 'History',
+        icon: getThemedIcon('ui', 'history', 18, 'currentColor'),
+        onClick: handleHistory,
+      });
+    }
 
     return items;
-  }, [canExport, cls, program, subject, academicTerm, slotInstructor, lang, t, user, dateStr, runExport, handleScan, handleOpenOperations, handleInitiateWorkflow, handleHistory, canSeeStandupMode, existingWorkflow, handlePreviewPdf, handleGoToOperationsFromWorkflow, isAdmin, hrOnly, handleOpenFilteredNotifications]);
+  }, [canExport, cls, program, subject, academicTerm, slotInstructor, lang, t, user, dateStr, runExport, handleScan, handleOpenOperations, handleInitiateWorkflow, handleHistory, canSeeStandupMode, existingWorkflow, handlePreviewPdf, handleGoToOperationsFromWorkflow, isAdmin, hrOnly, handleOpenFilteredNotifications, instructorOnly]);
 
   return (
     <>

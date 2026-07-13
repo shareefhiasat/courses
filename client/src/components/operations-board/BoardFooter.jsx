@@ -25,6 +25,7 @@ function FooterControls({
   expanded,
   onToggleExpand,
   hideViewToggle = false,
+  hideExpand = false,
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -102,7 +103,7 @@ function FooterControls({
         </ColoredTooltip>
       )}
 
-      {embedded && onToggleExpand && (
+      {embedded && onToggleExpand && !hideExpand && (
         <ColoredTooltip
           title={expanded ? t('operations_board_collapse') : t('operations_board_expand')}
           color="#8b5cf6"
@@ -152,6 +153,7 @@ export default function BoardFooter({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const isCalendarTab = panelTab === 'calendar';
+  const isInstructor = roleContext?.isInstructor && !roleContext?.isAdmin && !roleContext?.isHR && !roleContext?.isSuperAdmin;
 
   const viewOptions = [
     { key: 'kanban', label: t('operations_board_view_board'), icon: VIEW_ICONS.kanban },
@@ -182,7 +184,8 @@ export default function BoardFooter({
       embedded={embedded}
       expanded={expanded}
       onToggleExpand={onToggleExpand}
-      hideViewToggle={isCalendarTab}
+      hideViewToggle={isCalendarTab || isInstructor}
+      hideExpand={isInstructor}
     />
   );
 

@@ -333,7 +333,7 @@ function getWorkflowStatusLabel(status, t) {
   return t(key) || ws;
 }
 
-function WorkflowStatusGroup({ status, t, lang, selectedDate }) {
+function WorkflowStatusGroup({ status, t, lang, selectedDate, hideTooltips = false }) {
   const ws = status?.workflowStatus;
   if (!ws || ws === 'NOT_TAKEN') return null;
   const color = WORKFLOW_STATUS_COLORS[ws];
@@ -343,17 +343,24 @@ function WorkflowStatusGroup({ status, t, lang, selectedDate }) {
 
   return (
     <span className={gridStyles.workflowGroup}>
-      <ColoredTooltip title={label} color={color} placement="bottom">
+      {!hideTooltips && (
+        <ColoredTooltip title={label} color={color} placement="bottom">
+          <span className={gridStyles.workflowIconWrap} style={{ '--workflow-color': color }}>
+            <WorkflowIcon className={gridStyles.workflowIconSvg} color={color} strokeWidth={2.5} />
+          </span>
+        </ColoredTooltip>
+      )}
+      {hideTooltips && (
         <span className={gridStyles.workflowIconWrap} style={{ '--workflow-color': color }}>
           <WorkflowIcon className={gridStyles.workflowIconSvg} color={color} strokeWidth={2.5} />
         </span>
-      </ColoredTooltip>
-      <StatusDot status={status} t={t} lang={lang} selectedDate={selectedDate} />
+      )}
+      <StatusDot status={status} t={t} lang={lang} selectedDate={selectedDate} hideTooltips={hideTooltips} />
     </span>
   );
 }
 
-function AttendanceIndicatorGroup({ status, t, slot, onGenerateDailyAttendance }) {
+function AttendanceIndicatorGroup({ status, t, slot, onGenerateDailyAttendance, hideTooltips = false }) {
   const counts = getAttendanceCountsFromStatus(status);
   if (!counts) return null;
   const items = ATTENDANCE_COUNT_ITEMS
@@ -394,6 +401,35 @@ function AttendanceIndicatorGroup({ status, t, slot, onGenerateDailyAttendance }
     </div>
   ) : (t('attendance_summary') || 'Attendance summary');
 
+  if (hideTooltips) {
+    return (
+      <span className={gridStyles.attendanceGroup}>
+        <span
+          className={gridStyles.attendanceIconWrap}
+          aria-hidden={!hasExportHandler}
+          role={hasExportHandler ? 'button' : undefined}
+          onClick={hasExportHandler ? (e) => { e.stopPropagation(); onGenerateDailyAttendance(slot, 'pdf'); } : undefined}
+          style={hasExportHandler ? { cursor: 'pointer' } : undefined}
+        >
+          <ClipboardCheck size={12} color={hasExportHandler ? '#3b82f6' : '#64748b'} strokeWidth={2.25} />
+        </span>
+        <span className={gridStyles.indicatorDivider} aria-hidden="true">|</span>
+        <span className={gridStyles.attendanceMiniDots} aria-label={t('attendance_summary') || 'Attendance summary'}>
+          {items.map((item, idx) => (
+            <span
+              key={item.key}
+              className={gridStyles.attendanceMiniDot}
+              style={{
+                backgroundColor: item.color,
+                zIndex: items.length - idx,
+              }}
+            />
+          ))}
+        </span>
+      </span>
+    );
+  }
+
   return (
     <span className={gridStyles.attendanceGroup}>
       <ColoredTooltip title={exportTooltip} color="#64748b" placement="bottom" cursor={hasExportHandler ? 'pointer' : 'default'}>
@@ -426,7 +462,7 @@ function AttendanceIndicatorGroup({ status, t, slot, onGenerateDailyAttendance }
   );
 }
 
-function StatusDot({ status, t, lang, selectedDate }) {
+function StatusDot({ status, t, lang, selectedDate, hideTooltips = false }) {
   if (!status) return null;
   const key = resolveScheduleWorkflowKey(status);
   const colors = SCHEDULE_WORKFLOW_COLORS;
@@ -437,6 +473,18 @@ function StatusDot({ status, t, lang, selectedDate }) {
     submitted: t('workspace_status_submitted'),
   };
   const dotColor = colors[key];
+
+  if (hideTooltips) {
+    return (
+      <span className={gridStyles.statusDotWrap}>
+        <span
+          className={`${gridStyles.statusDot} ${gridStyles[`statusDot_${key}`]}`}
+          style={{ '--dot-color': dotColor }}
+          aria-label={labels[key]}
+        />
+      </span>
+    );
+  }
 
   return (
     <ScheduleStatusHistoryTooltip status={status} lang={lang} fallbackDate={selectedDate}>
@@ -515,6 +563,8 @@ function InteractiveSlotCell({
   onClick,
   selectedDate,
   hideNotesParticipation = false,
+  hideNotesComments = false,
+  hideTooltips = false,
   onGenerateDailyAttendance,
 }) {
   if (isBreak) {
@@ -557,12 +607,12 @@ function InteractiveSlotCell({
     isSelected ? gridStyles.selectedCell : '',
   ].filter(Boolean).join(' ');
 
-  const metaCounts = status ? getClassSessionMetaFromStatus(status, { hideNotesParticipation }) : null;
+  const metaCounts = status ? getClassSessionMetaFromStatus(status, { hideNotesParticipation, hideNotesComments }) : null;
   const hasMetaBadges = Boolean(
     metaCounts
     && (metaCounts.notesCount > 0 || metaCounts.participationCount > 0 || metaCounts.commentsCount > 0),
   );
-  const showLeftTray = rowType === 'subject' && (isMine || hasMetaBadges);
+  const showLeftTray = rowType === 'subject' && (isMine || (hasMetaBadges && !hideTooltips));
 
   const subjectInnerClass = [
     gridStyles.subjectCellInner,
@@ -588,10 +638,10 @@ function InteractiveSlotCell({
               </ColoredTooltip>
             </span>
           )}
-          {hasMetaBadges && <ClassSessionMetaBadges status={status} t={t} compact hideNotesParticipation={hideNotesParticipation} />}
+          {hasMetaBadges && <ClassSessionMetaBadges status={status} t={t} compact hideNotesParticipation={hideNotesParticipation} hideNotesComments={hideNotesComments} />}
         </div>
       )}
-      {rowType === 'subject' && (() => {
+      {rowType === 'subject' && !hideTooltips && (() => {
         const hasAttendance = (() => {
           const counts = getAttendanceCountsFromStatus(status);
           if (!counts) return false;
@@ -601,20 +651,20 @@ function InteractiveSlotCell({
         if (!hasAttendance && !hasWorkflow) return null;
         return (
           <div className={gridStyles.subjectCellTopIndicators}>
-            {hasAttendance && <AttendanceIndicatorGroup status={status} t={t} slot={{ ...slot, dayCode, colKey }} onGenerateDailyAttendance={onGenerateDailyAttendance} />}
+            {hasAttendance && <AttendanceIndicatorGroup status={status} t={t} slot={{ ...slot, dayCode, colKey }} onGenerateDailyAttendance={onGenerateDailyAttendance} hideTooltips={hideTooltips} />}
             {hasAttendance && hasWorkflow && (
               <span className={gridStyles.indicatorDivider} aria-hidden="true">|</span>
             )}
             {hasWorkflow && (
-              <WorkflowStatusGroup status={status} t={t} lang={lang} selectedDate={selectedDate} />
+              <WorkflowStatusGroup status={status} t={t} lang={lang} selectedDate={selectedDate} hideTooltips={hideTooltips} />
             )}
           </div>
         );
       })()}
-      <span className={rowType === 'subject' && showLeftTray ? gridStyles.subjectCellTextWithTray : (rowType === 'subject' && isMine ? gridStyles.subjectCellText : undefined)}>
+      <span className={rowType === 'subject' && showLeftTray ? gridStyles.subjectCellTextWithTray : (rowType === 'subject' && isMine ? gridStyles.subjectCellText : undefined)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
         {value || (rowType === 'instructor' ? '' : '—')}
       </span>
-      {rowType === 'subject' && isMine && <span className={gridStyles.cellEndSpacer} aria-hidden="true" />}
+      {rowType === 'subject' && showLeftTray && <span className={gridStyles.cellEndSpacer} aria-hidden="true" />}
     </CellContent>
   );
 
@@ -733,6 +783,8 @@ function DayBlock({
   onCellClick,
   selectedDate,
   hideNotesParticipation = false,
+  hideNotesComments = false,
+  hideTooltips = false,
   onGenerateDailyAttendance,
 }) {
   const rowTypes = ['subject', 'time', 'instructor', 'room'];
@@ -831,6 +883,8 @@ function DayBlock({
                 onClick={onCellClick}
                 selectedDate={selectedDate}
                 hideNotesParticipation={hideNotesParticipation}
+                hideNotesComments={hideNotesComments}
+                hideTooltips={hideTooltips}
                 onGenerateDailyAttendance={onGenerateDailyAttendance}
               />
             );
@@ -858,6 +912,9 @@ const OfficialWeeklyScheduleGrid = ({
   expanded = false,
   onToggleExpand = null,
   hideNotesParticipation = false,
+  hideNotesComments = false,
+  hideTooltips = false,
+  hideLegend = false,
 }) => {
   const { lang, t } = useLang();
   const { theme } = useTheme();
@@ -1026,17 +1083,19 @@ const OfficialWeeklyScheduleGrid = ({
               onCellClick={onCellClick}
               selectedDate={selectedDate}
               hideNotesParticipation={hideNotesParticipation}
+              hideNotesComments={hideNotesComments}
+              hideTooltips={hideTooltips}
               onGenerateDailyAttendance={onGenerateDailyAttendance}
             />
           ))}
         </table>
       </div>
 
-      <div className={`${gridStyles.statusLegend} ${gridStyles.statusLegendBottom}`}>
+      <div className={`${gridStyles.statusLegend} ${gridStyles.statusLegendBottom}`} style={hideLegend ? { display: 'none' } : undefined}>
         <BoardLegend
           bare
-          showWorkflow
-          showScheduleExtras
+          showWorkflow={!hideTooltips}
+          showScheduleExtras={!hideTooltips}
           roleContext={hideNotesParticipation ? { isHR: true, isAdmin: false, isSuperAdmin: false } : {}}
           style={{ flex: 1, minWidth: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.35rem' }}
         />

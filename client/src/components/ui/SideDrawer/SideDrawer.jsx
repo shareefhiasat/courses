@@ -841,27 +841,11 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
   // Minimal instructor menu (scoped teaching workflow)
   const instructorLinks = [
     {
-      id: 'drive-instructor',
-      label: nl('drive', 'Drive'),
-      icon: getThemedIcon('ui', 'hard_drive', 18, theme),
+      id: 'home-instructor',
+      label: nl('home', 'Home'),
+      icon: getThemedIcon('ui', 'home', 18, theme),
       children: [
-        { id: 'smart-drive-instructor', path: '/smart-drive', screenId: 'drive', icon: getThemedIcon('ui', 'hard_drive', 18, theme), label: nl('smart_drive', 'Smart Drive') },
-      ],
-    },
-    {
-      id: 'attendance-instructor',
-      label: nl('attendance', 'Attendance'),
-      icon: getThemedIcon('ui', 'qr_code', 18, theme),
-      children: [
-        { id: 'qr-scanner-instructor', path: '/qr-scanner', screenId: 'qr-scanner', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('daily_scan', 'Daily Scan') },
-      ],
-    },
-    {
-      id: 'operations-instructor',
-      label: nl('operations_board_title', 'Operations Board'),
-      icon: getThemedIcon('ui', 'layout_grid', 18, theme),
-      children: [
-        { id: 'operations-board-instructor', path: '/operations/board', screenId: 'operations', icon: getThemedIcon('ui', 'layout_grid', 18, theme), label: nl('operations_board_title', 'Operations Board') },
+        { id: 'welcome-instructor', path: '/welcome', screenId: 'welcome', icon: getThemedIcon('ui', 'home', 18, theme), label: nl('welcome', 'Welcome') },
       ],
     },
     {
@@ -870,7 +854,6 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
       icon: getThemedIcon('ui', 'settings', 18, theme),
       children: [
         { id: 'profile-instructor', path: '/profile', screenId: 'profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: nl('settings', 'Settings') },
-        { id: 'notifications-instructor', path: '/notifications', screenId: 'notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: nl('notifications', 'Notifications') },
       ],
     },
   ];

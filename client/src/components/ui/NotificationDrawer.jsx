@@ -183,7 +183,7 @@ const NotificationCard = ({ notification, idx, isDark, isRTL, theme, t, formatTi
 };
 
 const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) => {
-  const { user } = useAuth();
+  const { user, isHR, isAdmin, isSuperAdmin } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const { width: drawerWidth, resizeHandleProps } = useResizableDrawer({
@@ -291,15 +291,24 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
           getPrograms(), getSubjects(), getClasses()
         ]);
         if (programsRes.success) setPrograms(programsRes.data || []);
+        else warn('NotificationDrawer: programs API returned no success', { programsRes });
         if (subjectsRes.success) setSubjects(subjectsRes.data || []);
+        else warn('NotificationDrawer: subjects API returned no success', { subjectsRes });
         if (classesRes.success) setClasses(classesRes.data || []);
-      } catch {}
+        else warn('NotificationDrawer: classes API returned no success', { classesRes });
+      } catch (err) {
+        error('NotificationDrawer: Failed to load filter data', { err });
+      }
     })();
   }, [isOpen, showAdvanced]);
 
   const filteredNotifications = useMemo(() => {
+    let feed = notifications;
+    if (isHR && !isAdmin && !isSuperAdmin) {
+      feed = notifications.filter((n) => getWorkflowStatusKey(n) !== 'REJECTED');
+    }
     return filterNotificationsUtil({
-      notifications,
+      notifications: feed,
       filterType,
       filterCategory,
       filterPenaltyType,
@@ -316,7 +325,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
       subjects,
       classes
     });
-  }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, searchTerm, showArchived, filterProgram, filterSubject, filterClass, filterYear, filterSemester, filterWorkflowStatus, subjects, classes]);
+  }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, searchTerm, showArchived, filterProgram, filterSubject, filterClass, filterYear, filterSemester, filterWorkflowStatus, subjects, classes, isHR, isAdmin, isSuperAdmin]);
 
   const hasActiveFilters = searchTerm.trim()
     || filterProgram !== 'all'
@@ -338,10 +347,12 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
 
   const workflowStatusCounts = useMemo(() => {
     const counts = {};
+    const hideRejected = isHR && !isAdmin && !isSuperAdmin;
     notifications.forEach((n) => {
       if (n.isArchived && !showArchived && filterType !== NOTIFICATION_STATUS.ARCHIVED) return;
       if (!(n.type || '').startsWith('WORKFLOW')) return;
       const key = getWorkflowStatusKey(n);
+      if (hideRejected && key === 'REJECTED') return;
       WORKFLOW_NOTIFICATION_STATUS_FILTERS.forEach((chip) => {
         if (chip.matchKeys ? chip.matchKeys.includes(key) : chip.id === key) {
           counts[chip.id] = (counts[chip.id] || 0) + 1;
@@ -349,7 +360,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
       });
     });
     return counts;
-  }, [notifications, showArchived, filterType]);
+  }, [notifications, showArchived, filterType, isHR, isAdmin, isSuperAdmin]);
 
   const groupedNotifications = useMemo(() => {
     return groupNotificationsByDate(filteredNotifications, t);
@@ -674,7 +685,11 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
               >
                 {t('notifications_all_statuses') || 'All statuses'}
               </button>
-              {WORKFLOW_NOTIFICATION_STATUS_FILTERS.filter((chip) => workflowStatusCounts[chip.id] > 0).map((chip) => {
+              {WORKFLOW_NOTIFICATION_STATUS_FILTERS.filter((chip) => {
+                if (workflowStatusCounts[chip.id] === 0) return false;
+                if (chip.hideForHR && isHR && !isAdmin && !isSuperAdmin) return false;
+                return true;
+              }).map((chip) => {
                 const active = filterWorkflowStatus === chip.id;
                 return (
                   <button
@@ -760,7 +775,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
                     onChange={(e) => { setFilterSubject(e.target.value); setFilterClass('all') }}
                     options={[
                       { value: 'all', label: t('all_subjects') },
-                      ...(subjects || []).filter(s => filterProgram === 'all' || s.programId === filterProgram).map(s => ({
+                      ...(subjects || []).filter(s => filterProgram === 'all' || String(s.programId) === String(filterProgram)).map(s => ({
                         value: s.docId || s.id,
                         label: `${s.code || ''} - ${s.nameEn || s.name || s.docId}`.trim()
                       }))
@@ -776,10 +791,10 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
                     options={[
                       { value: 'all', label: t('all_classes') },
                       ...(classes || []).filter(c => {
-                        if (filterSubject !== 'all' && c.subjectId !== filterSubject) return false;
+                        if (filterSubject !== 'all' && String(c.subjectId) !== String(filterSubject)) return false;
                         if (filterProgram !== 'all') {
                           const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-                          if (!subject || subject.programId !== filterProgram) return false;
+                          if (!subject || String(subject.programId) !== String(filterProgram)) return false;
                         }
                         return true;
                       }).map(c => ({ value: c.id || c.docId, label: `${c.name || c.code || 'Unnamed'}${c.term ? ` (${c.term})` : ''}` }))
