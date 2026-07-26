@@ -1065,14 +1065,3 @@
   color: #60a5fa;
 }
 
-/* Dark mode schedule header cells */
-.wrapDark :global(.officialTable) th,
-.wrapDark :global(.scheduleCornerCell),
-.wrapDark :global(.scheduleLectureHeader),
-.wrapDark :global(.scheduleBreakHeader),
-.wrapDark :global(.scheduleDayCell),
-.wrapDark :global(.scheduleRowLabelCell) {
-  background: #1e293b;
-  color: #e2e8f0;
-  border-color: #334155;
-}

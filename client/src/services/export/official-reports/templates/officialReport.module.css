@@ -980,3 +980,14 @@
 .officialPageRtl .scheduleInstructorCell .scheduleCellInner {
   padding-bottom: 9px;
 }
+
+.weeklyScheduleTable[data-theme='dark'] .scheduleCornerCell,
+.weeklyScheduleTable[data-theme='dark'] .scheduleLectureHeader,
+.weeklyScheduleTable[data-theme='dark'] .scheduleBreakHeader,
+.weeklyScheduleTable[data-theme='dark'] .scheduleBreakCell,
+.weeklyScheduleTable[data-theme='dark'] .scheduleDayCell,
+.weeklyScheduleTable[data-theme='dark'] .scheduleRowLabelCell {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155;
+}

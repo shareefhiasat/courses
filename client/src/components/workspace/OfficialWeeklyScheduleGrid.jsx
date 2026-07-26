@@ -1078,6 +1078,7 @@ const OfficialWeeklyScheduleGrid = ({
         <table
           ref={tableRef}
           className={`${styles.officialTable} ${styles.weeklyScheduleTable} ${gridStyles.scalableTable} ${fillWidth ? gridStyles.expandedTable : ''}`}
+          data-theme={isDark ? 'dark' : undefined}
           style={{ '--schedule-data-rows': String(totalDataRows || 1) }}
         >
           <colgroup>

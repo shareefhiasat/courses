@@ -33,6 +33,7 @@ export default function BoardFilterBar({
 }) {
   const { t, lang } = useLang();
   const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const hideNotesParticipation = shouldHideNotesParticipation(roleContext);
   const isInstructor = roleContext?.isInstructor && !roleContext?.isAdmin && !roleContext?.isHR && !roleContext?.isSuperAdmin;
 
@@ -229,6 +230,12 @@ export default function BoardFilterBar({
                 flex: 1,
                 maxWidth: 220,
                 '& input': {
+                  color: isDark ? '#e2e8f0' : '#1e293b',
+                  borderColor: isDark ? '#334155' : '#e2e8f0',
+                  '&::placeholder': {
+                    color: isDark ? '#94a3b8' : '#64748b',
+                    opacity: 1,
+                  },
                   '&:focus-visible': {
                     borderColor: '#3b82f6',
                     boxShadow: '0 0 0 1px #3b82f6',

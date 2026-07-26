@@ -228,7 +228,7 @@ const DatePicker = ({
                 disabled={disabled}
               />
             )}
-            {getThemedIcon('ui', 'calendar', 14, theme)}
+            {getThemedIcon('ui', 'calendar', 14, 'currentColor', { className: styles.icon })}
           </div>
         )}
       </div>

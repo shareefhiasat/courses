@@ -40,7 +40,11 @@ const NotificationCard = ({ notification, idx, isDark, isRTL, theme, t, lang, fo
   const iconEl = getNotificationIcon(notification.type, 20);
   const data = notification.data || notification.metadata || {};
   const localizedTitle = getLocalizedNotificationTitle(notification, t);
-  const messageText = notification.message || data.message || data.body || notification.body || '';
+  const rawWorkflowName = data.workflowName || notification.message;
+  const messageText =
+    notification.event?.startsWith('workflow.') && rawWorkflowName
+      ? getLocalizedWorkflowName(rawWorkflowName, t)
+      : (notification.message || data.message || data.body || notification.body || '');
   const showMessage = messageText && messageText !== localizedTitle && messageText.trim() !== '';
   const classId = data.classId || notification.classId;
   const classItem = classId ? classes.find(c => String(c.id || c.docId) === String(classId)) : null;

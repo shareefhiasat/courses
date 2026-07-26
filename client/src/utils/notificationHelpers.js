@@ -159,6 +159,33 @@ export const getLocalizedNotificationTitle = (notification, t) => {
 };
 
 /**
+ * Map known English workflow title prefixes to locale keys for localization.
+ */
+const WORKFLOW_TITLE_PREFIX_KEYS = {
+  'daily attendance': 'daily_attendance',
+};
+
+/**
+ * Localize a workflow title (e.g. 'Daily Attendance — CY104 — 2026-07-13')
+ * by translating the prefix and preserving class/date segments.
+ */
+export const getLocalizedWorkflowName = (workflowName, t) => {
+  if (!workflowName) return workflowName || '';
+  const parts = workflowName.split('—').map((s) => s.trim());
+  if (parts.length < 2) return workflowName;
+
+  const prefix = parts[0].toLowerCase();
+  const localeKey = WORKFLOW_TITLE_PREFIX_KEYS[prefix];
+  if (localeKey) {
+    const localizedPrefix = t(localeKey);
+    if (localizedPrefix && localizedPrefix !== localeKey) {
+      parts[0] = localizedPrefix;
+    }
+  }
+  return parts.join(' — ');
+};
+
+/**
  * Group notifications by date and return ordered array of { label, items, subGroups }.
  * Workflow notifications are further grouped by their status within each date bucket.
  */

@@ -94,6 +94,10 @@
   pointer-events: none; /* prevent icon from interfering with click */
 }
 
+.wrapper[data-theme='dark'] .icon {
+  color: #e2e8f0;
+}
+
 /* Input */
 .input {
   width: 100%;
