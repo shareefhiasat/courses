@@ -413,6 +413,16 @@ export async function updateWorkflowDocumentStatus(id, status, actorId, reason, 
       updateData.fileId = filedFileId;
     }
 
+    // Clear fileId on rejection so re-initiation generates a new document
+    if (status === 'REJECTED') {
+      updateData.fileId = null;
+    }
+
+    // Clear fileId when moving back to DRAFT, since the document needs regeneration
+    if (status === 'DRAFT' && current.status !== 'DRAFT') {
+      updateData.fileId = null;
+    }
+
     // Update document
     const updated = await prisma.workflowDocument.update({
       where: { id },

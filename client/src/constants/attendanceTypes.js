@@ -189,8 +189,12 @@ const STATUS_ALIASES = {
 
 const normalizeStatus = (status) => {
   if (!status) return status;
-  const upper = String(status).toUpperCase();
-  return STATUS_ALIASES[upper] || upper;
+  if (typeof status === 'object') {
+    const code = status.code || status.nameEn || status.name || status.id || '';
+    return normalizeStatus(code);
+  }
+  const key = String(status).toUpperCase().trim().replace(/\s+/g, '_');
+  return STATUS_ALIASES[key] || key;
 };
 
 // Helper functions

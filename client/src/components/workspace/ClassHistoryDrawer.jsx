@@ -3,7 +3,6 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import useResizableDrawer from '@hooks/useResizableDrawer';
-import { formatDate } from '@utils/date-formatter.js';
 import ExportHistoryDrawer from '@pages/operations/attendance/ExportHistoryDrawer';
 import LectureLogDrawer from '@components/workspace/LectureLogDrawer';
 
@@ -31,11 +30,6 @@ const ClassHistoryDrawer = ({ isOpen, onClose, classInfo, date, initialTab = nul
     maxWidth: 900,
     isRTL,
   });
-
-  const classLabel = classInfo
-    ? (lang === 'ar' && classInfo.nameAr ? classInfo.nameAr : classInfo.nameEn || classInfo.code)
-    : '';
-  const dateLabel = date ? formatDate(date, lang) : '';
 
   if (!isOpen) return null;
 
@@ -82,11 +76,6 @@ const ClassHistoryDrawer = ({ isOpen, onClose, classInfo, date, initialTab = nul
             <div style={{ fontWeight: 700, fontSize: '15px', color: isDark ? '#f1f5f9' : '#1e293b' }}>
               {t('workspace_class_history')}
             </div>
-            {classLabel && (
-              <div style={{ fontSize: '12px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '2px' }}>
-                {classLabel}{dateLabel ? ` · ${dateLabel}` : ''}
-              </div>
-            )}
           </div>
           <button
             type="button"

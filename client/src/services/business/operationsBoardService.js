@@ -18,6 +18,15 @@ import { getLocalizedUserName } from '@utils/localizedUserName.js';
 
 const SERVICE_NAME = 'OperationsBoardService';
 
+export const ATTENDANCE_BOARD_LANES = {
+  NOT_TAKEN: 'NOT_TAKEN',
+  PRESENT: 'PRESENT',
+  LATE: 'LATE',
+  ABSENT: 'ABSENT',
+  EXCUSED: 'EXCUSED',
+  HUMAN_CASE: 'HUMAN_CASE',
+};
+
 export const WORKFLOW_COLUMNS = [
   { id: 'DRAFT', name: 'Draft', i18nKey: 'operations_board_lane_draft', color: WORKFLOW_STATUS_COLORS.DRAFT },
   { id: 'SUBMITTED', name: 'Confirmed', i18nKey: 'operations_board_lane_confirmed', color: WORKFLOW_STATUS_COLORS.SUBMITTED },
@@ -28,47 +37,47 @@ export const WORKFLOW_COLUMNS = [
 ];
 
 export const ATTENDANCE_COLUMNS = [
-  { id: 'NOT_TAKEN', name: 'Not Taken', i18nKey: 'operations_board_lane_not_taken', color: ATTENDANCE_BOARD_COLORS.NOT_TAKEN },
-  { id: 'PRESENT', name: 'Present', i18nKey: 'operations_board_lane_present', color: ATTENDANCE_BOARD_COLORS.PRESENT },
-  { id: 'LATE', name: 'Late', i18nKey: 'operations_board_lane_late', color: ATTENDANCE_BOARD_COLORS.LATE },
-  { id: 'ABSENT', name: 'Absent', i18nKey: 'operations_board_lane_absent', color: ATTENDANCE_BOARD_COLORS.ABSENT },
-  { id: 'EXCUSED', name: 'Excused Leave', i18nKey: 'operations_board_lane_leave', color: ATTENDANCE_BOARD_COLORS.EXCUSED },
-  { id: 'HUMAN_CASE', name: 'Human Case', i18nKey: 'operations_board_lane_human_case', color: ATTENDANCE_BOARD_COLORS.HUMAN_CASE },
+  { id: ATTENDANCE_BOARD_LANES.NOT_TAKEN, name: 'Not Taken', i18nKey: 'operations_board_lane_not_taken', color: ATTENDANCE_BOARD_COLORS.NOT_TAKEN },
+  { id: ATTENDANCE_BOARD_LANES.PRESENT, name: 'Present', i18nKey: 'operations_board_lane_present', color: ATTENDANCE_BOARD_COLORS.PRESENT },
+  { id: ATTENDANCE_BOARD_LANES.LATE, name: 'Late', i18nKey: 'operations_board_lane_late', color: ATTENDANCE_BOARD_COLORS.LATE },
+  { id: ATTENDANCE_BOARD_LANES.ABSENT, name: 'Absent', i18nKey: 'operations_board_lane_absent', color: ATTENDANCE_BOARD_COLORS.ABSENT },
+  { id: ATTENDANCE_BOARD_LANES.EXCUSED, name: 'Excused Leave', i18nKey: 'operations_board_lane_leave', color: ATTENDANCE_BOARD_COLORS.EXCUSED },
+  { id: ATTENDANCE_BOARD_LANES.HUMAN_CASE, name: 'Human Case', i18nKey: 'operations_board_lane_human_case', color: ATTENDANCE_BOARD_COLORS.HUMAN_CASE },
 ];
 
 const BOARD_LANE_TO_DB_CODE = {
-  PRESENT: ATTENDANCE_STATUS.PRESENT,
-  LATE: ATTENDANCE_STATUS.LATE,
-  ABSENT: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
-  EXCUSED: ATTENDANCE_STATUS.EXCUSED_LEAVE,
-  HUMAN_CASE: ATTENDANCE_STATUS.HUMAN_CASE,
+  [ATTENDANCE_BOARD_LANES.PRESENT]: ATTENDANCE_STATUS.PRESENT,
+  [ATTENDANCE_BOARD_LANES.LATE]: ATTENDANCE_STATUS.LATE,
+  [ATTENDANCE_BOARD_LANES.ABSENT]: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
+  [ATTENDANCE_BOARD_LANES.EXCUSED]: ATTENDANCE_STATUS.EXCUSED_LEAVE,
+  [ATTENDANCE_BOARD_LANES.HUMAN_CASE]: ATTENDANCE_STATUS.HUMAN_CASE,
 };
 
 const DB_CODE_TO_BOARD_LANE = {
-  [ATTENDANCE_STATUS.PRESENT]: 'PRESENT',
-  PRESENT: 'PRESENT',
-  [ATTENDANCE_STATUS.LATE]: 'LATE',
-  LATE: 'LATE',
-  [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: 'ABSENT',
-  ABSENT_NO_EXCUSE: 'ABSENT',
-  ABSENT: 'ABSENT',
-  [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'EXCUSED',
-  EXCUSED_LEAVE: 'EXCUSED',
-  EXCUSED: 'EXCUSED',
-  ABSENT_WITH_EXCUSE: 'EXCUSED',
-  [ATTENDANCE_STATUS.HUMAN_CASE]: 'HUMAN_CASE',
-  HUMAN_CASE: 'HUMAN_CASE',
+  [ATTENDANCE_STATUS.PRESENT]: ATTENDANCE_BOARD_LANES.PRESENT,
+  [ATTENDANCE_BOARD_LANES.PRESENT]: ATTENDANCE_BOARD_LANES.PRESENT,
+  [ATTENDANCE_STATUS.LATE]: ATTENDANCE_BOARD_LANES.LATE,
+  [ATTENDANCE_BOARD_LANES.LATE]: ATTENDANCE_BOARD_LANES.LATE,
+  [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: ATTENDANCE_BOARD_LANES.ABSENT,
+  ABSENT_NO_EXCUSE: ATTENDANCE_BOARD_LANES.ABSENT,
+  [ATTENDANCE_BOARD_LANES.ABSENT]: ATTENDANCE_BOARD_LANES.ABSENT,
+  [ATTENDANCE_STATUS.EXCUSED_LEAVE]: ATTENDANCE_BOARD_LANES.EXCUSED,
+  EXCUSED_LEAVE: ATTENDANCE_BOARD_LANES.EXCUSED,
+  [ATTENDANCE_BOARD_LANES.EXCUSED]: ATTENDANCE_BOARD_LANES.EXCUSED,
+  ABSENT_WITH_EXCUSE: ATTENDANCE_BOARD_LANES.EXCUSED,
+  [ATTENDANCE_STATUS.HUMAN_CASE]: ATTENDANCE_BOARD_LANES.HUMAN_CASE,
+  [ATTENDANCE_BOARD_LANES.HUMAN_CASE]: ATTENDANCE_BOARD_LANES.HUMAN_CASE,
 };
 
-function normalizeAttendanceStatus(value) {
-  if (value === null || value === undefined) return 'NOT_TAKEN';
+export function normalizeAttendanceStatus(value) {
+  if (value === null || value === undefined) return ATTENDANCE_BOARD_LANES.NOT_TAKEN;
   if (typeof value === 'object') {
     const code = getStatusCodeFromRecord(value);
-    if (!code) return 'NOT_TAKEN';
-    return DB_CODE_TO_BOARD_LANE[code] || 'NOT_TAKEN';
+    if (!code) return ATTENDANCE_BOARD_LANES.NOT_TAKEN;
+    return DB_CODE_TO_BOARD_LANE[code] || ATTENDANCE_BOARD_LANES.NOT_TAKEN;
   }
   const str = String(value).toUpperCase().trim().replace(/\s+/g, '_');
-  return DB_CODE_TO_BOARD_LANE[str] || ATTENDANCE_COLUMNS.find((col) => col.id === str)?.id || 'NOT_TAKEN';
+  return DB_CODE_TO_BOARD_LANE[str] || ATTENDANCE_COLUMNS.find((col) => col.id === str)?.id || ATTENDANCE_BOARD_LANES.NOT_TAKEN;
 }
 
 export function deriveAction(fromStatus, toStatus) {
@@ -136,40 +145,60 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
       const classInstructorName = classInstructor
         ? getLocalizedUserName(classInstructor, lang, classInstructor.displayName || '')
         : null;
+
+      const classNameEn = doc.class?.nameEn || doc.class?.code || '';
+      const classNameAr = doc.class?.nameAr || classNameEn;
+      const dateStr = doc.date
+        ? (typeof doc.date === 'string' ? doc.date.slice(0, 10) : new Date(doc.date).toISOString().slice(0, 10))
+        : '';
+      const originalTitle = doc.title || `Document #${doc.id}`;
+      // Rebuild the English title with the English class name so the drawer/board
+      // do not show Arabic class names when the user is in English mode.
+      const nameEn = dateStr && classNameEn
+        ? `Daily Attendance — ${classNameEn} — ${dateStr}`
+        : originalTitle;
+      const nameAr = dateStr && classNameAr
+        ? `الحضور اليومي — ${classNameAr} — ${dateStr}`
+        : originalTitle;
+
       return {
-      id: `wf-${doc.id}`,
-      column: doc.status || 'DRAFT',
-      type: 'workflow',
-      title: doc.title || `Document #${doc.id}`,
-      name: doc.title || `Document #${doc.id}`,
-      rawId: doc.id,
-      status: doc.status,
-      assignee: classInstructorName
-        || doc.currentAssignee?.displayName
-        || doc.currentAssignee?.name
-        || doc.currentAssignee?.fullName
-        || null,
-      assigneeId: classInstructor?.id || doc.currentAssigneeId,
-      classInstructorId: classInstructor?.id || doc.instructorId || null,
-      classInstructorName,
-      workflowType: doc.workflowType,
-      classId: doc.classId,
-      className: doc.class?.nameEn || doc.class?.code,
-      programId: doc.class?.programId || null,
-      subjectId: doc.class?.subjectId || null,
-      programName: doc.class?.program?.nameEn,
-      subjectName: doc.class?.subject?.nameEn,
-      date: doc.date,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
-      description: doc.description,
-      fileName: doc.file?.name || null,
-      fileId: doc.file?.id || null,
-      snapshotFileId: doc.snapshotFileId || null,
-      snapshotFileName: doc.snapshotFile?.name || null,
-      raw: doc,
-      comments: doc.comments || [],
-    };
+        id: `wf-${doc.id}`,
+        column: doc.status || 'DRAFT',
+        type: 'workflow',
+        title: nameEn,
+        name: originalTitle,
+        nameEn,
+        nameAr,
+        rawId: doc.id,
+        status: doc.status,
+        assignee: classInstructorName
+          || doc.currentAssignee?.displayName
+          || doc.currentAssignee?.name
+          || doc.currentAssignee?.fullName
+          || null,
+        assigneeId: classInstructor?.id || doc.currentAssigneeId,
+        classInstructorId: classInstructor?.id || doc.instructorId || null,
+        classInstructorName,
+        workflowType: doc.workflowType,
+        classId: doc.classId,
+        className: classNameEn,
+        classNameEn,
+        classNameAr,
+        programId: doc.class?.programId || null,
+        subjectId: doc.class?.subjectId || null,
+        programName: doc.class?.program?.nameEn,
+        subjectName: doc.class?.subject?.nameEn,
+        date: doc.date,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
+        description: doc.description,
+        fileName: doc.file?.name || null,
+        fileId: doc.file?.id || null,
+        snapshotFileId: doc.snapshotFileId || null,
+        snapshotFileName: doc.snapshotFile?.name || null,
+        raw: doc,
+        comments: doc.comments || [],
+      };
     });
 
     const uniqueClassDates = new Map();
@@ -193,11 +222,11 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
           const counts = { present: 0, late: 0, absent: 0, excused: 0, humanCase: 0, notTaken: 0 };
           for (const rec of records) {
             const lane = normalizeAttendanceStatus(rec);
-            if (lane === 'PRESENT') counts.present++;
-            else if (lane === 'LATE') counts.late++;
-            else if (lane === 'ABSENT') counts.absent++;
-            else if (lane === 'EXCUSED') counts.excused++;
-            else if (lane === 'HUMAN_CASE') counts.humanCase++;
+            if (lane === ATTENDANCE_BOARD_LANES.PRESENT) counts.present++;
+            else if (lane === ATTENDANCE_BOARD_LANES.LATE) counts.late++;
+            else if (lane === ATTENDANCE_BOARD_LANES.ABSENT) counts.absent++;
+            else if (lane === ATTENDANCE_BOARD_LANES.EXCUSED) counts.excused++;
+            else if (lane === ATTENDANCE_BOARD_LANES.HUMAN_CASE) counts.humanCase++;
             else counts.notTaken++;
           }
           attendanceSummaryMap.set(`${classId}_${date}`, counts);
@@ -334,8 +363,10 @@ export const fetchAttendanceBoardData = async (filters = {}) => {
       const user = enrollment.user || enrollment.User || {};
       const uid = user.id ?? enrollment.userId;
       const rec = uid != null ? attendanceByUserId.get(String(uid)) : null;
-      const statusStr = rec ? normalizeAttendanceStatus(rec) : 'NOT_TAKEN';
-      const fallbackName = `Student #${uid}`;
+      const statusStr = rec ? normalizeAttendanceStatus(rec) : ATTENDANCE_BOARD_LANES.NOT_TAKEN;
+      const fallbackName = user.studentNumber
+        ? `Student #${user.studentNumber}`
+        : `Student #${uid}`;
       const studentNameEn = getLocalizedUserName(user, 'en', fallbackName);
       const studentNameAr = getLocalizedUserName(user, 'ar', studentNameEn);
       const classNameEn = enrollment.class?.nameEn || enrollment.class?.code || '';
@@ -400,27 +431,35 @@ export const moveWorkflowCard = async (documentId, fromStatus, toStatus, reason 
     info(`${SERVICE_NAME}:moveWorkflowCard`, { documentId, fromStatus, toStatus });
     const action = deriveAction(fromStatus, toStatus);
 
+    let result;
     if (action === 'APPROVE') {
-      return await approveWorkflowDocument(documentId, {
+      result = await approveWorkflowDocument(documentId, {
         comment: reason,
         ...(snapshotData || {}),
         ...(fileId ? { filedFileId: fileId } : {}),
       });
-    }
-    if (action === 'REJECT') {
-      return await rejectWorkflowDocument(documentId, { comment: reason || 'Rejected from board' });
-    }
-    if (action === 'RETURN') {
-      return await returnWorkflowDocument(documentId, { comment: reason || 'Returned from board' });
-    }
-    if (action === 'RESUBMIT') {
-      return await resubmitWorkflowDocument(documentId, { comment: reason });
+    } else if (action === 'REJECT') {
+      result = await rejectWorkflowDocument(documentId, { comment: reason || 'Rejected from board' });
+    } else if (action === 'RETURN') {
+      result = await returnWorkflowDocument(documentId, { comment: reason || 'Returned from board' });
+    } else if (action === 'RESUBMIT') {
+      result = await resubmitWorkflowDocument(documentId, { comment: reason });
+    } else {
+      result = await updateWorkflowDocumentStatus(documentId, { status: toStatus, reason });
     }
 
-    return await updateWorkflowDocumentStatus(documentId, { status: toStatus, reason });
+    if (result?.success) {
+      apiService.clearCacheByPrefix('/workflow-documents');
+    }
+
+    return result;
   } catch (err) {
     logError(`${SERVICE_NAME}:moveWorkflowCard:error`, { error: err.message });
-    return { success: false, error: err.message };
+    const isPermissionError = err?.response?.status === 403 || err?.message?.includes('403');
+    const errorMessage = isPermissionError 
+      ? 'You do not have permission to perform this action' 
+      : err.message;
+    return { success: false, error: errorMessage, isPermissionError };
   }
 };
 
@@ -432,7 +471,7 @@ export const moveAttendanceCard = async (attendanceId, newStatus, notes = null, 
   try {
     info(`${SERVICE_NAME}:moveAttendanceCard`, { attendanceId, newStatus });
 
-    if (newStatus === 'NOT_TAKEN') {
+    if (newStatus === ATTENDANCE_BOARD_LANES.NOT_TAKEN) {
       if (!attendanceId) return { success: true, data: null };
       const result = await apiService.delete(`/attendance/${attendanceId}`);
       if (result.success) {

@@ -10,6 +10,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { InfoTooltip } from '@ui';
 
 import { info, error, warn, debug } from '@services/utils/logger.js';import './NotificationLogsPage.css';
+import { ROLE_STRINGS } from '@utils/userUtils';
 
 const NotificationLogsPage = () => {
   const { t, lang } = useLang();
@@ -209,7 +210,7 @@ const NotificationLogsPage = () => {
               <div>{selectedNotificationLog.userId || 'N/A'}</div>
 
               <strong>{t('role', 'Role')}:</strong>
-              <div><Badge text={selectedNotificationLog.role} type={selectedNotificationLog.role === 'admin' ? 'error' : 'success'} size="small" /></div>
+              <div><Badge text={selectedNotificationLog.role} type={selectedNotificationLog.role === ROLE_STRINGS.ADMIN ? 'error' : 'success'} size="small" /></div>
 
               <strong>{t('status', 'Status')}:</strong>
               <div>

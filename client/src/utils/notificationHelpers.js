@@ -71,22 +71,24 @@ const WORKFLOW_EVENT_STATUS = {
   'workflow.submitted': 'SUBMITTED',
   'workflow.resubmitted': 'SUBMITTED',
   'workflow.revised': 'SUBMITTED',
-  'workflow.returned': 'SUBMITTED',
+  'workflow.returned': 'RETURNED',
   'workflow.sent_for_review': 'UNDER_REVIEW',
   'workflow.sent_for_approval': 'UNDER_ADMIN_REVIEW',
   'workflow.amended': 'AMENDED',
 };
 
-const WORKFLOW_STATUS_ORDER = ['DRAFT', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'UNDER_REVIEW', 'AMENDED', 'APPROVED', 'REJECTED', 'OTHER'];
+const WORKFLOW_STATUS_ORDER = ['DRAFT', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'UNDER_REVIEW', 'AMENDED', 'APPROVED', 'RETURNED', 'REJECTED', 'OTHER'];
 
 export const getWorkflowStatusKey = (n) => {
-  if (!(n.type || '').startsWith('WORKFLOW')) return null;
+  const event = n.event || n.data?.event;
+  const isWorkflowEvent = (event || '').startsWith('workflow.');
+  const isWorkflowType = (n.type || '').startsWith('WORKFLOW');
+  if (!isWorkflowType && !isWorkflowEvent) return null;
   const explicit = n.data?.newStatus || n.metadata?.newStatus || n.data?.workflowStatus || n.metadata?.status;
   if (explicit) {
     if (explicit === 'UNDER_REVIEW') return 'UNDER_HR_REVIEW';
     return explicit;
   }
-  const event = n.event || n.data?.event;
   return WORKFLOW_EVENT_STATUS[event] || 'OTHER';
 };
 
@@ -103,6 +105,7 @@ export const WORKFLOW_NOTIFICATION_STATUS_FILTERS = [
 export function getWorkflowSubgroupColor(status) {
   if (!status) return WORKFLOW_STATUS_COLORS.DRAFT;
   if (status === 'UNDER_REVIEW') return WORKFLOW_STATUS_COLORS.UNDER_HR_REVIEW;
+  if (status === 'RETURNED') return '#f59e0b';
   return WORKFLOW_STATUS_COLORS[status] || '#6b7280';
 }
 
@@ -114,7 +117,7 @@ export function matchesWorkflowStatusFilter(notification, filterId) {
   return key === filterId;
 }
 
-const getWorkflowStatusLabel = (status, t) => {
+export const getWorkflowStatusLabel = (status, t) => {
   const keyMap = {
     DRAFT: 'workflow.inbox.statusDraft',
     SUBMITTED: 'workflow.inbox.statusSubmitted',
@@ -124,8 +127,35 @@ const getWorkflowStatusLabel = (status, t) => {
     APPROVED: 'workflow.inbox.approved',
     REJECTED: 'workflow.inbox.statusRejected',
     AMENDED: 'workflow.inbox.statusAmended',
+    RETURNED: 'workflow.inbox.statusReturned',
   };
   return t(keyMap[status]) || status;
+};
+
+/**
+ * Get localized notification title based on event type.
+ * Falls back to the original title if no mapping exists.
+ */
+export const getLocalizedNotificationTitle = (notification, t) => {
+  const event = notification.event || notification.data?.event;
+  const titleMap = {
+    'workflow.returned': 'notification_workflow_returned_title',
+    'workflow.approved': 'notification_workflow_approved_title',
+    'workflow.rejected': 'notification_workflow_rejected_title',
+    'workflow.submitted': 'notification_workflow_submitted_title',
+    'workflow.resubmitted': 'notification_workflow_resubmitted_title',
+    'workflow.sent_for_review': 'notification_workflow_sent_for_review_title',
+    'workflow.sent_for_approval': 'notification_workflow_sent_for_approval_title',
+  };
+  
+  if (event && titleMap[event]) {
+    const localized = t(titleMap[event]);
+    if (localized && localized !== titleMap[event]) {
+      return localized;
+    }
+  }
+  
+  return notification.title || '';
 };
 
 /**
@@ -163,7 +193,7 @@ export const groupNotificationsByDate = (notifications, t) => {
 
     if (otherItems.length > 0) {
       subGroups.push({
-        label: null,
+        label: t('other'),
         items: otherItems,
         isWorkflow: false,
       });
@@ -261,13 +291,23 @@ export const filterNotifications = ({
   // Filter by program
   if (filterProgram !== 'all') {
     filtered = filtered.filter(n => {
-      const classId = n.data?.classId || n.classId;
-      const subjectId = n.data?.subjectId || n.metadata?.subjectId;
+      const data = n.data || n.metadata || {};
+      if (data.programId != null) {
+        return String(data.programId) === String(filterProgram);
+      }
+
+      const classId = data.classId || n.classId;
+      const subjectId = data.subjectId || data.metadata?.subjectId;
       if (classId) {
         const classItem = classes.find(c => String(c.id || c.docId) === String(classId));
+        if (classItem?.programId != null) {
+          return String(classItem.programId) === String(filterProgram);
+        }
         if (classItem?.subjectId) {
           const subject = subjects.find(s => String(s.docId || s.id) === String(classItem.subjectId));
-          return String(subject?.programId) === String(filterProgram);
+          if (subject?.programId != null) {
+            return String(subject.programId) === String(filterProgram);
+          }
         }
       }
       if (subjectId) {
@@ -346,7 +386,18 @@ export const gotoFromNotification = async (n, navigate, onMarkAsRead) => {
   if (!n.isRead && onMarkAsRead) await onMarkAsRead(n.id);
 
   if (n.link) {
-    navigate(n.link);
+    // Remove expanded=1 from the link to prevent unwanted expanded view
+    const url = new URL(n.link, window.location.origin);
+    url.searchParams.delete('expanded');
+    url.searchParams.delete('scheduleExpanded');
+    
+    // If the link is to operations board or welcome page with operations tab, open in new tab to avoid navbar issues
+    if (url.pathname.includes('/operations/board') || (url.pathname.includes('/welcome') && url.searchParams.get('tab') === 'operations')) {
+      window.open(url.pathname + url.search, '_blank');
+      return;
+    }
+    
+    navigate(url.pathname + url.search);
     return;
   }
 
@@ -378,8 +429,13 @@ export const gotoFromNotification = async (n, navigate, onMarkAsRead) => {
       break;
     case NOTIFICATION_TYPES.WORKFLOW:
       { const wfId = data.workflowId || data.documentId;
-        if (wfId) navigate(`/operations/board?workflowId=${wfId}`);
-        else navigate('/operations/board'); }
+        const url = wfId ? `/operations/board?workflowId=${wfId}` : '/operations/board';
+        // Remove expanded=1 to prevent unwanted expanded view
+        const urlObj = new URL(url, window.location.origin);
+        urlObj.searchParams.delete('expanded');
+        console.log('[gotoFromNotification] WORKFLOW notification - opening in new tab:', urlObj.pathname + urlObj.search);
+        window.open(urlObj.pathname + urlObj.search, '_blank');
+        return; }
       break;
     case NOTIFICATION_TYPES.BEHAVIOR:
     case NOTIFICATION_TYPES.PARTICIPATION:

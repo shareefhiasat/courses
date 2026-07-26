@@ -15,7 +15,7 @@ import useTourBadgeCount from '@hooks/useTourBadgeCount.js';
 import { useColorTheme } from '@contexts/ColorThemeContext';
 import { useGlobalLoading } from '@contexts/GlobalLoadingContext';
 import { getTimeFormatPreference, setTimeFormatPreference } from '@utils/date';
-import { adjustColor, hexToRgbString, normalizeHexColor, DEFAULT_ACCENT } from '@utils/color';
+import { hexToRgbString, normalizeHexColor, DEFAULT_ACCENT } from '@utils/color';
 import Select from '../Select/Select';
 import DraggableClock from '../DraggableClock/DraggableClock';
 import ColoredTooltip from '../mui/ColoredTooltip';
@@ -28,7 +28,10 @@ import {
   SCHEDULE_FONT_SCALE_STEP,
 } from '@constants/scheduleFontScale';
 
-import { info, error, warn, debug } from '@services/utils/logger.js';const ACCENT_FALLBACK = DEFAULT_ACCENT;
+import { info, error, warn, debug } from '@services/utils/logger.js';
+import { isOnboardingTourEnabled } from '@utils/tourConfig.js';
+
+const ACCENT_FALLBACK = DEFAULT_ACCENT;
 
 const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   const authContext = useAuth();
@@ -568,6 +571,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 </ColoredTooltip>
                 )}
 
+                {isOnboardingTourEnabled() && (
                 <ColoredTooltip title={tourBadgeCount > 0 ? t('tour_help_count', { count: tourBadgeCount }) : t('tour_help')} placement="bottom" color={DEFAULT_ACCENT}>
                 <button
                   className="nav-icon-btn nav-help"
@@ -608,6 +612,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   )}
                 </button>
                 </ColoredTooltip>
+                )}
 
                 {isSuperAdmin && (
                   <ColoredTooltip title={t('help_center')} placement="bottom" color={DEFAULT_ACCENT}>
@@ -693,17 +698,14 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     width: '34px',
                     height: '34px',
                     borderRadius: '50%',
-                    background: primaryColor && primaryColor !== ACCENT_FALLBACK
-                      ? `linear-gradient(135deg, ${primaryColor}, ${adjustColor(primaryColor, 10)})`
-                      : 'rgba(255,255,255,0.3)',
+                    background: 'linear-gradient(135deg, #D4AF37, #FFD700)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '1.1rem',
                     fontWeight: 700,
-                    color: primaryColor && primaryColor !== ACCENT_FALLBACK ? '#fff' : '#2E3B4E',
+                    color: '#2E3B4E',
                     cursor: 'pointer',
-                    border: '2px solid rgba(255,255,255,0.6)',
                     transition: 'transform 0.2s, background 0.3s',
                     overflow: 'hidden',
                     position: 'relative',
@@ -735,22 +737,9 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       }}
                     />
                   ) : (
-                    <>
-                      {(!primaryColor || primaryColor === ACCENT_FALLBACK) && (
-                        <div style={{
-                          position: 'absolute',
-                          inset: 0,
-                          background: 'rgba(255,255,255,0.5)',
-                          backdropFilter: 'blur(4px)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }} />
-                      )}
-                      <span style={{ position: 'relative', zIndex: 1 }}>
-                        {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
-                      </span>
-                    </>
+                    <span style={{ position: 'relative', zIndex: 1 }}>
+                      {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
+                    </span>
                   )}
                 </div>
                 {/* Multiple role badges stacked on the outer side */}

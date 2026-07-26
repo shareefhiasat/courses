@@ -13,7 +13,7 @@ const NotificationBell = () => {
   const { t } = useLang();
   const { theme } = useTheme();
   const { primaryColor } = useColorTheme();
-  const feed = useNotificationsFeed({ limit: 100, archived: false });
+  const feed = useNotificationsFeed({ limit: 100 });
   const { unreadCount } = feed;
   const [showDrawer, setShowDrawer] = useState(false);
   const [initialFilters, setInitialFilters] = useState(null);

@@ -88,6 +88,12 @@ const getClassDisplayName = (cls, lang = 'en') => getEntityDisplayName(cls, { ki
 
 const getGroupDisplayName = (room, lang = 'en') => {
   if (!room) return '';
+  
+  // Handle role-based group names
+  if (room.name === '__ROLE_GROUP_hr__') {
+    return lang === 'ar' ? 'مكتب التنسيق' : 'Coordination Office';
+  }
+  
   if (lang === 'ar' && room.nameAr) return room.nameAr;
   return room.name || '';
 };
@@ -764,17 +770,25 @@ const ChatPage = memo(() => {
     };
   }, [showEmojiPicker, reactionMenu]);
 
-  // Listen for navbar toggle events and update CSS variable
+  // Listen for navbar toggle events and update CSS variable to actual navbar height
   useEffect(() => {
+    const measureNavbarHeight = () => {
+      const navbar = document.querySelector('.navbar');
+      return navbar ? Math.round(navbar.getBoundingClientRect().height) : 60;
+    };
+
+    const updateNavbarHeight = (collapsed) => {
+      document.documentElement.style.setProperty('--navbar-height', collapsed ? '0px' : `${measureNavbarHeight()}px`);
+    };
+
     const handleNavbarToggle = (e) => {
       setIsNavbarCollapsed(e.detail.collapsed);
-      // Update CSS variable for dynamic height calculation
-      document.documentElement.style.setProperty('--navbar-height', e.detail.collapsed ? '0px' : '60px');
+      updateNavbarHeight(e.detail.collapsed);
     };
-    
-    // Set initial value
-    document.documentElement.style.setProperty('--navbar-height', isNavbarCollapsed ? '0px' : '60px');
-    
+
+    // Set initial value after layout
+    updateNavbarHeight(isNavbarCollapsed);
+
     window.addEventListener('navbar:toggle', handleNavbarToggle);
     return () => {
       window.removeEventListener('navbar:toggle', handleNavbarToggle);
@@ -1398,8 +1412,8 @@ const ChatPage = memo(() => {
           overflowX: 'hidden',
           minHeight: 60
         }}>
-          {/* Global Chat */}
-          {(
+          {/* Global Chat - Temporarily hidden */}
+          {false && (
             <div
               onClick={() => handleClassChange('global')}
               style={{
@@ -1432,8 +1446,8 @@ const ChatPage = memo(() => {
             </div>
           )}
 
-          {/* Class Chats */}
-          {(Array.isArray(classes) ? classes : [])
+          {/* Class Chats - Temporarily hidden */}
+          {false && (Array.isArray(classes) ? classes : [])
             .filter(cls => showArchived || !archivedClasses[cls.docId])
             .map(cls => (
             <div
@@ -1742,7 +1756,7 @@ const ChatPage = memo(() => {
                             </div>
                           )}
                           <div style={{ position: 'absolute', bottom: -2, insetInlineEnd: -2, width: 14, height: 14, borderRadius: '50%', background: 'var(--panel)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--panel)', boxShadow: '0 0 0 1px var(--border)' }} title={t('your_notes')}>
-                            {getThemedIcon('ui', 'edit', 8, theme)}
+                            {getIconWithColor('ui', 'star', 8, '#ef4444')}
                           </div>
                         </div>
                       );
@@ -3924,6 +3938,9 @@ const ChatPage = memo(() => {
             ) : (
               availableDMUsers
                 .filter(u => {
+                  // Hide students from DM user list
+                  const role = resolveUserRole(u);
+                  if (role === ROLE_STRINGS.STUDENT) return false;
                   if (!dmUserSearch) return true;
                   const name = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
                   const email = (u.email || '').toLowerCase();
@@ -3956,12 +3973,12 @@ const ChatPage = memo(() => {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                           {role && <RoleBadge user={u} size={10} />}
-                          {role === 'student' && u.enrollmentCount > 0 && (
+                          {role === ROLE_STRINGS.STUDENT && u.enrollmentCount > 0 && (
                             <span title={t('enrolled_classes')} style={{ fontSize: '0.65rem', background: 'var(--bg)', color: 'var(--muted)', padding: '1px 5px', borderRadius: 8, fontWeight: 500, whiteSpace: 'nowrap' }}>
                               {u.enrollmentCount} {t('classes')}
                             </span>
                           )}
-                          {role === 'instructor' && u.classCount > 0 && (
+                          {role === ROLE_STRINGS.INSTRUCTOR && u.classCount > 0 && (
                             <span title={t('teaching_classes')} style={{ fontSize: '0.65rem', background: 'var(--bg)', color: 'var(--muted)', padding: '1px 5px', borderRadius: 8, fontWeight: 500, whiteSpace: 'nowrap' }}>
                               {u.classCount} {t('classes')}
                             </span>

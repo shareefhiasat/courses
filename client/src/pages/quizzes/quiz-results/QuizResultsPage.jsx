@@ -25,6 +25,7 @@ import { addNotification } from '@services/business/notificationService';
 import { sendEmail } from '@services/business/emailService';
 import { getThemedIcon } from '@constants/iconTypes';
 import styles from './QuizResultsPage.module.css';
+import { ROLE_STRINGS } from '@utils/userUtils';
 
 const QuizResultsPage = () => {
   const { user, isAdmin, isInstructor, isHR, isSuperAdmin, loading: authLoading } = useAuth();
@@ -93,7 +94,7 @@ const QuizResultsPage = () => {
 
       if (isHR || isAdmin || isSuperAdmin) {
         const usersResult = await getUsers();
-        const studentsData = usersResult.success ? usersResult.data.filter((u) => u.role === 'student') : [];
+        const studentsData = usersResult.success ? usersResult.data.filter((u) => u.role === ROLE_STRINGS.STUDENT) : [];
         setStudents(studentsData);
       } else {
         const enrollmentsResult = await getEnrollments();

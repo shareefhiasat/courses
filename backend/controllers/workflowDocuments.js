@@ -37,7 +37,6 @@ import {
   getBoardWorkflowDocuments,
   ensureDailyWorkflows,
   shareWorkflowFile,
-  ensureWorkflowOversightFileShares,
 } from '../services/workflowDocumentService.js';
 import { emit } from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
@@ -665,7 +664,6 @@ export const approveWorkflowDocumentController = async (req, res) => {
             workflowCategory: document.workflowCategory,
             attendanceSubtype: document.attendanceSubtype,
           });
-          await ensureWorkflowOversightFileShares(filedFileId);
         } catch (shareErr) {
           console.error('[approveWorkflowDocumentController] Failed to share filed PDF:', shareErr);
         }
@@ -692,7 +690,7 @@ export const approveWorkflowDocumentController = async (req, res) => {
           select: { id: true, nameEn: true, nameAr: true, code: true }
         }) : null;
 
-        const submitterResult = await emit(EVENTS.WORKFLOW_APPROVED, {
+        const baseNotifyPayload = {
           ...buildNotificationNameVars(approver, 'Unknown User'),
           workflowName: result.data.title,
           documentId: result.data.id,
@@ -701,50 +699,55 @@ export const approveWorkflowDocumentController = async (req, res) => {
           senderId: user?.dbId || null,
           className: cls?.nameEn || null,
           classNameAr: cls?.nameAr || cls?.nameEn || null,
-          recipientType: 'user',
-          recipientUserId: result.data.submitterId,
-        }, user, { userId: result.data.submitterId });
-        if (submitterResult?.success) notifyResults.push({ target: 'Submitter', count: submitterResult.results.length });
+          previousStatus: status,
+          newStatus: nextStatus,
+        };
 
-        // Notify next-stage reviewer role if not final approval
-        if (nextStatus === 'UNDER_HR_REVIEW') {
-          const hrResult = await emit(EVENTS.WORKFLOW_SENT_FOR_REVIEW, {
-            ...buildNotificationNameVars(approver, 'Unknown User'),
-            workflowName: result.data.title,
-            documentId: result.data.id,
-            senderName: approver?.displayName || 'Unknown',
-            senderId: user?.dbId || null,
-            className: cls?.nameEn || null,
-            classNameAr: cls?.nameAr || cls?.nameEn || null,
-            recipientType: 'role',
-            recipientRole: LMS_ROLES.HR,
-          }, user, { role: LMS_ROLES.HR });
-          if (hrResult?.success) notifyResults.push({ target: 'HR', count: hrResult.results.length });
-        } else if (nextStatus === 'UNDER_ADMIN_REVIEW') {
-          const adminResult = await emit(EVENTS.WORKFLOW_SENT_FOR_REVIEW, {
-            ...buildNotificationNameVars(approver, 'Unknown User'),
-            workflowName: result.data.title,
-            documentId: result.data.id,
-            senderName: approver?.displayName || 'Unknown',
-            senderId: user?.dbId || null,
-            className: cls?.nameEn || null,
-            classNameAr: cls?.nameAr || cls?.nameEn || null,
+        if (nextStatus === 'UNDER_ADMIN_REVIEW') {
+          // Confirmed → Admin Review: notify submitter + Admin role
+          const submitterResult = await emit(EVENTS.WORKFLOW_SENT_FOR_APPROVAL, {
+            ...baseNotifyPayload,
+            recipientType: 'user',
+            recipientUserId: result.data.submitterId,
+          }, user, { userId: result.data.submitterId });
+          if (submitterResult?.success) notifyResults.push({ target: 'Submitter', count: submitterResult.results.length });
+
+          const adminResult = await emit(EVENTS.WORKFLOW_SENT_FOR_APPROVAL, {
+            ...baseNotifyPayload,
             recipientType: 'role',
             recipientRole: LMS_ROLES.ADMIN,
           }, user, { role: LMS_ROLES.ADMIN });
           if (adminResult?.success) notifyResults.push({ target: 'Admin', count: adminResult.results.length });
+
+        } else if (nextStatus === 'UNDER_HR_REVIEW') {
+          // Admin Review → HR Review: notify submitter + HR role
+          const submitterResult = await emit(EVENTS.WORKFLOW_SENT_FOR_REVIEW, {
+            ...baseNotifyPayload,
+            recipientType: 'user',
+            recipientUserId: result.data.submitterId,
+          }, user, { userId: result.data.submitterId });
+          if (submitterResult?.success) notifyResults.push({ target: 'Submitter', count: submitterResult.results.length });
+
+          const hrResult = await emit(EVENTS.WORKFLOW_SENT_FOR_REVIEW, {
+            ...baseNotifyPayload,
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.HR,
+          }, user, { role: LMS_ROLES.HR });
+          if (hrResult?.success) notifyResults.push({ target: 'HR', count: hrResult.results.length });
+
         } else if (nextStatus === 'APPROVED') {
-          // Notify all parties: HR + Admin watchers (submitter already notified above)
+          // HR Review → Approved: notify submitter + Admin + HR
           const snapshotFileId = result.data.snapshotFileId || null;
+          const submitterResult = await emit(EVENTS.WORKFLOW_APPROVED, {
+            ...baseNotifyPayload,
+            snapshotFileId,
+            recipientType: 'user',
+            recipientUserId: result.data.submitterId,
+          }, user, { userId: result.data.submitterId });
+          if (submitterResult?.success) notifyResults.push({ target: 'Submitter', count: submitterResult.results.length });
+
           const hrWatchResult = await emit(EVENTS.WORKFLOW_APPROVED, {
-            ...buildNotificationNameVars(approver, 'Unknown User'),
-            workflowName: result.data.title,
-            documentId: result.data.id,
-            approverName: approver?.displayName || 'Unknown',
-            senderName: approver?.displayName || 'Unknown',
-            senderId: user?.dbId || null,
-            className: cls?.nameEn || null,
-            classNameAr: cls?.nameAr || cls?.nameEn || null,
+            ...baseNotifyPayload,
             snapshotFileId,
             recipientType: 'role',
             recipientRole: LMS_ROLES.HR,
@@ -752,14 +755,7 @@ export const approveWorkflowDocumentController = async (req, res) => {
           if (hrWatchResult?.success) notifyResults.push({ target: 'HR (Watchers)', count: hrWatchResult.results.length });
 
           const adminWatchResult = await emit(EVENTS.WORKFLOW_APPROVED, {
-            ...buildNotificationNameVars(approver, 'Unknown User'),
-            workflowName: result.data.title,
-            documentId: result.data.id,
-            approverName: approver?.displayName || 'Unknown',
-            senderName: approver?.displayName || 'Unknown',
-            senderId: user?.dbId || null,
-            className: cls?.nameEn || null,
-            classNameAr: cls?.nameAr || cls?.nameEn || null,
+            ...baseNotifyPayload,
             snapshotFileId,
             recipientType: 'role',
             recipientRole: LMS_ROLES.ADMIN,
@@ -849,11 +845,21 @@ export const rejectWorkflowDocumentController = async (req, res) => {
         nextStatus
       });
     } catch (error) {
-      console.error('[rejectWorkflowDocumentController] Invalid transition:', error.message);
-      return res.status(400).json({
-        success: false,
-        error: error.message
-      });
+      // Admins can reject from any state, bypass state machine for admins
+      if (isAdmin) {
+        console.log('[rejectWorkflowDocumentController] Admin bypassing state machine for reject:', {
+          workflowType: document.workflowType,
+          currentStatus: document.status,
+          reason: error.message
+        });
+        nextStatus = 'REJECTED';
+      } else {
+        console.error('[rejectWorkflowDocumentController] Invalid transition:', error.message);
+        return res.status(400).json({
+          success: false,
+          error: error.message
+        });
+      }
     }
 
     // Update status to REJECTED
@@ -881,7 +887,7 @@ export const rejectWorkflowDocumentController = async (req, res) => {
           select: { id: true, nameEn: true, nameAr: true, code: true }
         }) : null;
 
-        const submitterResult = await emit(EVENTS.WORKFLOW_REJECTED, {
+        const rejectBasePayload = {
           ...buildNotificationNameVars(rejecter, 'Unknown User'),
           workflowName: result.data.title,
           documentId: result.data.id,
@@ -891,6 +897,12 @@ export const rejectWorkflowDocumentController = async (req, res) => {
           senderId: user?.dbId || null,
           className: cls?.nameEn || null,
           classNameAr: cls?.nameAr || cls?.nameEn || null,
+          previousStatus: document.status,
+          newStatus: nextStatus,
+        };
+
+        const submitterResult = await emit(EVENTS.WORKFLOW_REJECTED, {
+          ...rejectBasePayload,
           recipientType: 'user',
           recipientUserId: result.data.submitterId,
         }, user, { userId: result.data.submitterId });
@@ -903,15 +915,7 @@ export const rejectWorkflowDocumentController = async (req, res) => {
 
         if (everReachedHR) {
           const hrResult = await emit(EVENTS.WORKFLOW_REJECTED, {
-          ...buildNotificationNameVars(rejecter, 'Unknown User'),
-          workflowName: result.data.title,
-          documentId: result.data.id,
-          feedback: comment,
-          rejecterName: rejecter?.displayName || 'Unknown',
-          senderName: rejecter?.displayName || 'Unknown',
-          senderId: user?.dbId || null,
-          className: cls?.nameEn || null,
-          classNameAr: cls?.nameAr || cls?.nameEn || null,
+          ...rejectBasePayload,
           recipientType: 'role',
           recipientRole: LMS_ROLES.HR,
           }, user, { role: LMS_ROLES.HR });
@@ -920,15 +924,7 @@ export const rejectWorkflowDocumentController = async (req, res) => {
 
         if (!isAdminBoardReject) {
           const adminResult = await emit(EVENTS.WORKFLOW_REJECTED, {
-          ...buildNotificationNameVars(rejecter, 'Unknown User'),
-          workflowName: result.data.title,
-          documentId: result.data.id,
-          feedback: comment,
-          rejecterName: rejecter?.displayName || 'Unknown',
-          senderName: rejecter?.displayName || 'Unknown',
-          senderId: user?.dbId || null,
-          className: cls?.nameEn || null,
-          classNameAr: cls?.nameAr || cls?.nameEn || null,
+          ...rejectBasePayload,
           recipientType: 'role',
           recipientRole: LMS_ROLES.ADMIN,
           }, user, { role: LMS_ROLES.ADMIN });
@@ -1176,7 +1172,7 @@ export const resubmitWorkflowDocumentController = async (req, res) => {
           title: result.data.title,
         });
       }
-      // Emit notification to HR users
+      // Emit notification to HR + Admin users
       try {
         const submitter = await prisma.user.findUnique({
           where: { id: user.dbId },
@@ -1187,7 +1183,7 @@ export const resubmitWorkflowDocumentController = async (req, res) => {
           select: { id: true, nameEn: true, nameAr: true, code: true }
         }) : null;
 
-        await emit(EVENTS.WORKFLOW_RESUBMITTED, {
+        const resubmitPayload = {
           ...buildNotificationNameVars(submitter, 'Unknown User'),
           workflowName: result.data.title,
           documentId: result.data.id,
@@ -1197,9 +1193,21 @@ export const resubmitWorkflowDocumentController = async (req, res) => {
           senderId: user?.dbId || null,
           className: cls?.nameEn || null,
           classNameAr: cls?.nameAr || cls?.nameEn || null,
+          previousStatus: 'REJECTED',
+          newStatus: 'SUBMITTED',
+        };
+
+        await emit(EVENTS.WORKFLOW_RESUBMITTED, {
+          ...resubmitPayload,
           recipientType: 'role',
           recipientRole: LMS_ROLES.HR,
         }, user, { role: LMS_ROLES.HR });
+
+        await emit(EVENTS.WORKFLOW_RESUBMITTED, {
+          ...resubmitPayload,
+          recipientType: 'role',
+          recipientRole: LMS_ROLES.ADMIN,
+        }, user, { role: LMS_ROLES.ADMIN });
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
       }

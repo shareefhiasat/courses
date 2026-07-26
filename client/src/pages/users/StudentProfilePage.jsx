@@ -20,6 +20,7 @@ import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadin
 import { StudentQRCodeDisplay } from '@ui';
 import { FileText, Trophy, Flame, Clock } from 'lucide-react';
 import styles from './StudentProfilePage.module.css';
+import { ROLE_STRINGS } from '@utils/userUtils';
 
 const StudentProfilePage = () => {
   const { user, isAdmin, isHR, isInstructor, loading: authLoading } = useAuth();
@@ -267,7 +268,7 @@ const StudentProfilePage = () => {
       const usersResult = await getUsers();
       const allUsers = usersResult.success ? usersResult.data : [];
       const students = allUsers.filter(user => 
-        studentIds.includes(user.docId || user.id) && user.role === 'student'
+        studentIds.includes(user.docId || user.id) && user.role === ROLE_STRINGS.STUDENT
       );
       setAllStudents(students);
     } catch (error) {
@@ -344,7 +345,7 @@ const StudentProfilePage = () => {
       // Simple client-side search using all students data
       const usersResult = await getUsers();
       if (usersResult.success) {
-        const allStudents = usersResult.data.filter(user => user.role === 'student');
+        const allStudents = usersResult.data.filter(user => user.role === ROLE_STRINGS.STUDENT);
         const searchQuery = q.toLowerCase();
         
         const filtered = allStudents.filter(student => 

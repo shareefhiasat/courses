@@ -195,6 +195,13 @@ export const getWeeklySnapshot = async ({ weekFrom, weekTo, classId }) => {
   return await apiService.get(`/workflow-documents/snapshot?${params.toString()}`);
 };
 
+/**
+ * Delete a workflow document
+ */
+export const deleteWorkflowDocument = async (id) => {
+  return await apiService.delete(`/workflow-documents/${id}`);
+};
+
 export default {
   createWorkflowDocument,
   createCustomWorkflowDocument,
@@ -208,6 +215,7 @@ export default {
   resubmitWorkflowDocument,
   uploadSignedDocument,
   withdrawWorkflowDocument,
+  deleteWorkflowDocument,
   getComplianceData,
   getAnalyticsData,
   listFileVersions,

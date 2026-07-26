@@ -5,12 +5,12 @@ import { Input } from '@/components/kibo/ui/input';
 import { Tabs, Tab, Box } from '@mui/material';
 import {
   moveAttendanceCard,
-  markWorkflowAsTaken,
   fetchWorkflowHistory,
   fetchAttendanceHistory,
   addWorkflowBoardComment,
   ATTENDANCE_COLUMNS,
   WORKFLOW_COLUMNS,
+  ATTENDANCE_BOARD_LANES,
 } from '@services/business/operationsBoardService.js';
 import { getLectureLog } from '@services/business/attendanceLogService.js';
 import { getParticipationsByClassAndDate, createParticipation } from '@services/business/participationService.js';
@@ -31,6 +31,7 @@ import {
   resolveBoardStudentName,
   parseWorkflowCardName,
 } from './operationsBoardDisplayUtils.js';
+import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import WorkflowPdfPreviewPanel from './WorkflowPdfPreviewPanel.jsx';
 import { exportDailyOfficialForDate } from '@services/business/accessScopeExportService.js';
 import { getClasses } from '@services/business/classService.js';
@@ -42,15 +43,22 @@ import {
 import { formatDateTime } from '@utils/date-formatter.js';
 import { ATTENDANCE_BOARD_COLORS, BOARD_PARTICIPATION_COLOR } from '@constants/workspaceStatusColors.js';
 
-const TAKEN_GREEN = '#ca8a04';
+const { PRESENT, LATE, ABSENT, EXCUSED, HUMAN_CASE, NOT_TAKEN } = ATTENDANCE_BOARD_LANES;
 
 const ATTENDANCE_CODE_TO_BOARD = {
-  ATTENDANCE_PRESENT: 'PRESENT',
-  ATTENDANCE_LATE: 'LATE',
-  ATTENDANCE_ABSENT_NO_EXCUSE: 'ABSENT',
-  ATTENDANCE_EXCUSED_LEAVE: 'EXCUSED',
-  ATTENDANCE_HUMAN_CASE: 'HUMAN_CASE',
-  STANDUP_PRESENT: 'PRESENT',
+  ATTENDANCE_PRESENT: PRESENT,
+  ATTENDANCE_LATE: LATE,
+  ATTENDANCE_ABSENT: ABSENT,
+  ATTENDANCE_ABSENT_NO_EXCUSE: ABSENT,
+  ABSENT_WITH_EXCUSE: EXCUSED,
+  ATTENDANCE_LEAVE: EXCUSED,
+  ATTENDANCE_EXCUSED_LEAVE: EXCUSED,
+  SICK_LEAVE: EXCUSED,
+  ATTENDANCE_HUMAN_CASE: HUMAN_CASE,
+  EARLY_DEPARTURE: HUMAN_CASE,
+  STANDUP_PRESENT: PRESENT,
+  STANDUP_LATE: LATE,
+  STANDUP_ABSENT: ABSENT,
 };
 
 function parseAttendanceNotesList(notesStr, actorName) {
@@ -95,7 +103,11 @@ function DrawerTimeline({ entries, emptyMessage, lang }) {
           {entry.type === 'status' && (
             <p className="operations-board-timeline-line-text" style={{ marginTop: '0.35rem' }}>
               <span className="operations-board-timeline-status" style={{ color: entry.fromColor }}>{entry.from || '—'}</span>
-              <span className="text-xs text-muted-foreground"> → </span>
+              <span
+                className="inline-block h-2 w-2 rounded-full shrink-0"
+                style={{ backgroundColor: entry.toColor || '#94a3b8' }}
+                aria-hidden
+              />
               <span className="operations-board-timeline-status" style={{ color: entry.toColor }}>{entry.to || '—'}</span>
             </p>
           )}
@@ -300,7 +312,11 @@ export default function BoardStudentDrawer({
       const subject = allSubjects.find((s) => s.id === cls.subjectId);
       const result = await exportDailyOfficialForDate({
         cls,
-        program: { id: cls.programId, nameEn: card.programName || cls.programName },
+        program: {
+          id: cls.programId,
+          nameEn: card.programName || cls.programName,
+          nameAr: card.programNameAr || cls.programNameAr,
+        },
         subject: subject ? { id: subject.id, nameEn: subject.nameEn, nameAr: subject.nameAr } : null,
         academicTerm: null,
         lang,
@@ -333,7 +349,7 @@ export default function BoardStudentDrawer({
           comment: text,
           action: 'NOTE',
           createdAt: new Date().toISOString(),
-          author: { displayName: user?.displayName || user?.name || user?.email },
+          author: { displayName: user?.displayName || user?.name },
         });
         setComments((prev) => [saved, ...prev.filter((c) => c.id !== saved.id)]);
         setNotes('');
@@ -350,12 +366,12 @@ export default function BoardStudentDrawer({
       id: `temp-${Date.now()}`,
       text,
       at: new Date().toISOString(),
-      actor: user?.displayName || user?.name || user?.email || t('operations_board_system_actor'),
+      actor: user?.displayName || user?.name || t('operations_board_system_actor'),
       dotColor: '#f59e0b',
     };
     let result;
     if (!card.rawId) {
-      result = await moveAttendanceCard(null, card.column === 'NOT_TAKEN' ? 'PRESENT' : card.column, combinedNotes, {
+      result = await moveAttendanceCard(null, card.column === NOT_TAKEN ? PRESENT : card.column, combinedNotes, {
         userId: card.userId,
         classId: card.classId,
         date: card.date,
@@ -386,7 +402,7 @@ export default function BoardStudentDrawer({
         comment: text,
         action: 'COMMENT',
         createdAt: new Date().toISOString(),
-        author: { displayName: user?.displayName || user?.name || user?.email },
+        author: { displayName: user?.displayName || user?.name },
       });
       setComments((prev) => [saved, ...prev.filter((c) => c.id !== saved.id)]);
       setNewComment('');
@@ -431,24 +447,17 @@ export default function BoardStudentDrawer({
     }
   };
 
-  const handleMarkTaken = async () => {
-    if (!card || card.type !== 'workflow') return;
-    const result = await markWorkflowAsTaken(card.rawId);
-    if (result.success) {
-      onRefresh?.();
-      onClose();
-    }
-  };
-
   if (!card) return null;
 
   const studentName = resolveBoardStudentName(card, lang);
   const className = resolveBoardClassName(card, lang);
   const workflowNameParts = card.type === 'workflow' ? parseWorkflowCardName(card.name) : [];
-  const workflowTitle = workflowNameParts[0] || studentName;
-  const workflowClassName = workflowNameParts[1] || className;
+  let workflowTitle = workflowNameParts[0] || studentName;
+  if (lang === 'ar' && workflowTitle && workflowTitle.includes('Daily Attendance')) {
+    workflowTitle = workflowTitle.replace(/Daily Attendance/g, t('operations_board_daily_attendance') || 'حضور يومي');
+  }
   const displayTitle = card.type === 'workflow' ? workflowTitle : studentName;
-  const displayClassName = card.type === 'workflow' ? workflowClassName : className;
+  const displayClassName = className;
   const studentNumber = card.studentNumber || card.user?.studentNumber || null;
   const classInstructorName = card.classInstructorName || null;
   const isClassInstructor = Boolean(
@@ -472,21 +481,57 @@ export default function BoardStudentDrawer({
   const hideNotesComments = shouldHideNotesCommentsOnly(roleContext);
   const hrViewer = isHROnlyViewer(roleContext);
 
+  const cleanActorName = (name) => {
+    if (!name) return null;
+    // Extract name from email address if present
+    if (name.includes('@')) {
+      const emailParts = name.split('@');
+      const localPart = emailParts[0];
+      // Convert email local part to display name (e.g., "admin@example.com" -> "Admin")
+      return localPart.charAt(0).toUpperCase() + localPart.slice(1);
+    }
+    return name;
+  };
+
+  const translateReason = (reason) => {
+    if (!reason) return reason;
+    if (reason === 'Initial document submission' || reason === 'operations board initial document submission') {
+      return t('operations_board_initial_document_submission') || reason;
+    }
+    return reason;
+  };
+
   const buildStatusEntry = (h, prefix = '') => {
     const fromId = typeof h.fromStatus === 'object' ? (h.fromStatus?.code || h.fromStatus?.nameEn) : h.fromStatus || h.oldStatus;
     const toId = typeof h.toStatus === 'object' ? (h.toStatus?.code || h.toStatus?.nameEn) : h.toStatus || h.newStatus;
     const fromMeta = resolveBoardStatusMeta(fromId || h.fromStatus, t, roleContext);
     const toMeta = resolveBoardStatusMeta(toId || h.toStatus, t, roleContext);
+    const actorName = cleanActorName(h.actor?.displayName) || cleanActorName(h.changedByUser?.displayName) || cleanActorName(h.changedBy) || cleanActorName(h.actor);
+
+    // Translate role names for Arabic
+    let translatedActorName = actorName;
+    if (lang === 'ar' && actorName) {
+      if (actorName === 'Global Admin' || actorName === 'Super Admin') {
+        translatedActorName = t('roles.super_admin') || 'مدير عام';
+      } else if (actorName === 'Admin') {
+        translatedActorName = t('roles.admin') || 'مدير';
+      } else if (actorName === 'Instructor') {
+        translatedActorName = t('roles.instructor') || 'مدرب';
+      } else if (actorName === 'HR') {
+        translatedActorName = t('roles.hr') || 'موارد بشرية';
+      }
+    }
+
     return {
       id: h.id || `${prefix}-${h.changedAt || h.createdAt || h.timestamp}`,
       type: 'status',
-      actor: h.actor?.displayName || h.changedByUser?.displayName || h.changedBy || h.actor || t('operations_board_system_actor'),
+      actor: translatedActorName || t('operations_board_system_actor'),
       from: fromMeta.label,
       to: toMeta.label,
       fromColor: fromMeta.color,
       toColor: toMeta.color,
       at: h.createdAt || h.changedAt || h.timestamp,
-      reason: h.reason || h.comment || h.notes,
+      reason: translateReason(h.reason || h.comment || h.notes),
     };
   };
 
@@ -509,11 +554,15 @@ export default function BoardStudentDrawer({
     })),
   ];
 
-  if (card.type === 'attendance' && activityEntries.length === 0 && card.column !== 'NOT_TAKEN') {
+  if (card.type === 'attendance' && activityEntries.length === 0 && card.column !== NOT_TAKEN) {
+    const recordActor = getLocalizedUserName(card.raw?.updater || card.raw?.creator, lang, null)
+      || user?.displayName
+      || user?.name
+      || t('operations_board_system_actor');
     activityEntries.push({
       id: 'current-status',
       type: 'status',
-      actor: t('operations_board_system_actor'),
+      actor: recordActor,
       from: t('operations_board_lane_not_taken') || 'Not yet',
       to: statusLabel,
       fromColor: ATTENDANCE_BOARD_COLORS.NOT_TAKEN,
@@ -559,7 +608,7 @@ export default function BoardStudentDrawer({
   const participationTimelineEntries = participationList.map((p, idx) => ({
     id: p.id || `part-${idx}`,
     type: 'participation',
-    actor: p.creator?.displayName || t('operations_board_system_actor'),
+    actor: cleanActorName(p.creator?.displayName) || t('operations_board_system_actor'),
     text: p.descriptionEn || p.descriptionAr || p.notes || p.comment || t('operations_board_participation'),
     at: p.createdAt,
     dotColor: BOARD_PARTICIPATION_COLOR,
@@ -568,7 +617,7 @@ export default function BoardStudentDrawer({
   const commentTimelineEntries = workflowCommentItems.map((c) => ({
     id: c.id,
     type: 'comment',
-    actor: c.author?.displayName || c.authorName || t('operations_board_unknown_user'),
+    actor: cleanActorName(c.author?.displayName) || cleanActorName(c.authorName) || t('operations_board_unknown_user'),
     text: c.comment || c.text,
     at: c.createdAt,
     dotColor: '#3b82f6',
@@ -577,7 +626,7 @@ export default function BoardStudentDrawer({
   const noteTimelineEntries = workflowNoteItems.map((n) => ({
     id: n.id,
     type: 'note',
-    actor: n.author?.displayName || n.authorName || t('operations_board_unknown_user'),
+    actor: cleanActorName(n.author?.displayName) || cleanActorName(n.authorName) || t('operations_board_unknown_user'),
     text: n.comment || n.text,
     at: n.createdAt,
     dotColor: '#f59e0b',
@@ -596,46 +645,46 @@ export default function BoardStudentDrawer({
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Header: avatar / doc icon + title + meta + close */}
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2.5, pb: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 1.5, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
           {card.type === 'attendance' ? (
-            <BoardStudentAvatar name={studentName} profileImageUrl={card.profileImageUrl} size="md" />
+            <BoardStudentAvatar name={studentName} profileImageUrl={card.profileImageUrl} size="sm" />
           ) : (
             <span
               className="inline-flex items-center justify-center rounded-full shrink-0"
               style={{
-                width: 44,
-                height: 44,
+                width: 36,
+                height: 36,
                 backgroundColor: statusColumn ? `${statusColumn.color}14` : 'hsl(var(--muted))',
                 color: statusColumn?.color || 'currentColor',
               }}
             >
-              <FileText size={22} />
+              <FileText size={18} />
             </span>
           )}
-          <Box sx={{ minWidth: 0, flex: 1, pt: 0.25 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.75 }}>
-              <span className="text-base font-semibold truncate">{displayTitle}</span>
+          <Box sx={{ minWidth: 0, flex: 1, pt: 0.15 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap', mb: 0.35 }}>
+              <span className="text-xs font-semibold truncate">{displayTitle}</span>
               {card.type === 'attendance' && studentNumber && (
-                <span className="text-sm text-muted-foreground font-medium shrink-0">
+                <span className="text-[0.65rem] text-muted-foreground font-medium shrink-0">
                   {studentNumber}
                 </span>
               )}
               {statusColumn && card.type === 'workflow' && (
                 <span
-                  className="inline-flex items-center gap-1 text-xs font-semibold shrink-0"
+                  className="inline-flex items-center gap-0.75 text-[0.65rem] font-semibold shrink-0"
                   style={{ color: statusColumn.color }}
                 >
-                  <WorkflowIcon size={14} aria-hidden />
+                  <WorkflowIcon size={10} aria-hidden />
                   {statusLabel}
                 </span>
               )}
               {statusColumn && card.type === 'attendance' && (
                 <span
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold shrink-0"
+                  className="inline-flex items-center gap-1 text-[0.65rem] font-semibold shrink-0"
                   style={{ color: statusColumn.color }}
                 >
                   <span
-                    className="inline-block h-2 w-2 rounded-full shrink-0"
+                    className="inline-block h-1.5 w-1.5 rounded-full shrink-0"
                     style={{ backgroundColor: statusColumn.color }}
                     aria-hidden
                   />
@@ -643,15 +692,15 @@ export default function BoardStudentDrawer({
                 </span>
               )}
             </Box>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.15 }}>
               {displayClassName && (
-                <span className="text-sm text-muted-foreground truncate">{displayClassName}</span>
+                <span className="text-[0.65rem] text-muted-foreground truncate">{displayClassName}</span>
               )}
               {card.date && (
-                <span className="text-sm text-muted-foreground">{formatBoardDate(card.date, lang)}</span>
+                <span className="text-[0.65rem] text-muted-foreground">{formatBoardDate(card.date, lang)}</span>
               )}
               {card.type === 'workflow' && classInstructorName && (
-                <span className="text-sm text-muted-foreground">
+                <span className="text-[0.65rem] text-muted-foreground">
                   {t('operations_board_class_instructor') || 'Class instructor'}:{' '}
                   <span className="font-medium text-foreground">{instructorDisplay}</span>
                 </span>
@@ -670,17 +719,6 @@ export default function BoardStudentDrawer({
 
         {card.type === 'workflow' && (
           <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 2 }}>
-            {card.status === 'DRAFT' && card.workflowType === 'ATTENDANCE_DAILY' && (
-              <Button
-                size="sm"
-                onClick={handleMarkTaken}
-                data-testid="operations-board-mark-taken"
-                className="h-8 w-fit px-3 text-xs"
-                style={{ backgroundColor: TAKEN_GREEN, color: '#fff' }}
-              >
-                {t('operations_board_mark_taken')}
-              </Button>
-            )}
             {card.fileId && !card.snapshotFileId && (
               <Button
                 size="sm"
@@ -769,22 +807,22 @@ export default function BoardStudentDrawer({
               value={key}
               data-testid={`operations-board-drawer-tab-${key}`}
               label={
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <Icon size={14} />
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Icon size={12} />
                   {label}
                 </span>
               }
               sx={{
-                minHeight: 32,
-                height: 32,
+                minHeight: 24,
+                height: 24,
                 textTransform: 'none',
-                fontSize: '0.78rem',
+                fontSize: '0.65rem',
                 fontWeight: 600,
                 borderRadius: '9999px',
                 border: '1px solid',
                 borderColor: 'divider',
-                px: 2,
-                py: 0.5,
+                px: 1,
+                py: 0.25,
                 color: 'text.secondary',
                 transition: 'all 0.2s ease',
                 '&.Mui-selected': {
@@ -829,7 +867,6 @@ export default function BoardStudentDrawer({
                 { label: t('operations_board_profile_name') || 'Name', value: studentName },
                 { label: t('operations_board_profile_name_ar') || 'Name (Arabic)', value: [u.firstNameAr, u.lastNameAr].filter(Boolean).join(' ') || null },
                 { label: t('operations_board_profile_student_number') || 'Student Number', value: u.studentNumber || card.studentNumber || null },
-                { label: t('operations_board_profile_email') || 'Email', value: u.email || null },
                 { label: t('operations_board_profile_phone') || 'Phone', value: u.phone || u.phoneNumber || u.mobile || null },
                 { label: t('operations_board_profile_rank') || 'Rank', value: (lang === 'ar' ? u.rankAr : u.rankEn) || null },
                 { label: t('operations_board_profile_display_name') || 'Display Name', value: (lang === 'ar' ? u.displayNameAr : u.displayName) || null },

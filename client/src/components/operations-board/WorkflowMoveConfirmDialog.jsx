@@ -30,12 +30,16 @@ export default function WorkflowMoveConfirmDialog({
   workflowType = '',
   attendanceSubtype = '',
   t,
+  lang = 'en',
 }) {
   const fromCol = columns.find((c) => c.id === fromColumn);
   const toCol = columns.find((c) => c.id === toColumn);
   const fromLabel = fromCol ? (t(fromCol.i18nKey) || fromCol.name) : fromColumn;
   const toLabel = toCol ? (t(toCol.i18nKey) || toCol.name) : toColumn;
-  const displayName = shortenWorkflowDisplayName(itemName);
+  let displayName = shortenWorkflowDisplayName(itemName);
+  if (lang === 'ar' && displayName && displayName.includes('Daily Attendance')) {
+    displayName = displayName.replace(/Daily Attendance/g, t('operations_board_daily_attendance') || 'حضور يومي');
+  }
   const meta = resolveWorkflowNotifyMeta(fromColumn, toColumn, roleContext);
   const isOverride = adminOverride || meta.adminOverride;
 

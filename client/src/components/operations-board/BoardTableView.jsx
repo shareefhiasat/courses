@@ -18,6 +18,7 @@ import {
 import { getParticipationsByClassAndDate } from '@services/business/participationService.js';
 import { ATTENDANCE_BOARD_COLORS, BOARD_PARTICIPATION_COLOR } from '@constants/workspaceStatusColors.js';
 import { shouldHideNotesParticipation } from './hrAttendancePrivacy.js';
+import { ATTENDANCE_BOARD_LANES } from '@services/business/operationsBoardService.js';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
 
 const SORT_KEYS = {
@@ -89,7 +90,7 @@ function BoardStatusDot({ column, color: overrideColor, pulse = false }) {
   const color = overrideColor || ATTENDANCE_BOARD_COLORS[column] || '#6b7280';
   return (
     <span
-      className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${pulse && column === 'NOT_TAKEN' ? gridStyles.legendDotPulse : ''}`}
+      className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${pulse && column === ATTENDANCE_BOARD_LANES.NOT_TAKEN ? gridStyles.legendDotPulse : ''}`}
       style={{ backgroundColor: color, '--dot-color': color }}
       aria-hidden
     />
@@ -375,9 +376,11 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
         );
       case 'class':
         return (
-          <span className="truncate text-sm text-muted-foreground" title={workflowClass}>
-            {workflowClass || '—'}
-          </span>
+          <ColoredTooltip title={workflowClass || '—'} placement="top">
+            <span className="truncate text-sm text-muted-foreground">
+              {workflowClass || '—'}
+            </span>
+          </ColoredTooltip>
         );
       case 'status': {
         const col = columnMap[item.column];
@@ -395,15 +398,19 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
         return item.assignee || t('operations_board_card_no_assignee');
       case 'notes':
         return (
-          <span className="max-w-[160px] truncate text-xs text-muted-foreground" title={notesText}>
-            {notesText || '—'}
-          </span>
+          <ColoredTooltip title={notesText || '—'} placement="top">
+            <span className="max-w-[160px] truncate text-xs text-muted-foreground">
+              {notesText || '—'}
+            </span>
+          </ColoredTooltip>
         );
       case 'comments':
         return (
-          <span className="max-w-[160px] truncate text-xs text-muted-foreground" title={commentsText}>
-            {commentsText || '—'}
-          </span>
+          <ColoredTooltip title={commentsText || '—'} placement="top">
+            <span className="max-w-[160px] truncate text-xs text-muted-foreground">
+              {commentsText || '—'}
+            </span>
+          </ColoredTooltip>
         );
       case 'participation':
         return (

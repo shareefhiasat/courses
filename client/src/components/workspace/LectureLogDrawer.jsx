@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { getThemedIcon, getUserRoleColor } from '@constants/iconTypes';
-import { resolveUserRole } from '@utils/userUtils';
+import { getThemedIcon, getUserRoleColor, getUserRoleIcon } from '@constants/iconTypes';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
+import { ROLE_STRINGS, resolveUserRole } from '@utils/userUtils';
 import useResizableDrawer from '@hooks/useResizableDrawer';
 import { getLectureLog, getRecordHistory } from '@services/business/attendanceLogService';
-import { formatDate, formatDateTime } from '@utils/date-formatter.js';
+import { formatDate, formatDateTime, getQatarDateParts } from '@utils/date-formatter.js';
 import { getAttendanceColor } from '@constants/attendanceTypes.js';
 import { getWorkflowStatusColor } from '@constants/workspaceStatusColors.js';
 import { getDateGroup, getGroupLabel } from '@utils/notificationHelpers.js';
@@ -74,6 +75,8 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
   const [recordHistory, setRecordHistory] = useState([]);
   const [selectedAttendanceId, setSelectedAttendanceId] = useState(null);
   const [expandedGroups, setExpandedGroups] = useState({});
+  const [dateFilter, setDateFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -123,8 +126,48 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
     return formatDateTime(ts, lang);
   }, [lang]);
 
+  const filteredLectureLog = useMemo(() => {
+    if (dateFilter === 'all') return lectureLog;
+    const nowParts = getQatarDateParts(new Date());
+    if (!nowParts) return lectureLog;
+    const today = Date.UTC(nowParts.year, nowParts.month - 1, nowParts.day);
+    const oneDay = 24 * 60 * 60 * 1000;
+    const days = { last7days: 7, last14days: 14, last30days: 30 }[dateFilter];
+    const startOffset = dateFilter === 'yesterday' ? 1 : days ? days - 1 : 0;
+    const start = today - startOffset * oneDay;
+    return lectureLog.filter((entry) => {
+      const ts = entry.timestamp?.seconds ? new Date(entry.timestamp.seconds * 1000) : new Date(entry.timestamp);
+      const entryParts = getQatarDateParts(ts);
+      if (!entryParts) return false;
+      const entryDay = Date.UTC(entryParts.year, entryParts.month - 1, entryParts.day);
+      if (dateFilter === 'yesterday') return entryDay === start;
+      return entryDay >= start && entryDay <= today;
+    });
+  }, [lectureLog, dateFilter]);
+
+  const searchedLectureLog = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return filteredLectureLog;
+    return filteredLectureLog.filter((entry) => {
+      const text = [
+        getLocalizedUserName(entry.student, lang, entry.student?.displayName || ''),
+        entry.actor,
+        getLocalizedUserName(entry.user, lang, entry.actor || ''),
+        entry.reason,
+        entry.documentTitle,
+        localizeLogStatus(entry.status, t, lang, entry.statusAr),
+        localizeLogStatus(entry.fromStatus, t, lang, entry.fromStatusAr),
+        localizeLogStatus(entry.toStatus, t, lang, entry.toStatusAr),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return text.includes(term);
+    });
+  }, [filteredLectureLog, searchTerm, lang, t]);
+
   const groupedLectureLog = useMemo(() => {
-    const sorted = [...lectureLog].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const sorted = [...searchedLectureLog].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     const groups = {};
     sorted.forEach((entry) => {
       const group = getDateGroup(entry.timestamp);
@@ -137,7 +180,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
       label: getGroupLabel(g, t),
       items: groups[g],
     }));
-  }, [lectureLog, t]);
+  }, [searchedLectureLog, t]);
 
   useEffect(() => {
     setExpandedGroups((prev) => {
@@ -202,7 +245,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
   };
   const showRoleLabelFor = (entry) => {
     const role = actorRoleFor(entry);
-    return role && (role === 'admin' || role === 'hr' || role === 'instructor');
+    return role && (role === ROLE_STRINGS.ADMIN || role === ROLE_STRINGS.SUPER_ADMIN || role === ROLE_STRINGS.HR || role === ROLE_STRINGS.INSTRUCTOR);
   };
 
   const renderLogActor = (entry) => {
@@ -219,21 +262,42 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
             showRoleBadge={false}
           />
         </span>
-        <span style={{ ...valueStyle, fontSize: '12px', fontWeight: 600 }}>{displayName}</span>
         {showRoleLabelFor(entry) && (
-          <span style={{
-            fontSize: '9px',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.4px',
-            padding: '1px 5px',
-            borderRadius: 4,
-            background: `${actorRoleColorFor(entry)}22`,
-            color: actorRoleColorFor(entry),
-          }}>
-            {actorRoleFor(entry)}
-          </span>
+          <ColoredTooltip title={actorRoleFor(entry)} color={actorRoleColorFor(entry)} placement="top">
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 18,
+                height: 18,
+                borderRadius: 4,
+                background: `${actorRoleColorFor(entry)}22`,
+                color: actorRoleColorFor(entry),
+              }}
+            >
+              {React.cloneElement(getUserRoleIcon(actorRoleFor(entry)), { size: 12, color: actorRoleColorFor(entry) })}
+            </span>
+          </ColoredTooltip>
         )}
+        <span style={{ ...valueStyle, fontSize: '12px', fontWeight: 600 }}>{displayName}</span>
+      </span>
+    );
+  };
+
+  const renderLogStudent = (student) => {
+    const displayName = getLocalizedUserName(student, lang, student?.displayName || '');
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+        <span style={{ transform: 'scale(0.72)', transformOrigin: 'center', flexShrink: 0, lineHeight: 0 }}>
+          <DriveUserAvatar
+            user={student || { displayName }}
+            displayName={displayName}
+            size="sm"
+            showRoleBadge={false}
+          />
+        </span>
+        <span style={{ ...valueStyle, fontSize: '12px', fontWeight: 600 }}>{displayName}</span>
       </span>
     );
   };
@@ -246,21 +310,47 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
     return t('lecture_log_status_transition', { from, to });
   };
 
+  const renderAttendanceTransition = (fromRaw, toRaw, fallbackTo, fromLocalizedAr, toLocalizedAr) => {
+    const fromCode = typeof fromRaw === 'object'
+      ? (fromRaw.code || fromRaw.nameEn || fromRaw.name || '')
+      : String(fromRaw || '');
+    const isNotTaken = fromCode.toUpperCase().trim().replace(/\s+/g, '_') === 'NOT_TAKEN';
+    const fromLabel = isNotTaken
+      ? (t('operations_board_lane_not_taken') || 'Not yet')
+      : localizeLogStatus(fromRaw, t, lang, lang === 'ar' ? fromLocalizedAr : null);
+    const toLabel = localizeLogStatus(toRaw || fallbackTo, t, lang, lang === 'ar' ? toLocalizedAr : null);
+    const fromColor = getAttendanceColor(fromRaw);
+    const toColor = getAttendanceColor(toRaw || fallbackTo);
+    const arrowColor = isDark ? '#6b7280' : '#9ca3af';
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+        <span style={{ color: fromColor }}>{fromLabel || '—'}</span>
+        <span style={{ color: arrowColor }}>→</span>
+        <span style={{ color: toColor }}>{toLabel || fallbackTo || '—'}</span>
+      </span>
+    );
+  };
+
   const renderEntryCard = (entry, idx) => {
     const isWorkflow = entry.type === 'workflow_status_change';
     const isAttendanceChange = entry.type === 'attendance_status_change';
     const isAttendanceMarked = !isWorkflow && !isAttendanceChange;
     const rawStatus = isAttendanceMarked ? entry.status : entry.toStatus;
     const statusRaw = isAttendanceMarked ? (lang === 'ar' ? entry.statusAr : entry.status) : (lang === 'ar' ? entry.toStatusAr : entry.toStatus);
-    const statusColor = isWorkflow
-      ? getWorkflowStatusColor(entry.toStatus)
-      : getAttendanceColor(rawStatus);
     const iconColor = isWorkflow
       ? getWorkflowStatusColor(entry.toStatus)
       : getAttendanceColor(rawStatus);
-    const titleKey = isWorkflow || isAttendanceChange
-      ? formatTransitionTitle(entry, statusRaw)
-      : (statusRaw || (t('attendance_marked_title') || 'Attendance Marked'));
+    const titleNode = isWorkflow ? (
+      <span style={{ color: iconColor }}>{formatTransitionTitle(entry, statusRaw)}</span>
+    ) : (
+      renderAttendanceTransition(
+        isAttendanceMarked ? (entry.fromStatus || 'NOT_TAKEN') : entry.fromStatus,
+        isAttendanceMarked ? entry.status : entry.toStatus,
+        statusRaw,
+        isAttendanceMarked ? null : entry.fromStatusAr,
+        isAttendanceMarked ? (lang === 'ar' ? entry.statusAr : null) : (lang === 'ar' ? entry.toStatusAr : null),
+      )
+    );
 
     return (
       <motion.div
@@ -281,13 +371,13 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
             justifyContent: 'center',
             background: isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6',
           }}>
-            {isAttendanceMarked ? (
+            {isAttendanceMarked || isAttendanceChange ? (
               <span style={{
                 display: 'inline-block',
                 width: '10px',
                 height: '10px',
                 borderRadius: '50%',
-                backgroundColor: statusColor,
+                backgroundColor: iconColor,
                 flexShrink: 0,
               }} />
             ) : isWorkflow ? (
@@ -303,7 +393,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
                 fontWeight: 600,
                 color: iconColor,
               }}>
-                {titleKey}
+                {titleNode}
               </span>
               <span style={{
                 fontSize: '11px',
@@ -314,8 +404,9 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
             </div>
             {isAttendanceMarked ? (
               <>
-                <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '2px' }}>
                   {renderLogActor(entry)}
+                  {entry.student && renderLogStudent(entry.student)}
                 </div>
                 {entry.reason && (
                   <div style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '2px', fontStyle: 'italic' }}>
@@ -325,8 +416,9 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
               </>
             ) : (isWorkflow || isAttendanceChange) ? (
               <>
-                <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '2px' }}>
                   {renderLogActor(entry)}
+                  {entry.student && renderLogStudent(entry.student)}
                 </div>
                 {entry.reason && (
                   <div style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '2px', fontStyle: 'italic' }}>
@@ -372,19 +464,30 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
       );
     }
 
-    if (lectureLog.length === 0) {
-      return (
-        <div style={{ textAlign: 'center', padding: '40px', color: isDark ? '#94a3b8' : '#64748b' }}>
-          {getThemedIcon('ui', 'inbox', 48, theme)}
-          <p style={{ marginTop: '12px', fontSize: '14px' }}>
-            {t('log_drawer_no_entries') || 'No log entries found for this lecture'}
-          </p>
-        </div>
-      );
-    }
+    const filterOptions = [
+      { key: 'yesterday', label: t('yesterday') || 'Yesterday' },
+      { key: 'last7days', label: `7 ${t('common.days') || 'days'}` },
+      { key: 'last14days', label: `14 ${t('common.days') || 'days'}` },
+      { key: 'last30days', label: `30 ${t('common.days') || 'days'}` },
+      { key: 'all', label: t('all') || 'All' },
+    ];
 
-    return (
-      <div style={{ padding: '12px' }}>
+    const emptyMessage = searchTerm.trim()
+      ? (t('log_drawer_no_search_results') || 'No matching entries')
+      : dateFilter === 'all'
+        ? (t('log_drawer_no_entries') || 'No log entries found for this lecture')
+        : (t('log_drawer_no_filtered_entries') || 'No log entries for the selected period');
+
+    const emptyIconColor = isDark ? '#94a3b8' : '#64748b';
+    const listContent = searchedLectureLog.length === 0 ? (
+      <div style={{ textAlign: 'center', padding: '40px', color: emptyIconColor }}>
+        {getThemedIcon('ui', 'inbox', 48, emptyIconColor)}
+        <p style={{ marginTop: '12px', fontSize: '14px' }}>
+          {emptyMessage}
+        </p>
+      </div>
+    ) : (
+      <>
         {groupedLectureLog.map((group) => {
           const expanded = expandedGroups[group.key] !== false;
           return (
@@ -405,6 +508,57 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
             </div>
           );
         })}
+      </>
+    );
+
+    return (
+      <div style={{ padding: '12px' }}>
+        {lectureLog.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', padding: '6px 10px', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff' }}>
+            {getThemedIcon('ui', 'search', 14, theme)}
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={t('search') || 'Search...'}
+              style={{
+                flex: 1,
+                border: 'none',
+                background: 'transparent',
+                outline: 'none',
+                fontSize: '13px',
+                color: isDark ? '#f1f5f9' : '#1e293b',
+              }}
+            />
+          </div>
+        )}
+        {lectureLog.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+            {filterOptions.map((f) => {
+              const active = dateFilter === f.key;
+              return (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setDateFilter(f.key)}
+                  style={{
+                    padding: '5px 11px',
+                    borderRadius: '16px',
+                    border: `1px solid ${active ? 'var(--color-primary, #800020)' : (isDark ? '#334155' : '#e2e8f0')}`,
+                    background: active ? (isDark ? 'rgba(128,0,32,0.18)' : 'rgba(128,0,32,0.08)') : 'transparent',
+                    color: active ? 'var(--color-primary, #800020)' : (isDark ? '#94a3b8' : '#64748b'),
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                  }}
+                >
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {listContent}
       </div>
     );
   };
@@ -440,6 +594,8 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
       );
     }
 
+    const recordStudent = recordHistory[0]?.student;
+
     return (
       <div style={{ padding: '12px' }}>
         <div style={{
@@ -451,7 +607,12 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
           fontSize: '12px',
           color: isDark ? '#cbd5e1' : '#475569',
         }}>
-          {t('log_drawer_record_id') || 'Record ID'}: #{selectedAttendanceId}
+          <div>{t('log_drawer_record_id') || 'Record ID'}: #{selectedAttendanceId}</div>
+          {recordStudent && (
+            <div style={{ marginTop: '4px' }}>
+              {t('log_drawer_student') || 'Student'}: {getLocalizedUserName(recordStudent, lang)}
+            </div>
+          )}
         </div>
         {recordHistory.map((change, idx) => {
           const fromName = lang === 'ar' ? change.fromStatus?.nameAr : change.fromStatus?.nameEn;
@@ -632,12 +793,6 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
             >
               {t('log_drawer_tab_lecture') || 'Lecture Log'}
             </button>
-            <button
-              style={activeTab === TABS.RECORD_HISTORY ? activeTabStyle : tabBtnStyle}
-              onClick={() => handleTabChange(TABS.RECORD_HISTORY)}
-            >
-              {t('log_drawer_tab_record') || 'Record History'}
-            </button>
           </div>
         </div>
       )}
@@ -649,12 +804,6 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
             onClick={() => handleTabChange(TABS.LECTURE_LOG)}
           >
             {t('log_drawer_tab_lecture') || 'Lecture Log'}
-          </button>
-          <button
-            style={activeTab === TABS.RECORD_HISTORY ? activeTabStyle : tabBtnStyle}
-            onClick={() => handleTabChange(TABS.RECORD_HISTORY)}
-          >
-            {t('log_drawer_tab_record') || 'Record History'}
           </button>
         </div>
       )}
@@ -687,7 +836,6 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
               transition={{ duration: 0.15 }}
             >
               {activeTab === TABS.LECTURE_LOG && renderLectureLog()}
-              {activeTab === TABS.RECORD_HISTORY && renderRecordHistory()}
             </motion.div>
           </AnimatePresence>
         </div>

@@ -57,10 +57,10 @@ const VIEW_ICONS = {
   agenda: List,
 };
 
-const CalendarToolbarContext = React.createContext({ t: () => {}, isDark: false, date: null, hideWeekend: false, onToggleWeekend: null, zoom: 100, onZoomChange: null, onZoomCommit: null, embedded: false, expanded: false, onToggleExpand: null });
+const CalendarToolbarContext = React.createContext({ t: () => {}, lang: 'en', isDark: false, date: null, hideWeekend: false, onToggleWeekend: null, zoom: 100, onZoomChange: null, onZoomCommit: null, embedded: false, expanded: false, onToggleExpand: null });
 
 function CalendarToolbar({ label, view, views, onNavigate, onView }) {
-  const { t, isDark, date, hideWeekend, onToggleWeekend, zoom, onZoomChange, onZoomCommit, embedded, expanded, onToggleExpand } = React.useContext(CalendarToolbarContext);
+  const { t, lang, isDark, date, hideWeekend, onToggleWeekend, zoom, onZoomChange, onZoomCommit, embedded, expanded, onToggleExpand } = React.useContext(CalendarToolbarContext);
   const navBtnSx = {
     p: '4px',
     borderRadius: '6px',
@@ -81,16 +81,23 @@ function CalendarToolbar({ label, view, views, onNavigate, onView }) {
     const weekStart = dfStartOfWeek(anchor, { weekStartsOn: 0 });
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 4);
-    const startStr = `${String(weekStart.getDate()).padStart(2, '0')}/${String(weekStart.getMonth() + 1).padStart(2, '0')}`;
-    const endStr = `${String(weekEnd.getDate()).padStart(2, '0')}/${String(weekEnd.getMonth() + 1).padStart(2, '0')}`;
+    const startStr = lang === 'ar'
+      ? `${String(weekStart.getDate()).padStart(2, '0')}/${String(weekStart.getMonth() + 1).padStart(2, '0')}/${weekStart.getFullYear()}`
+      : `${String(weekStart.getDate()).padStart(2, '0')}/${String(weekStart.getMonth() + 1).padStart(2, '0')}`;
+    const endStr = lang === 'ar'
+      ? `${String(weekEnd.getDate()).padStart(2, '0')}/${String(weekEnd.getMonth() + 1).padStart(2, '0')}/${weekEnd.getFullYear()}`
+      : `${String(weekEnd.getDate()).padStart(2, '0')}/${String(weekEnd.getMonth() + 1).padStart(2, '0')}`;
     const jan1 = new Date(weekStart.getFullYear(), 0, 1);
     const dayOfYear = Math.floor((weekStart - jan1) / 86400000) + 1;
     const weekNum = Math.ceil(dayOfYear / 7);
+    if (lang === 'ar') {
+      return `${startStr} - ${endStr} أسبوع ${weekNum}`;
+    }
     return `W${weekNum} ${startStr} - ${endStr}`;
-  }, [view, date, label, t]);
+  }, [view, date, label, t, lang]);
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px', gap: '8px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 2px', gap: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
         <ColoredTooltip title={t('calendar_today') || 'Today'} color={NEUTRAL_TOOLTIP}>
           <IconButton size="small" onClick={() => onNavigate('TODAY')} sx={navBtnSx}>
@@ -99,19 +106,19 @@ function CalendarToolbar({ label, view, views, onNavigate, onView }) {
         </ColoredTooltip>
         <ColoredTooltip title={t('calendar_previous') || 'Previous'} color={NEUTRAL_TOOLTIP}>
           <IconButton size="small" onClick={() => onNavigate('PREV')} sx={navBtnSx}>
-            <ChevronLeft size={16} />
+            {lang === 'ar' ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </IconButton>
         </ColoredTooltip>
         <ColoredTooltip title={t('calendar_next') || 'Next'} color={NEUTRAL_TOOLTIP}>
           <IconButton size="small" onClick={() => onNavigate('NEXT')} sx={navBtnSx}>
-            <ChevronRight size={16} />
+            {lang === 'ar' ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
           </IconButton>
         </ColoredTooltip>
       </div>
-      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#3b82f6' }}>
+      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#3b82f6', flex: 1, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {weekLabel}
       </span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
         {views.map((v) => {
           const Icon = VIEW_ICONS[v];
           if (!Icon) return null;
@@ -265,7 +272,24 @@ function AttendanceCountsBreakdown({ counts, t, fontSize = '0.7rem' }) {
       {items.map((item) => (
         <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: item.color }} />
-          <span style={{ fontSize, color: item.color, fontWeight: 600 }}>{item.count} {t(item.labelKey) || item.fallback}</span>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: 18,
+              height: 18,
+              borderRadius: '50%',
+              backgroundColor: `${item.color}20`,
+              color: item.color,
+              fontSize,
+              fontWeight: 600,
+              padding: '0 4px',
+            }}
+          >
+            {item.count}
+          </span>
+          <span style={{ fontSize, color: item.color, fontWeight: 600 }}>{t(item.labelKey) || item.fallback}</span>
         </div>
       ))}
     </div>
@@ -404,6 +428,7 @@ function DayWeekEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, l
     ? resolveAttendanceEventColor(r.status)
     : getWorkflowEventColor(r.workflowKey);
   const tooltipColor = isDark ? '#94a3b8' : '#64748b';
+  const isRTL = lang === 'ar';
   return (
     <ColoredTooltip
       title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} lane={lane} hideNotesParticipation={hideNotesParticipation} />}
@@ -412,7 +437,7 @@ function DayWeekEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, l
       placement="top"
       arrow
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', overflow: 'hidden', direction: isRTL ? 'rtl' : 'ltr' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
           <span style={{ fontWeight: 600, fontSize: `${0.85 * zoomFactor}rem`, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
             {event.title}
@@ -448,6 +473,7 @@ function MonthEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, lan
     : getWorkflowEventColor(r.workflowKey);
   const iconSize = Math.round(10 * zoomFactor);
   const tooltipColor = isDark ? '#94a3b8' : '#64748b';
+  const isRTL = lang === 'ar';
   return (
     <ColoredTooltip
       title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} lane={lane} hideNotesParticipation={hideNotesParticipation} />}
@@ -467,6 +493,7 @@ function MonthEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, lan
         fontWeight: 600,
         padding: '1px 4px',
         borderLeft: `3px solid ${color}`,
+        direction: isRTL ? 'rtl' : 'ltr',
       }}>
         <EventStatusIndicators
           status={r.status}
@@ -825,6 +852,7 @@ export default function BoardScheduleCalendar({
     time: t('calendar_time') || 'Time',
     event: t('calendar_event') || 'Event',
     noEventsInRange: t('operations_board_calendar_no_classes') || 'No classes in this range',
+    showMore: (count) => `+${count} ${t('calendar_more') || 'more'}`,
   }), [t]);
 
   const handleSelectEvent = useCallback((event) => {
@@ -950,8 +978,8 @@ export default function BoardScheduleCalendar({
   }), [t, lang, zoomFactor, currentDate, isDark, hideWeekend, lane, hideNotesParticipation]);
 
   const toolbarContextValue = useMemo(() => ({
-    t, isDark, date: currentDate, hideWeekend, onToggleWeekend: toggleWeekend, zoom: calendarZoom, onZoomChange: handleZoomChange, onZoomCommit: handleZoomCommit, embedded, expanded, onToggleExpand,
-  }), [t, isDark, currentDate, hideWeekend, toggleWeekend, calendarZoom, handleZoomChange, handleZoomCommit, embedded, expanded, onToggleExpand]);
+    t, lang, isDark, date: currentDate, hideWeekend, onToggleWeekend: toggleWeekend, zoom: calendarZoom, onZoomChange: handleZoomChange, onZoomCommit: handleZoomCommit, embedded, expanded, onToggleExpand,
+  }), [t, lang, isDark, currentDate, hideWeekend, toggleWeekend, calendarZoom, handleZoomChange, handleZoomCommit, embedded, expanded, onToggleExpand]);
 
   return (
     <Stack spacing={1} data-testid="operations-board-schedule-calendar" sx={{ height: '100%', flex: 1, minHeight: 0 }}>
@@ -1016,6 +1044,11 @@ export default function BoardScheduleCalendar({
           '& .rbc-header': {
             fontSize: `${0.75 * zoomFactor}rem`,
             padding: '2px 4px',
+            ...(lang === 'ar' ? {
+              minWidth: '100px',
+              whiteSpace: 'normal',
+              wordWrap: 'break-word',
+            } : {}),
           },
           '& .rbc-time-header-content > .rbc-row.rbc-time-header-cell': {
             minHeight: 'auto',
@@ -1030,6 +1063,12 @@ export default function BoardScheduleCalendar({
           '& .rbc-day-slot .rbc-event': {
             border: 'none',
           },
+          // RTL: align event text to the right
+          ...(lang === 'ar' ? {
+            '& .rbc-event, & .rbc-day-slot .rbc-background-event': {
+              textAlign: 'right !important',
+            },
+          } : {}),
           '& .rbc-allday-cell, & .rbc-allday-row': {
             display: 'none !important',
           },
@@ -1109,6 +1148,7 @@ export default function BoardScheduleCalendar({
           <BigCalendar
             localizer={localizer}
             culture={lang === 'ar' ? 'ar' : 'en'}
+            rtl={lang === 'ar'}
             events={events}
             view={view}
             onView={setView}
@@ -1147,8 +1187,8 @@ export default function BoardScheduleCalendar({
             messages={messages}
             components={calendarComponents}
             formats={{
-              dayFormat: (date, culture, localizer) => localizer.format(date, 'EEE dd', culture),
-              weekdayFormat: (date, culture, localizer) => localizer.format(date, 'EEE', culture),
+              dayFormat: (date, culture, localizer) => localizer.format(date, lang === 'ar' ? 'EEEE dd MMMM' : 'EEE dd MMM', culture),
+              weekdayFormat: (date, culture, localizer) => localizer.format(date, lang === 'ar' ? 'EEEE' : 'EEE', culture),
             }}
             popup
             step={30}

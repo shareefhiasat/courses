@@ -419,4 +419,45 @@ router.post('/messages/:messageId/pin', chatController.togglePinMessage);
  */
 router.patch('/rooms/:roomId/assign-admin', chatController.assignGroupAdmin);
 
+/**
+ * @swagger
+ * /api/v1/chat/users/by-role/{role}:
+ *   get:
+ *     summary: Get active users assigned to a given role (admin/HR only)
+ *     tags: [Chat]
+ *     parameters:
+ *       - in: path
+ *         name: role
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of users with the given role
+ */
+router.get('/users/by-role/:role', chatOps.view, chatController.getUsersByRole);
+
+/**
+ * @swagger
+ * /api/v1/chat/rooms/role-group:
+ *   post:
+ *     summary: Get or create a dynamic group chat for all users of a role (admin/HR only)
+ *     tags: [Chat]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - role
+ *             properties:
+ *               role:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Role-based group chat room
+ */
+router.post('/rooms/role-group', chatOps.create, chatController.getOrCreateRoleGroup);
+
 export default router;

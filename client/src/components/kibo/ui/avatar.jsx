@@ -12,7 +12,7 @@ const Avatar = React.forwardRef(({ className, ...props }, ref) => (
 Avatar.displayName = "Avatar";
 
 const AvatarImage = React.forwardRef(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Image ref={ref} className={cn("aspect-square h-full w-full", className)} {...props} />
+  <AvatarPrimitive.Image ref={ref} className={cn("aspect-square h-full w-full object-cover", className)} {...props} />
 ));
 AvatarImage.displayName = "AvatarImage";
 

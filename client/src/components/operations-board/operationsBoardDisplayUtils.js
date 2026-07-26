@@ -5,7 +5,13 @@ export function resolveBoardStudentName(item, lang = 'en') {
   if (!item) return '';
   if (item.user) return getLocalizedUserName(item.user, lang, item.name || '');
   if (lang === 'ar' && item.nameAr) return item.nameAr;
-  return item.nameEn || item.name || '';
+  // Check multiple name fields
+  if (item.nameEn) return item.nameEn;
+  if (item.studentName) return item.studentName;
+  if (item.studentNameEn) return item.studentNameEn;
+  if (item.firstName && item.lastName) return `${item.firstName} ${item.lastName}`;
+  if (item.firstName) return item.firstName;
+  return item.name || '';
 }
 
 export function resolveBoardClassName(item, lang = 'en') {

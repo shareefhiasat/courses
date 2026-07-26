@@ -17,7 +17,7 @@ export const fetchClassStudentsWithStatus = async (classId) => {
     .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
     .filter(enrollment => {
       const role = enrollment.role?.toLowerCase?.();
-      return !role || role === 'student';
+      return !role || role === ROLE_STRINGS.STUDENT;
     });
 
   const uniqueStudentIds = Array.from(
@@ -63,6 +63,7 @@ export const fetchClassStudentsWithStatus = async (classId) => {
 };
 
 import { getLocalizedUserName } from '@utils/localizedUserName';
+import { ROLE_STRINGS } from '@utils/userUtils';
 
 export const buildStudentOptionMeta = (student, lang = 'en') => {
   if (!student) {

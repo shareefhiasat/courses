@@ -2,11 +2,20 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspens
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
-import { ChevronLeft, ChevronRight, FileText, FileSpreadsheet, CalendarDays, ClipboardList, FileCheck2, FileX2, CalendarPlus, Lock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, FileSpreadsheet, CalendarDays, CalendarX, Coffee, ClipboardList, FileCheck2, FileX2, CalendarPlus, Lock, CheckCircle2, X, ExternalLink, DoorOpen, GraduationCap } from 'lucide-react';
 import { useAuth } from '@contexts/AuthContext';
+import DraggableFloatingPanel from '@components/ui/DraggableFloatingPanel';
+import WelcomeDateControls from '@components/welcome/WelcomeDateControls';
+import {
+  OPS_VIEW_MODES,
+  WELCOME_STORAGE_KEYS,
+  WELCOME_COLORS,
+  WELCOME_SIZES,
+} from '@components/welcome/welcomeControls.constants';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { ROLE_STRINGS } from '@utils/userUtils';
+import { Announcement, AnnouncementTag, AnnouncementTitle } from '@/components/kibo-ui/announcement';
 import WelcomeHeader from '@components/welcome/WelcomeHeader';
 import WelcomeContextSwitcher from '@components/welcome/WelcomeContextSwitcher';
 import ProgramTermSelector from '@components/workspace/ProgramTermSelector';
@@ -16,9 +25,11 @@ import ClassHistoryDrawer from '@components/workspace/ClassHistoryDrawer';
 import InboxOutboxDrawer from '@components/workspace/InboxOutboxDrawer';
 import ScheduleContextMenu from '@components/workspace/ScheduleContextMenu';
 import ScheduleSpeedDial from '@components/workspace/ScheduleSpeedDial';
+import MiniChatBalloon from '@components/ui/MiniChatBalloon/MiniChatBalloon';
 import {
   Tabs, Tab, Box, Paper, Snackbar, Alert, LinearProgress,
   CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button,
+  Slider, ToggleButton, ToggleButtonGroup, Divider,
 } from '@mui/material';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import DatePicker from '@components/ui/DatePicker/DatePicker';
@@ -28,11 +39,12 @@ import { loadWeeklyScheduleSources } from '@services/business/weeklyScheduleExpo
 import {
   exportWeeklyScheduleForProgram,
   exportDailyOfficialTemplate,
+  exportDailyOfficialForDate,
   exportAttendanceOfficialForScope,
 } from '@services/business/accessScopeExportService.js';
 import { getApprovedSnapshotForWeek, getWeekRange, getClosureStatus, closePeriod, reopenPeriod, getInProgressWeeklyWorkflow } from '@services/business/workflowSnapshotService.js';
 import { initiateWeeklyWorkflow } from '@services/business/workflowInitiationService.js';
-import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
+import { EXPORT_FORMAT, downloadBlob } from '@services/export/official-reports/index.jsx';
 import { prepareWeeklyScheduleData } from '@services/export/official-reports/engine/prepareWeeklyScheduleData';
 import { academicTermToYearTerm } from '@utils/academicTermUtils';
 import useQRPermissions from '@hooks/useQRPermissions';
@@ -47,8 +59,6 @@ import {
   clampScheduleFontScale,
 } from '@constants/scheduleFontScale';
 import AttendanceViolationsModal from '@/components/qr-scanner/AttendanceViolationsModal';
-import PdfPreviewDialog from '@components/workspace/PdfPreviewDialog.jsx';
-import { findExistingAttendanceWorkflow } from '@services/business/workflowInitiationService.js';
 import '../pages/operations/OperationsBoardPage.css';
 
 const OperationsBoardPage = lazy(() => import('./operations/OperationsBoardPage.jsx'));
@@ -90,6 +100,7 @@ const WelcomePage = () => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const isRTL = lang === 'ar';
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -135,7 +146,6 @@ const WelcomePage = () => {
   const { canAccessScreen } = usePermissions();
   const showOperationsTab = (canAccessScreen('operations') || canExport || isAdmin || isHR || isInstructor);
   const [exportingKey, setExportingKey] = useState(null);
-  const [gridPdfPreview, setGridPdfPreview] = useState(null);
   const [cohortClassIds, setCohortClassIds] = useState([]);
   const [cohortSubjectIds, setCohortSubjectIds] = useState([]);
   const [weeklySnapshot, setWeeklySnapshot] = useState(null);
@@ -145,13 +155,20 @@ const WelcomePage = () => {
   const [closeWeekDialogOpen, setCloseWeekDialogOpen] = useState(false);
   const [initiateWeeklyDialogOpen, setInitiateWeeklyDialogOpen] = useState(false);
   const [cohortSubjects, setCohortSubjects] = useState([]);
+  const [scheduleDayFocus, setScheduleDayFocus] = useState(() => {
+    try {
+      return localStorage.getItem(WELCOME_STORAGE_KEYS.SCHEDULE_DAY_FOCUS) === '1';
+    } catch {
+      return false;
+    }
+  });
   const [opsViewMode, setOpsViewMode] = useState(() => {
     try {
-      if (isInstructor && !isAdmin && !isHR && !isSuperAdmin) return 'day';
-      const stored = localStorage.getItem('welcome_ops_view_mode');
-      return stored === 'week' ? 'week' : 'day';
+      if (isInstructor && !isAdmin && !isHR && !isSuperAdmin) return OPS_VIEW_MODES.DAY;
+      const stored = localStorage.getItem(WELCOME_STORAGE_KEYS.OPS_VIEW_MODE);
+      return stored === OPS_VIEW_MODES.WEEK ? OPS_VIEW_MODES.WEEK : OPS_VIEW_MODES.DAY;
     } catch {
-      return 'day';
+      return OPS_VIEW_MODES.DAY;
     }
   });
 
@@ -171,6 +188,29 @@ const WelcomePage = () => {
   const [attSummaryExporting, setAttSummaryExporting] = useState(false);
   const [attSummarySuccess, setAttSummarySuccess] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info', progress: null });
+  const [exportBanner, setExportBanner] = useState(null);
+  const exportBannerTimerRef = useRef(null);
+
+  const clearExportBanner = useCallback(() => {
+    if (exportBannerTimerRef.current) {
+      clearTimeout(exportBannerTimerRef.current);
+      exportBannerTimerRef.current = null;
+    }
+    setExportBanner(null);
+  }, []);
+
+  const showExportBanner = useCallback((banner) => {
+    clearExportBanner();
+    setExportBanner(banner);
+    exportBannerTimerRef.current = setTimeout(() => {
+      setExportBanner(null);
+      exportBannerTimerRef.current = null;
+    }, 10000);
+  }, [clearExportBanner]);
+
+  useEffect(() => () => {
+    if (exportBannerTimerRef.current) clearTimeout(exportBannerTimerRef.current);
+  }, []);
   const [runJoyride, setRunJoyride] = useState(false);
   const [tourSteps, setTourSteps] = useState([]);
   const tourSeenKey = `welcomeTourSeen_${lang}`;
@@ -222,7 +262,7 @@ const WelcomePage = () => {
     if (urlDate !== currentIso) {
       setSelectedDate(parsed);
     }
-  }, [searchParams]);
+  }, [searchParams, isInstructor, selectedDate]);
 
   const welcomeBoardContext = useMemo(() => {
     if (!selection?.program?.id || !selection?.academicTerm?.id) return null;
@@ -286,6 +326,171 @@ const WelcomePage = () => {
     setScheduleFontScale(clamped);
     try { localStorage.setItem('scheduleFontScale', String(clamped)); } catch {}
   }, []);
+
+  const [showScheduleRoom, setShowScheduleRoom] = useState(() => {
+    try {
+      const saved = localStorage.getItem(WELCOME_STORAGE_KEYS.SCHEDULE_SHOW_ROOM);
+      return saved ? saved !== 'false' : true;
+    } catch { return true; }
+  });
+
+  const [showScheduleInstructor, setShowScheduleInstructor] = useState(() => {
+    try {
+      const saved = localStorage.getItem(WELCOME_STORAGE_KEYS.SCHEDULE_SHOW_INSTRUCTOR);
+      return saved ? saved !== 'false' : true;
+    } catch { return true; }
+  });
+
+  const [showDayDate, setShowDayDate] = useState(() => {
+    try {
+      const saved = localStorage.getItem(WELCOME_STORAGE_KEYS.SCHEDULE_SHOW_DAY_DATE);
+      return saved ? saved !== 'false' : true;
+    } catch { return true; }
+  });
+
+  const [showBreakColumns, setShowBreakColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem(WELCOME_STORAGE_KEYS.SCHEDULE_SHOW_BREAK_COLUMNS);
+      return saved ? saved !== 'false' : true;
+    } catch { return true; }
+  });
+
+  const handleToggleScheduleRoom = useCallback(() => {
+    setShowScheduleRoom((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(WELCOME_STORAGE_KEYS.SCHEDULE_SHOW_ROOM, String(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  const handleToggleScheduleInstructor = useCallback(() => {
+    setShowScheduleInstructor((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(WELCOME_STORAGE_KEYS.SCHEDULE_SHOW_INSTRUCTOR, String(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  const handleToggleDayDate = useCallback(() => {
+    setShowDayDate((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(WELCOME_STORAGE_KEYS.SCHEDULE_SHOW_DAY_DATE, String(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  const handleToggleBreakColumns = useCallback(() => {
+    setShowBreakColumns((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(WELCOME_STORAGE_KEYS.SCHEDULE_SHOW_BREAK_COLUMNS, String(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem(WELCOME_STORAGE_KEYS.SCHEDULE_DAY_FOCUS, scheduleDayFocus ? '1' : '0'); } catch {}
+  }, [scheduleDayFocus]);
+
+  const scheduleToggles = (
+    <ToggleButtonGroup
+      value={[
+        showScheduleRoom && 'room',
+        showScheduleInstructor && 'instructor',
+        showDayDate && 'dayDate',
+        showBreakColumns && 'breakColumns',
+      ].filter(Boolean)}
+      onChange={(_, newValue) => {
+        const nextRoom = newValue.includes('room');
+        const nextInstructor = newValue.includes('instructor');
+        const nextDayDate = newValue.includes('dayDate');
+        const nextBreakColumns = newValue.includes('breakColumns');
+        if (nextRoom !== showScheduleRoom) handleToggleScheduleRoom();
+        if (nextInstructor !== showScheduleInstructor) handleToggleScheduleInstructor();
+        if (nextDayDate !== showDayDate) handleToggleDayDate();
+        if (nextBreakColumns !== showBreakColumns) handleToggleBreakColumns();
+      }}
+      size="small"
+      aria-label={t('schedule_columns')}
+      sx={{
+        display: 'flex',
+        gap: 0.25,
+        bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+        borderRadius: '10px',
+        p: '2px',
+        border: 'none',
+        '& .MuiToggleButtonGroup-grouped': { border: 0, borderRadius: '8px !important', mx: 0 },
+      }}
+    >
+      <ColoredTooltip title={showScheduleRoom ? t('hide_room') : t('show_room')}>
+        <ToggleButton
+          value="room"
+          sx={{
+            p: 0.5,
+            minWidth: 28,
+            color: isDark ? '#94a3b8' : '#64748b',
+            '&.Mui-selected': {
+              bgcolor: isDark ? 'rgba(255,255,255,0.14)' : '#fff',
+              color: isDark ? '#f1f5f9' : '#1e293b',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+            },
+          }}
+        >
+          <DoorOpen size={14} />
+        </ToggleButton>
+      </ColoredTooltip>
+      <ColoredTooltip title={showScheduleInstructor ? t('hide_instructor') : t('show_instructor')}>
+        <ToggleButton
+          value="instructor"
+          sx={{
+            p: 0.5,
+            minWidth: 28,
+            color: isDark ? '#94a3b8' : '#64748b',
+            '&.Mui-selected': {
+              bgcolor: isDark ? 'rgba(255,255,255,0.14)' : '#fff',
+              color: isDark ? '#f1f5f9' : '#1e293b',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+            },
+          }}
+        >
+          <GraduationCap size={14} />
+        </ToggleButton>
+      </ColoredTooltip>
+      <ColoredTooltip title={showDayDate ? t('hide_day_date') : t('show_day_date')}>
+        <ToggleButton
+          value="dayDate"
+          sx={{
+            p: 0.5,
+            minWidth: 28,
+            color: isDark ? '#94a3b8' : '#64748b',
+            '&.Mui-selected': {
+              bgcolor: isDark ? 'rgba(255,255,255,0.14)' : '#fff',
+              color: isDark ? '#f1f5f9' : '#1e293b',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+            },
+          }}
+        >
+          <CalendarX size={14} />
+        </ToggleButton>
+      </ColoredTooltip>
+      <ColoredTooltip title={showBreakColumns ? t('hide_break_columns') : t('show_break_columns')}>
+        <ToggleButton
+          value="breakColumns"
+          sx={{
+            p: 0.5,
+            minWidth: 28,
+            color: isDark ? '#94a3b8' : '#64748b',
+            '&.Mui-selected': {
+              bgcolor: isDark ? 'rgba(255,255,255,0.14)' : '#fff',
+              color: isDark ? '#f1f5f9' : '#1e293b',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+            },
+          }}
+        >
+          <Coffee size={14} />
+        </ToggleButton>
+      </ColoredTooltip>
+    </ToggleButtonGroup>
+  );
 
   useEffect(() => {
     const showFontSlider = (showSchedule && tabParam === 'schedule') || tabParam === 'operations';
@@ -555,7 +760,7 @@ const WelcomePage = () => {
     return () => {
       window.dispatchEvent(new CustomEvent('welcome-wizard-nav', { detail: null }));
     };
-  }, [selection, lang, selectedDate, tabParam, searchParams, scheduleData]);
+  }, [selection, lang, selectedDate, tabParam, searchParams, scheduleData, isInstructorOnly]);
 
   // Load schedule data when program and term are selected
   useEffect(() => {
@@ -629,7 +834,7 @@ const WelcomePage = () => {
     };
 
     loadSchedule();
-  }, [selection?.program, selection?.academicTerm, selectedDate, lang]);
+  }, [selection?.program, selection?.academicTerm, selectedDate, lang, t]);
 
   const selectedWeekKey = useMemo(() => {
     const anchor = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
@@ -721,7 +926,7 @@ const WelcomePage = () => {
       document.body.appendChild(virtualEl);
       setMenuAnchorEl(virtualEl);
     }
-  }, [setSearchParams, selectedDate, isInstructorOnly, t]);
+  }, [setSearchParams, selectedDate, isInstructorOnly, t, isInstructor]);
 
   // Allow double-clicking another schedule cell to open its menu even when a menu is already open.
   // The MUI menu backdrop consumes the first click, so the cell's own onDoubleClick may not fire.
@@ -783,6 +988,7 @@ const WelcomePage = () => {
       });
       return;
     }
+    // Download directly and show bottom banner notification
     const key = `weekly-${format}`;
     setExportingKey(key);
     setSnackbar({
@@ -793,7 +999,7 @@ const WelcomePage = () => {
     });
     try {
       const { year, term } = academicTermToYearTerm(selection.academicTerm);
-      await exportWeeklyScheduleForProgram({
+      const result = await exportWeeklyScheduleForProgram({
         program: selection.program,
         academicTerm: selection.academicTerm,
         year,
@@ -802,13 +1008,39 @@ const WelcomePage = () => {
         t,
         user,
         format,
+        skipDownload: true,
       });
-      setSnackbar({
-        open: true,
-        message: `${t('weekly_schedule')} ${format === EXPORT_FORMAT.PDF ? t('export_pdf') : t('export_excel')} — ${t('export_success')}`,
-        severity: 'success',
-        progress: null,
+      // Close the progress snackbar and show the success banner
+      setSnackbar({ open: false, message: '', severity: 'info', progress: null });
+      const blobUrl = URL.createObjectURL(result.blob);
+      showExportBanner({
+        pillColor: '#059669',
+        icon: <CheckCircle2 size={16} className="shrink-0" />,
+        message: (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0px', fontSize: '0.75rem' }}>
+            {`${t('weekly_schedule')} ${format === EXPORT_FORMAT.PDF ? t('export_pdf') : t('export_excel')} — ${t('export_success')}`}
+            <button
+              type="button"
+              className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
+              onClick={() =>
+                format === EXPORT_FORMAT.EXCEL
+                  ? downloadBlob(result.blob, `${result.filename}.xlsx`)
+                  : window.open(blobUrl, '_blank')
+              }
+              style={{ marginLeft: '8px' }}
+              aria-label={
+                format === EXPORT_FORMAT.EXCEL
+                  ? (t('download_file') || 'Download file')
+                  : (t('open_in_new_tab') || 'Open in new tab')
+              }
+            >
+              <ExternalLink size={14} />
+            </button>
+          </span>
+        ),
       });
+      // Clean up blob URL after some time
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
     } catch (err) {
       console.error('[WelcomePage] weekly schedule export failed:', err);
       setSnackbar({
@@ -820,7 +1052,7 @@ const WelcomePage = () => {
     } finally {
       setExportingKey(null);
     }
-  }, [selection?.program, selection?.academicTerm, lang, t, user]);
+  }, [selection?.program, selection?.academicTerm, lang, t, user, showExportBanner]);
 
   const handleGenerateDailyAttendance = useCallback(async (slot, format = EXPORT_FORMAT.PDF) => {
     const cls = slot?.class;
@@ -836,29 +1068,65 @@ const WelcomePage = () => {
     }
     const dateStr = toIsoDate(cellDate);
 
-    let fileId = null;
-    let isApproved = false;
+    const key = `daily-official-${format}`;
+    setExportingKey(key);
     try {
-      const wfResult = await findExistingAttendanceWorkflow(cls.id, dateStr);
-      if (wfResult.success && wfResult.data) {
-        fileId = wfResult.data.fileId || null;
-        isApproved = String(wfResult.data.status || '').toUpperCase() === 'APPROVED';
-      }
+      const result = await exportDailyOfficialForDate({
+        cls,
+        program: selection?.program,
+        subject: cls.subject,
+        academicTerm: selection?.academicTerm,
+        lang,
+        user,
+        date: dateStr,
+        instructorName: slot?.instructor,
+        format,
+        skipDownload: true,
+      });
+      // Close the progress snackbar and show the success banner
+      setSnackbar({ open: false, message: '', severity: 'info', progress: null });
+      const blobUrl = URL.createObjectURL(result.blob);
+      const label = `${t('daily_official') || 'Daily Official'} ${format === EXPORT_FORMAT.PDF ? 'PDF' : 'Excel'}`;
+      showExportBanner({
+        pillColor: '#059669',
+        icon: <CheckCircle2 size={16} className="shrink-0" />,
+        message: (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0px', fontSize: '0.75rem' }}>
+            {`${label} — ${t('export_success') || 'Export successful'}`}
+            <button
+              type="button"
+              className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
+              onClick={() =>
+                format === EXPORT_FORMAT.EXCEL
+                  ? downloadBlob(result.blob, `${result.filename}.xlsx`)
+                  : window.open(blobUrl, '_blank')
+              }
+              style={{ marginLeft: '8px' }}
+              aria-label={
+                format === EXPORT_FORMAT.EXCEL
+                  ? (t('download_file') || 'Download file')
+                  : (t('open_in_new_tab') || 'Open in new tab')
+              }
+            >
+              <ExternalLink size={14} />
+            </button>
+          </span>
+        ),
+      });
+      // Clean up blob URL after some time
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
     } catch (err) {
-      console.error('[WelcomePage] findExistingAttendanceWorkflow failed:', err);
+      console.error('[WelcomePage] generate daily attendance export failed:', err);
+      setSnackbar({
+        open: true,
+        message: `${t('daily_official') || 'Daily Official'} — ${t('export_failed') || 'Export failed'}`,
+        severity: 'error',
+        progress: null,
+      });
+    } finally {
+      setExportingKey(null);
     }
-
-    setGridPdfPreview({
-      cls,
-      program: selection?.program,
-      subject: cls.subject,
-      academicTerm: selection?.academicTerm,
-      date: dateStr,
-      instructorName: slot?.instructor,
-      fileId,
-      isApproved,
-    });
-  }, [selection?.program, selection?.academicTerm, selectedDate]);
+  }, [selection?.program, selection?.academicTerm, selectedDate, user, lang, t, showExportBanner, setSnackbar]);
 
   const handleExportDailyTemplate = useCallback(async (format = EXPORT_FORMAT.PDF) => {
     if (!selection?.program || !selection?.academicTerm) {
@@ -870,16 +1138,10 @@ const WelcomePage = () => {
       });
       return;
     }
-    const key = `daily-template-${format}`;
-    setExportingKey(key);
-    setSnackbar({
-      open: true,
-      message: `${t('daily_template') || 'Daily Template'} — ${t('exporting')}…`,
-      severity: 'info',
-      progress: 0,
-    });
+    // Download directly and show bottom banner notification
+    setExportingKey('daily-template-excel');
     try {
-      await exportDailyOfficialTemplate({
+      const result = await exportDailyOfficialTemplate({
         cls: { id: null, programId: selection.program.id },
         program: selection.program,
         subject: null,
@@ -887,15 +1149,43 @@ const WelcomePage = () => {
         lang,
         user,
         format,
+        instructorName: null,
+        skipDownload: true,
       });
-      setSnackbar({
-        open: true,
-        message: `${t('daily_template') || 'Daily Template'} — ${t('export_success') || 'Export successful'}`,
-        severity: 'success',
-        progress: null,
+      // Close the progress snackbar and show the success banner
+      setSnackbar({ open: false, message: '', severity: 'info', progress: null });
+      const blobUrl = URL.createObjectURL(result.blob);
+      // Show bottom announcement banner with link
+      showExportBanner({
+        pillColor: '#059669',
+        icon: <CheckCircle2 size={16} className="shrink-0" />,
+        message: (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0px', fontSize: '0.75rem' }}>
+            {`${t('daily_template') || 'Daily Template'} — ${t('export_success') || 'Export successful'}`}
+            <button
+              type="button"
+              className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
+              onClick={() =>
+                format === EXPORT_FORMAT.EXCEL
+                  ? downloadBlob(result.blob, `${result.filename}.xlsx`)
+                  : window.open(blobUrl, '_blank')
+              }
+              style={{ marginLeft: '8px' }}
+              aria-label={
+                format === EXPORT_FORMAT.EXCEL
+                  ? (t('download_file') || 'Download file')
+                  : (t('open_in_new_tab') || 'Open in new tab')
+              }
+            >
+              <ExternalLink size={14} />
+            </button>
+          </span>
+        ),
       });
+      // Clean up blob URL after some time
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
     } catch (err) {
-      console.error('[WelcomePage] daily template export failed:', err);
+      console.error('[WelcomePage] export daily template failed:', err);
       setSnackbar({
         open: true,
         message: `${t('daily_template') || 'Daily Template'} — ${t('export_failed') || 'Export failed'}`,
@@ -905,7 +1195,7 @@ const WelcomePage = () => {
     } finally {
       setExportingKey(null);
     }
-  }, [selection?.program, selection?.academicTerm, lang, t, user]);
+  }, [selection?.program, selection?.academicTerm, lang, user, t, showExportBanner]);
 
   // Fetch the latest approved weekly attendance violation snapshot and closure status for the selected week (HR/Admin only)
   useEffect(() => {
@@ -972,7 +1262,7 @@ const WelcomePage = () => {
         next.set('date', toIsoDate(selectedDate));
         return next;
       });
-      try { localStorage.setItem('welcome_ops_view_mode', 'week'); } catch {}
+      try { localStorage.setItem(WELCOME_STORAGE_KEYS.OPS_VIEW_MODE, OPS_VIEW_MODES.WEEK); } catch {}
       return;
     }
     // Open confirmation dialog
@@ -997,7 +1287,8 @@ const WelcomePage = () => {
       if (result.success) {
         setSnackbar({ open: true, message: t('weekly_workflow_created', 'Weekly workflow created successfully'), severity: 'success' });
       } else {
-        setSnackbar({ open: true, message: result.error || t('weekly_workflow_error', 'Failed to create weekly workflow'), severity: 'error' });
+        const translatedError = result.errorKey ? t(result.errorKey, result.error) : result.error;
+        setSnackbar({ open: true, message: translatedError || t('weekly_workflow_error', 'Failed to create weekly workflow'), severity: 'error' });
       }
     } catch (err) {
       setSnackbar({ open: true, message: err.message || t('weekly_workflow_error', 'Failed to create weekly workflow'), severity: 'error' });
@@ -1293,6 +1584,108 @@ const WelcomePage = () => {
         ...(boardExpanded && tabParam === 'operations' ? { '--welcome-operations-expanded-bg': isDark ? '#0f172a' : '#f8fafc' } : {}),
       }}
     >
+      {isNavbarCollapsed && showSchedule && (
+        <DraggableFloatingPanel
+          storageKey={WELCOME_STORAGE_KEYS.FLOATING_TABS_POS}
+          defaultPos={{ top: WELCOME_SIZES.floatingTop, left: WELCOME_SIZES.floatingLeft }}
+          isDark={isDark}
+        >
+          <Tabs
+            value={activeTab}
+            onChange={handleTabChange}
+            variant="standard"
+            sx={{
+              minHeight: WELCOME_SIZES.tabMinHeight,
+              '& .MuiTab-root': { minHeight: WELCOME_SIZES.tabMinHeight, py: 0, px: WELCOME_SIZES.tabPaddingX, textTransform: 'none', fontSize: WELCOME_SIZES.fontSizeTab },
+              '& .MuiTab-root.Mui-selected': { color: WELCOME_COLORS.tabBlue },
+              '& .MuiTabs-indicator': { backgroundColor: WELCOME_COLORS.tabBlue },
+            }}
+          >
+            <Tab label={t('welcome_tab_schedule') || 'Schedule'} />
+            {showOperationsTab && (
+              <Tab label={t('welcome_tab_operations') || 'Operations'} />
+            )}
+            {!isInstructorOnly && (
+              <Tab label={t('welcome_tab_overview') || 'Overview'} />
+            )}
+          </Tabs>
+
+          {tabParam === 'schedule' && (
+            <>
+              <Divider
+                orientation="vertical"
+                flexItem
+                sx={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)', my: 0.5 }}
+              />
+              {scheduleToggles}
+            </>
+          )}
+
+          {((showSchedule && tabParam === 'schedule') || tabParam === 'operations') && (
+            <>
+              <Divider
+                orientation="vertical"
+                flexItem
+                sx={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)', my: 0.5 }}
+              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+                <Slider
+                  size="small"
+                  value={scheduleFontScale}
+                  onChange={(_, value) => handleScheduleFontScaleChange(value)}
+                  min={SCHEDULE_FONT_SCALE_MIN}
+                  max={SCHEDULE_FONT_SCALE_MAX}
+                  step={SCHEDULE_FONT_SCALE_STEP}
+                  aria-label={t('schedule_font_size') || 'Schedule font size'}
+                  data-testid="welcome-floating-font-slider"
+                  sx={{
+                    width: WELCOME_SIZES.sliderWidth,
+                    color: WELCOME_COLORS.gold,
+                    '& .MuiSlider-thumb': { width: 10, height: 10 },
+                  }}
+                />
+                <Box
+                  component="span"
+                  data-testid="welcome-floating-font-label"
+                  sx={{
+                    fontSize: WELCOME_SIZES.fontSizeFontLabel,
+                    fontWeight: WELCOME_SIZES.fontWeightSemibold,
+                    color: WELCOME_COLORS.gold,
+                    minWidth: WELCOME_SIZES.fontLabelMinWidth,
+                    textAlign: 'center',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {scheduleFontScale}%
+                </Box>
+              </Box>
+            </>
+          )}
+        </DraggableFloatingPanel>
+      )}
+
+      {isNavbarCollapsed && showSchedule && (tabParam === 'schedule' || tabParam === 'operations') && (
+        <DraggableFloatingPanel
+          storageKey={WELCOME_STORAGE_KEYS.FLOATING_DATE_POS}
+          defaultPos={{ top: WELCOME_SIZES.floatingDateTop, left: WELCOME_SIZES.floatingLeft }}
+          isDark={isDark}
+        >
+          <WelcomeDateControls
+            tabParam={tabParam}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            opsViewMode={opsViewMode}
+            setOpsViewMode={setOpsViewMode}
+            dayFocus={scheduleDayFocus}
+            setDayFocus={setScheduleDayFocus}
+            isInstructorOnly={isInstructorOnly}
+            isDark={isDark}
+            isRTL={isRTL}
+            t={t}
+          />
+        </DraggableFloatingPanel>
+      )}
+
       {showSchedule && (
         <Joyride
           steps={tourSteps}
@@ -1436,30 +1829,44 @@ const WelcomePage = () => {
             }}
           >
             <Box data-tour="welcome-tabs" sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0, mb: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-              <Tabs
-                value={activeTab}
-                onChange={handleTabChange}
-                variant="standard"
-                sx={{
-                  flex: 1,
-                  minHeight: 40,
-                  '& .MuiTab-root': { minHeight: 40, textTransform: 'none' },
-                  '& .MuiTab-root:focus, & .MuiTab-root:focus-visible': {
-                    outline: 'none',
-                    boxShadow: 'none',
-                  },
-                  '& .MuiTab-root.Mui-selected': { color: '#3b82f6' },
-                  '& .MuiTabs-indicator': { backgroundColor: '#3b82f6' },
-                }}
-              >
-                <Tab label={t('welcome_tab_schedule') || 'Schedule'} />
-                {showOperationsTab && (
-                  <Tab label={t('welcome_tab_operations') || 'Operations'} />
-                )}
-                {!isInstructorOnly && (
-                  <Tab label={t('welcome_tab_overview') || 'Overview'} />
-                )}
-              </Tabs>
+              {!isNavbarCollapsed && (
+                <>
+                  <Tabs
+                    value={activeTab}
+                    onChange={handleTabChange}
+                    variant="standard"
+                    sx={{
+                      flex: 1,
+                      minHeight: 40,
+                      '& .MuiTab-root': { minHeight: 40, textTransform: 'none' },
+                      '& .MuiTab-root:focus, & .MuiTab-root:focus-visible': {
+                        outline: 'none',
+                        boxShadow: 'none',
+                      },
+                      '& .MuiTab-root.Mui-selected': { color: '#3b82f6' },
+                      '& .MuiTabs-indicator': { backgroundColor: '#3b82f6' },
+                    }}
+                  >
+                    <Tab label={t('welcome_tab_schedule') || 'Schedule'} />
+                    {showOperationsTab && (
+                      <Tab label={t('welcome_tab_operations') || 'Operations'} />
+                    )}
+                    {!isInstructorOnly && (
+                      <Tab label={t('welcome_tab_overview') || 'Overview'} />
+                    )}
+                  </Tabs>
+                  {showSchedule && tabParam === 'schedule' && (
+                    <>
+                      <Divider
+                        orientation="vertical"
+                        flexItem
+                        sx={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)', my: 0.5 }}
+                      />
+                      {scheduleToggles}
+                    </>
+                  )}
+                </>
+              )}
               {showSchedule && tabParam === 'schedule' && canExport && !isInstructorOnly && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                   {isHR && (
@@ -1757,215 +2164,20 @@ const WelcomePage = () => {
                   </ColoredTooltip>
                 </div>
               )}
-              {showSchedule && tabParam === 'schedule' && !isInstructorOnly && (
-                <div data-tour="welcome-week-nav" style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginRight: '36px' }}>
-                  <button
-                    onClick={() => {
-                      const prev = new Date(selectedDate);
-                      prev.setDate(prev.getDate() - 7);
-                      setSelectedDate(prev);
-                    }}
-                    aria-label={t('calendar_previous') || 'Previous week'}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '4px',
-                      borderRadius: '6px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: isDark ? '#94a3b8' : '#64748b',
-                    }}
-                    data-testid="welcome-week-prev"
-                  >
-                    {lang === 'ar' ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-                  </button>
-                  {(() => {
-                    const ws = new Date(selectedDate);
-                    ws.setDate(ws.getDate() - ws.getDay());
-                    const we = new Date(ws);
-                    we.setDate(we.getDate() + 4);
-                    const fmt = (x) => `${String(x.getDate()).padStart(2, '0')}/${String(x.getMonth() + 1).padStart(2, '0')}`;
-                    const jan1 = new Date(ws.getFullYear(), 0, 1);
-                    const dayOfYear = Math.floor((ws - jan1) / 86400000) + 1;
-                    const weekNum = Math.ceil(dayOfYear / 7);
-                    return (
-                      <span style={{
-                        fontSize: '0.72rem',
-                        fontWeight: 600,
-                        color: isDark ? '#e2e8f0' : '#1e293b',
-                        whiteSpace: 'nowrap',
-                        padding: '0 6px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                      }}>
-                        <span style={{ display: 'inline-block', width: 38, textAlign: 'right' }}>W{weekNum}</span>
-                        <span style={{ display: 'inline-block', width: 38, textAlign: 'center' }}>{fmt(ws)}</span>
-                        <span style={{ opacity: 0.5 }}>-</span>
-                        <span style={{ display: 'inline-block', width: 38, textAlign: 'center' }}>{fmt(we)}</span>
-                      </span>
-                    );
-                  })()}
-                  <button
-                    onClick={() => {
-                      const next = new Date(selectedDate);
-                      next.setDate(next.getDate() + 7);
-                      setSelectedDate(next);
-                    }}
-                    aria-label={t('calendar_next') || 'Next week'}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '4px',
-                      borderRadius: '6px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: isDark ? '#94a3b8' : '#64748b',
-                    }}
-                    data-testid="welcome-week-next"
-                  >
-                    {lang === 'ar' ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
-                  </button>
-                </div>
-              )}
-              {showSchedule && tabParam === 'operations' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, justifyContent: 'center', marginRight: '36px' }}>
-                  <button
-                    onClick={() => {
-                      const prev = new Date(selectedDate);
-                      if (opsViewMode === 'week') {
-                        prev.setDate(prev.getDate() - 7);
-                      } else {
-                        prev.setDate(prev.getDate() - 1);
-                      }
-                      setSelectedDate(prev);
-                    }}
-                    aria-label={t('calendar_previous') || 'Previous'}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '2px',
-                      borderRadius: '6px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: isDark ? '#94a3b8' : '#64748b',
-                    }}
-                    data-testid="welcome-day-prev"
-                  >
-                  {lang === 'ar' ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-                  </button>
-                  {opsViewMode === 'week' ? (() => {
-                    const ws = new Date(selectedDate);
-                    ws.setDate(ws.getDate() - ws.getDay());
-                    const we = new Date(ws);
-                    we.setDate(we.getDate() + 4);
-                    const fmt = (x) => `${String(x.getDate()).padStart(2, '0')}/${String(x.getMonth() + 1).padStart(2, '0')}`;
-                    const jan1 = new Date(ws.getFullYear(), 0, 1);
-                    const dayOfYear = Math.floor((ws - jan1) / 86400000) + 1;
-                    const weekNum = Math.ceil(dayOfYear / 7);
-                    return (
-                      <span style={{
-                        fontSize: '0.72rem',
-                        fontWeight: 600,
-                        color: isDark ? '#e2e8f0' : '#1e293b',
-                        whiteSpace: 'nowrap',
-                        padding: '0 6px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                      }}>
-                        <span style={{ display: 'inline-block', width: 38, textAlign: 'right' }}>W{weekNum}</span>
-                        <span style={{ display: 'inline-block', width: 38, textAlign: 'center' }}>{fmt(ws)}</span>
-                        <span style={{ opacity: 0.5 }}>-</span>
-                        <span style={{ display: 'inline-block', width: 38, textAlign: 'center' }}>{fmt(we)}</span>
-                      </span>
-                    );
-                  })() : (
-                  <DatePicker
-                    value={selectedDate.toISOString().slice(0, 10)}
-                    onChange={(value) => {
-                      const iso = typeof value === 'string' ? value : value?.toISOString?.()?.slice(0, 10);
-                      if (iso) setSelectedDate(new Date(`${iso}T12:00:00`));
-                    }}
-                    theme={isDark ? 'dark' : 'light'}
-                    showIcon
-                    compact
-                    className="welcome-working-date-picker"
-                    data-testid="welcome-working-date"
-                    style={{ width: 100 }}
-                  />
-                  )}
-                  <button
-                    onClick={() => {
-                      const next = new Date(selectedDate);
-                      if (opsViewMode === 'week') {
-                        next.setDate(next.getDate() + 7);
-                      } else {
-                        next.setDate(next.getDate() + 1);
-                      }
-                      setSelectedDate(next);
-                    }}
-                    aria-label={t('calendar_next') || 'Next'}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '2px',
-                      borderRadius: '6px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: isDark ? '#94a3b8' : '#64748b',
-                    }}
-                    data-testid="welcome-day-next"
-                  >
-                    {lang === 'ar' ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-                  </button>
-                  <div style={{ display: 'flex', borderRadius: '6px', overflow: 'hidden', border: `1px solid ${isDark ? '#334155' : '#cbd5e1'}` }}>
-                    <button
-                      onClick={() => {
-                        setOpsViewMode('day');
-                        try { localStorage.setItem('welcome_ops_view_mode', 'day'); } catch {}
-                      }}
-                      style={{
-                        background: opsViewMode === 'day' ? (isDark ? '#1e40af' : '#2563eb') : 'transparent',
-                        color: opsViewMode === 'day' ? '#fff' : (isDark ? '#94a3b8' : '#64748b'),
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '2px 8px',
-                        fontSize: '0.7rem',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {t('day') || 'Day'}
-                    </button>
-                    {!isInstructorOnly && (
-                    <button
-                      onClick={() => {
-                        setOpsViewMode('week');
-                        try { localStorage.setItem('welcome_ops_view_mode', 'week'); } catch {}
-                      }}
-                      style={{
-                        background: opsViewMode === 'week' ? (isDark ? '#1e40af' : '#2563eb') : 'transparent',
-                        color: opsViewMode === 'week' ? '#fff' : (isDark ? '#94a3b8' : '#64748b'),
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '2px 8px',
-                        fontSize: '0.7rem',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {t('week') || 'Week'}
-                    </button>
-                    )}
-                  </div>
-                </div>
+              {!isNavbarCollapsed && (
+                <WelcomeDateControls
+                  tabParam={tabParam}
+                  selectedDate={selectedDate}
+                  setSelectedDate={setSelectedDate}
+                  opsViewMode={opsViewMode}
+                  setOpsViewMode={setOpsViewMode}
+                  dayFocus={scheduleDayFocus}
+                  setDayFocus={setScheduleDayFocus}
+                  isInstructorOnly={isInstructorOnly}
+                  isDark={isDark}
+                  isRTL={isRTL}
+                  t={t}
+                />
               )}
             </Box>
 
@@ -1992,6 +2204,7 @@ const WelcomePage = () => {
                       interactiveAll={canInteractAll && !weekClosure?.isClosed}
                       selectedDate={selectedDate}
                       selectedSlot={selectedSlot}
+                      dayFocus={scheduleDayFocus}
                       onCellClick={weekClosure?.isClosed ? undefined : handleCellClick}
                       onDateChange={isInstructorOnly ? null : setSelectedDate}
                       onGenerateDailyAttendance={weekClosure?.isClosed ? undefined : handleGenerateDailyAttendance}
@@ -2005,8 +2218,12 @@ const WelcomePage = () => {
                       hideNotesComments={hideNotesComments}
                       hideTooltips={isInstructorOnly}
                       hideLegend={isInstructorOnly}
+                      showInstructor={showScheduleInstructor}
+                      showRoom={showScheduleRoom}
+                      showDayDate={showDayDate}
+                      showBreakColumns={showBreakColumns}
                     />
-                    {selectedSlot && !menuAnchorEl && selectedSession && !isInstructorOnly && (
+                    {selectedSlot && !menuAnchorEl && selectedSession && !isInstructorOnly && !isAdmin && !isSuperAdmin && (
                       <ScheduleSpeedDial
                         session={selectedSession}
                         selectedDate={clickedDate || selectedDate}
@@ -2017,6 +2234,7 @@ const WelcomePage = () => {
                         onOpenHistory={handleOpenHistory}
                         onOpenNotifications={handleOpenNotifications}
                         pdfOnly={tabParam === 'schedule'}
+                        onExportSuccess={showExportBanner}
                       />
                     )}
                   </div>
@@ -2119,6 +2337,7 @@ const WelcomePage = () => {
         onOpenHistory={handleOpenHistory}
         onOpenOperations={handleOpenOperations}
         onOpenNotifications={handleOpenNotifications}
+        onExportSuccess={showExportBanner}
       />
 
       <ClassHistoryDrawer
@@ -2204,6 +2423,33 @@ const WelcomePage = () => {
         </Alert>
       )}
 
+      {exportBanner && (
+        <div className="operations-board-action-announcement" data-testid="export-success-banner" style={{ position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 1300 }}>
+          <Announcement
+            themed
+            className="operations-board-action-announcement-pill text-white"
+            style={{ backgroundColor: exportBanner.pillColor || '#059669' }}
+          >
+            <AnnouncementTag
+              className="!bg-transparent !border-0 !p-0 text-white"
+            >
+              {exportBanner.icon || <CheckCircle2 size={16} className="shrink-0" />}
+            </AnnouncementTag>
+            <AnnouncementTitle className="text-xs font-medium gap-1.5">
+              {exportBanner.message}
+              <button
+                type="button"
+                className="ml-0.5 shrink-0 rounded-full p-0.5 hover:bg-white/25 transition-colors"
+                onClick={clearExportBanner}
+                aria-label={t('dismiss') || 'Dismiss'}
+              >
+                <X size={14} />
+              </button>
+            </AnnouncementTitle>
+          </Announcement>
+        </div>
+      )}
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={snackbar.progress != null ? null : 4000}
@@ -2258,21 +2504,6 @@ const WelcomePage = () => {
         successResult={attSummarySuccess}
       />
 
-      <PdfPreviewDialog
-        open={Boolean(gridPdfPreview)}
-        onClose={() => setGridPdfPreview(null)}
-        cls={gridPdfPreview?.cls}
-        program={gridPdfPreview?.program}
-        subject={gridPdfPreview?.subject}
-        academicTerm={gridPdfPreview?.academicTerm}
-        date={gridPdfPreview?.date}
-        instructorName={gridPdfPreview?.instructorName}
-        user={user}
-        title={t('daily_official') || 'Daily Official'}
-        fileId={gridPdfPreview?.fileId}
-        isApproved={gridPdfPreview?.isApproved}
-      />
-
       <style>{`
         .welcome-working-date-picker input {
           color: #2563eb !important;
@@ -2289,6 +2520,10 @@ const WelcomePage = () => {
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
+
+      {(isAdmin || isSuperAdmin || isHR) && (
+        <MiniChatBalloon groupRole="hr" groupLabel={t('mini_chat_hr_team') || 'HR Team'} />
+      )}
     </div>
   );
 };

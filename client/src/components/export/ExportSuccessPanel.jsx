@@ -1,5 +1,6 @@
 import React from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
+import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
 import { buildBlobOpenUrl, buildSmartDriveHighlightUrl } from '@utils/exportSuccessUrls';
 
 /**
@@ -12,6 +13,11 @@ export default function ExportSuccessPanel({
 }) {
   if (!successResult) return null;
 
+  const isExcel = successResult.format === EXPORT_FORMAT.EXCEL;
+  const filename =
+    successResult.filename && String(successResult.filename).toLowerCase().endsWith('.xlsx')
+      ? successResult.filename
+      : `${successResult.filename || 'export'}.xlsx`;
   const blobUrl = buildBlobOpenUrl(successResult);
   const smartDriveUrl = buildSmartDriveHighlightUrl(successResult.fileId, {
     filename: successResult.filename,
@@ -78,16 +84,19 @@ export default function ExportSuccessPanel({
         {blobUrl && (
           <a
             href={blobUrl}
-            target="_blank"
-            rel="noreferrer"
+            {...(isExcel
+              ? { download: filename }
+              : { target: '_blank', rel: 'noreferrer' })}
             style={{
               ...buttonBase,
               background: 'var(--color-primary, #800020)',
               color: '#fff',
             }}
           >
-            {getThemedIcon('ui', 'external_link', 16, 'white')}
-            {t('open_exported_file', 'Open exported file')}
+            {getThemedIcon('ui', isExcel ? 'download' : 'external_link', 16, 'white')}
+            {isExcel
+              ? t('download_exported_file', 'Download exported file')
+              : t('open_exported_file', 'Open exported file')}
           </a>
         )}
         {smartDriveUrl && (

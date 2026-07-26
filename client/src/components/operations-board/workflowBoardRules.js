@@ -44,7 +44,7 @@ const ADMIN_TRANSITIONS = {
   DRAFT: new Set(['SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED', 'REJECTED']),
   SUBMITTED: new Set(['DRAFT', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED', 'REJECTED']),
   UNDER_ADMIN_REVIEW: new Set(['DRAFT', 'SUBMITTED', 'UNDER_HR_REVIEW', 'APPROVED', 'REJECTED']),
-  UNDER_HR_REVIEW: new Set(['DRAFT', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'APPROVED']),
+  UNDER_HR_REVIEW: new Set(['DRAFT', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'APPROVED', 'REJECTED']),
   APPROVED: new Set(['DRAFT', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'REJECTED']),
   REJECTED: new Set(['DRAFT', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED']),
 };
@@ -233,6 +233,17 @@ export function resolveWorkflowNotifyMeta(fromColumn, toColumn, roleContext = {}
       lockWarning: false,
     };
   }
+  // HR → Rejected
+  if (fromColumn === 'UNDER_HR_REVIEW' && toColumn === 'REJECTED') {
+    return {
+      titleKey: 'operations_board_move_hr_to_rejected_title',
+      bodyKey: 'operations_board_move_hr_to_rejected_body',
+      notifyKey: 'operations_board_move_notify_instructor_only',
+      roles: ['instructor'],
+      lockWarning: false,
+      adminOverride: false,
+    };
+  }
   // HR approve
   if (fromColumn === 'UNDER_HR_REVIEW' && toColumn === 'APPROVED') {
     return {
@@ -253,6 +264,10 @@ export function resolveWorkflowNotifyMeta(fromColumn, toColumn, roleContext = {}
 }
 
 export function shouldConfirmWorkflowMove(fromColumn, toColumn) {
-  // Always confirm cross-status moves on the workflow board
+  // Skip confirmation for Admin → Confirmed (no instructor notification)
+  if (fromColumn === 'UNDER_ADMIN_REVIEW' && toColumn === 'SUBMITTED') {
+    return false;
+  }
+  // Always confirm other cross-status moves on the workflow board
   return fromColumn !== toColumn;
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, MessageSquare, StickyNote } from 'lucide-react';
+import { Star, MessageSquare } from 'lucide-react';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { BOARD_PARTICIPATION_COLOR } from '@constants/workspaceStatusColors.js';
 
@@ -54,7 +54,7 @@ export default function ClassSessionMetaBadges({
       {notesCount > 0 && (
         <ColoredTooltip title={`${notesCount} ${t('operations_board_notes') || 'Notes'}`} color="#ef4444" placement="top">
           <span style={{ ...badgeStyle, color: '#ef4444' }}>
-            <StickyNote size={iconSize} fill="#ef4444" color="#ef4444" />
+            <Star size={iconSize} fill="#ef4444" color="#ef4444" />
             <span>{notesCount}</span>
           </span>
         </ColoredTooltip>

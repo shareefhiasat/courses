@@ -67,6 +67,25 @@ export function createAppMuiTheme({ direction = 'ltr', mode = 'light' } = {}) {
           },
         },
       },
+      MuiTooltip: {
+        styleOverrides: {
+          tooltip: {
+            backgroundColor: mode === 'dark' ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.96)',
+            color: '#8b5cf6',
+            fontSize: '11px',
+            fontWeight: 600,
+            border: '1px solid rgba(139, 92, 246, 0.27)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+            maxWidth: 280,
+          },
+          arrow: {
+            color: mode === 'dark' ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.96)',
+            '&::before': {
+              border: '1px solid rgba(139, 92, 246, 0.27)',
+            },
+          },
+        },
+      },
     },
   });
 }

@@ -138,6 +138,7 @@ export async function shareWorkflowFile({
           subjectType: 'USER',
           subjectUserId: userId,
           permission,
+          skipNotification: true,
         }, actor);
         if (!result.success) {
           console.warn(`[shareWorkflowFile] Failed to share with user ${userId}:`, result.error);
@@ -153,6 +154,7 @@ export async function shareWorkflowFile({
               subjectType: 'USER',
               subjectUserId: u.userId,
               permission,
+              skipNotification: true,
             }, actor);
             if (!result.success) {
               console.warn(`[shareWorkflowFile] Failed to share with scoped user ${u.userId}:`, result.error);
@@ -164,6 +166,7 @@ export async function shareWorkflowFile({
             subjectType: 'ROLE',
             subjectRole: role,
             permission,
+            skipNotification: true,
           }, actor);
           if (!result.success) {
             console.warn(`[shareWorkflowFile] Failed to share with role ${role}:`, result.error);
@@ -177,6 +180,7 @@ export async function shareWorkflowFile({
           subjectType: 'ROLE',
           subjectRole: role,
           permission,
+          skipNotification: true,
         }, actor);
         if (!result.success) {
           console.warn(`[shareWorkflowFile] Failed to share with role ${role}:`, result.error);

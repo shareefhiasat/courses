@@ -22,6 +22,8 @@ export const StatusIndicator = ({
         "absolute inline-flex h-full w-full animate-ping rounded-full opacity-75",
         "group-[.offline]:bg-red-500",
         "group-[.pending]:bg-orange-500",
+        "group-[.human-case]:bg-violet-500",
+        "group-[.excused]:bg-pink-500",
       )} />
     <span
       className={cn(
@@ -30,7 +32,9 @@ export const StatusIndicator = ({
         "group-[.offline]:bg-red-500",
         "group-[.maintenance]:bg-blue-500",
         "group-[.degraded]:bg-amber-500",
-        "group-[.pending]:bg-orange-500"
+        "group-[.pending]:bg-orange-500",
+        "group-[.human-case]:bg-violet-500",
+        "group-[.excused]:bg-pink-500"
       )} />
   </span>
 );
@@ -44,6 +48,8 @@ export const StatusLabel = ({
     className={cn(
       "text-muted-foreground",
       "group-[.pending]:text-orange-600 dark:group-[.pending]:text-orange-400",
+      "group-[.human-case]:text-violet-600 dark:group-[.human-case]:text-violet-400",
+      "group-[.excused]:text-pink-600 dark:group-[.excused]:text-pink-400",
       className
     )}
     {...props}

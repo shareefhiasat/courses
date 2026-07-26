@@ -182,3 +182,21 @@ export const getExportHistory = async (params = {}) => {
 
   return apiRequest(endpoint, { method: 'GET' });
 };
+
+/**
+ * Clear export history (delete all records for current user or all if super admin)
+ * @param {Object} params - { exportType, format, userId, classId }
+ * @returns {Promise<Object>} - { success, message }
+ */
+export const clearExportHistory = async (params = {}) => {
+  const query = new URLSearchParams();
+  if (params.exportType) query.set('exportType', params.exportType);
+  if (params.format) query.set('format', params.format);
+  if (params.userId) query.set('userId', params.userId);
+  if (params.classId) query.set('classId', params.classId);
+
+  const queryString = query.toString();
+  const endpoint = `/export-history/clear${queryString ? `?${queryString}` : ''}`;
+
+  return apiRequest(endpoint, { method: 'DELETE' });
+};

@@ -9,13 +9,13 @@ const STATUS_LABELS = {
     present: 'متواجد',
     absent: 'غائب',
     humanCase: 'حالة إنسانية',
-    late: 'متأخر',
+    excusedLeave: 'إجازة معذورة',
   },
   en: {
     present: 'Present',
     absent: 'Absent',
     humanCase: 'Human case',
-    late: 'Late',
+    excusedLeave: 'Excused Leave',
   },
 };
 
@@ -42,6 +42,25 @@ const META_LABELS = {
     class: 'Class',
     instructor: 'Instructor',
     yearTerm: 'Year / Term',
+  },
+};
+
+const COUNT_LABELS = {
+  ar: {
+    present: 'حاضر',
+    absent: 'غائب',
+    humanCase: 'حالة إنسانية',
+    excusedLeave: 'إجازة معذورة',
+    notTaken: 'لم يُسجل',
+    late: 'متأخر',
+  },
+  en: {
+    present: 'Present',
+    absent: 'Absent',
+    humanCase: 'Human Case',
+    excusedLeave: 'Excused Leave',
+    notTaken: 'Not Taken',
+    late: 'Late',
   },
 };
 
@@ -75,12 +94,22 @@ function MetaItem({ label, value, align = 'start', mirrored = false }) {
 }
 
 export function DailyOfficialTemplate({ data, showWatermark = true }) {
-  const { header, rows, lang, statusKeys, serial, generatedAt } = data;
+  const { header, rows, lang, statusKeys, serial, generatedAt, counts = {} } = data;
   const labels = COLUMN_LABELS[lang] || COLUMN_LABELS.ar;
   const statusLabels = STATUS_LABELS[lang] || STATUS_LABELS.ar;
   const meta = META_LABELS[lang] || META_LABELS.ar;
+  const countLabels = COUNT_LABELS[lang] || COUNT_LABELS.ar;
   const wm = buildWatermarkLines(data.watermarkUser);
   const isAr = lang === 'ar';
+
+  const baseEntries = Object.entries(counts.base || {}).map(([key, value]) => ({
+    key,
+    label: countLabels[key],
+    value,
+  }));
+  const extraEntries = Object.entries(counts.extra || {})
+    .filter(([, value]) => value > 0)
+    .map(([key, value]) => ({ key, label: countLabels[key], value }));
 
   const metaRows = [
     [
@@ -195,6 +224,15 @@ export function DailyOfficialTemplate({ data, showWatermark = true }) {
           </tbody>
         </table>
         </div>
+        {(baseEntries.length > 0 || extraEntries.length > 0) && (
+          <div className={styles.dailyCountSummary} dir={isAr ? 'rtl' : 'ltr'}>
+            {[...baseEntries, ...extraEntries].map(({ key, label, value }) => (
+              <span key={key} className={styles.dailyCountItem}>
+                {isAr ? `${value} ${label}` : `${label}: ${value}`}
+              </span>
+            ))}
+          </div>
+        )}
         {generatedAt && (
           <div className={styles.officialFooter}>
             <span style={{ fontSize: '10px', color: '#6b7280' }}>

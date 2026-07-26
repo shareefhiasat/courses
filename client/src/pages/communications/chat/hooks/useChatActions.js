@@ -18,6 +18,7 @@ import {
   FILE_UPLOAD_LIMITS,
   CLEAR_MESSAGE_MODES
 } from '../constants/chatConstants';
+import { ROLE_STRINGS } from '@utils/userUtils';
 import {
   getChatType,
   getChatId,
@@ -140,7 +141,7 @@ export const useChatActions = (user, state, toast, t) => {
     } catch {}
     
     // Include platform admins
-    const admins = allUsersToUse.filter(u => u.role === 'admin' && u.docId !== user.uid && u.email !== user.email);
+    const admins = allUsersToUse.filter(u => u.role === ROLE_STRINGS.ADMIN && u.docId !== user.uid && u.email !== user.email);
     admins.forEach(a => { 
       if (!members.some(m => m.docId === a.docId)) members.push(a); 
     });

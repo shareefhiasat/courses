@@ -3,28 +3,34 @@ import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import { buildDailyOfficialSerial } from './serialNumber.js';
 import { formatOfficialReportDate } from '../shared/officialDateFormat.js';
 
-const OFFICIAL_STATUS_KEYS = ['present', 'absent', 'humanCase', 'late'];
+const OFFICIAL_STATUS_KEYS = ['present', 'absent', 'humanCase', 'excusedLeave'];
 
-function mapRegularStatus(statusCode) {
-  const marks = { present: false, absent: false, humanCase: false, late: false };
-  if (!statusCode) return marks;
-  const code = String(statusCode).toUpperCase();
-  if (code === ATTENDANCE_STATUS.PRESENT) marks.present = true;
-  else if (code === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) marks.absent = true;
-  else if (code === ATTENDANCE_STATUS.HUMAN_CASE) marks.humanCase = true;
-  else if (code === ATTENDANCE_STATUS.LATE) marks.late = true;
-  return marks;
+function getStatusCategory(statusCode, isStandup = false) {
+  if (!statusCode || String(statusCode).trim() === '') return 'notTaken';
+  const code = String(statusCode).toUpperCase().trim();
+  if (isStandup) {
+    if (code === ATTENDANCE_STATUS.STANDUP_PRESENT) return 'present';
+    if (code === ATTENDANCE_STATUS.STANDUP_ABSENT) return 'absent';
+    if (code === ATTENDANCE_STATUS.STANDUP_CLINIC) return 'humanCase';
+    if (code === ATTENDANCE_STATUS.STANDUP_LATE) return 'late';
+    return 'notTaken';
+  }
+  if (code === ATTENDANCE_STATUS.PRESENT) return 'present';
+  if (code === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE || code === 'ABSENT' || code === 'ABSENT_NO_EXCUSE') return 'absent';
+  if (code === ATTENDANCE_STATUS.LATE || code === 'LATE' || code === 'ATTENDANCE_LATE') return 'late';
+  if (code === ATTENDANCE_STATUS.EXCUSED_LEAVE || code === 'ATTENDANCE_LEAVE' || code === 'EXCUSED' || code === 'EXCUSED_LEAVE' || code === 'ABSENT_WITH_EXCUSE' || code === 'SICK_LEAVE') return 'excusedLeave';
+  if (code === ATTENDANCE_STATUS.HUMAN_CASE || code === 'HUMAN_CASE' || code === 'EARLY_DEPARTURE') return 'humanCase';
+  if (code === 'NOT_TAKEN') return 'notTaken';
+  return 'notTaken';
 }
 
-function mapStandupStatus(statusCode) {
-  const marks = { present: false, absent: false, humanCase: false, late: false };
-  if (!statusCode) return marks;
-  const code = String(statusCode).toUpperCase();
-  if (code === ATTENDANCE_STATUS.STANDUP_PRESENT) marks.present = true;
-  else if (code === ATTENDANCE_STATUS.STANDUP_ABSENT) marks.absent = true;
-  else if (code === ATTENDANCE_STATUS.STANDUP_CLINIC) marks.humanCase = true;
-  else if (code === ATTENDANCE_STATUS.STANDUP_LATE) marks.late = true;
-  return marks;
+function marksFromCategory(category) {
+  return {
+    present: category === 'present',
+    absent: category === 'absent',
+    humanCase: category === 'humanCase',
+    excusedLeave: category === 'excusedLeave',
+  };
 }
 
 function formatReportDate(dateStr) {
@@ -58,7 +64,15 @@ export function prepareDailyOfficialData({
 }) {
   const scopeId = isStandup ? metadata.programId : metadata.classId;
   const serial = buildDailyOfficialSerial(scopeId, isStandup);
-  const mapStatus = isStandup ? mapStandupStatus : mapRegularStatus;
+
+  const counts = {
+    notTaken: 0,
+    present: 0,
+    absent: 0,
+    humanCase: 0,
+    excusedLeave: 0,
+    late: 0,
+  };
 
   const rows = roster
     .slice()
@@ -79,7 +93,9 @@ export function prepareDailyOfficialData({
       const userId = String(student.id ?? student.userId ?? student.studentId ?? studentUser?.id);
       const att = attendanceByUserId[userId] || {};
       const statusCode = att.status?.code || att.status || student.attendance || student.standupStatus;
-      const marks = mapStatus(statusCode);
+      const category = getStatusCategory(statusCode, isStandup);
+      counts[category] += 1;
+      const marks = marksFromCategory(category);
       const name = getLocalizedUserName(
         studentUser,
         lang,
@@ -96,6 +112,17 @@ export function prepareDailyOfficialData({
     };
   });
 
+  const baseCounts = {
+    present: counts.present,
+    absent: counts.absent,
+    humanCase: counts.humanCase,
+    excusedLeave: counts.excusedLeave,
+  };
+  const extraCounts = {
+    notTaken: counts.notTaken,
+    late: counts.late,
+  };
+
   let finalRows = rows;
   if (isTemplate) {
     const padCount = Math.max(0, minTemplateRows - rows.length);
@@ -109,7 +136,7 @@ export function prepareDailyOfficialData({
         present: false,
         absent: false,
         humanCase: false,
-        late: false,
+        excusedLeave: false,
         isPlaceholder: true,
       })),
     ];
@@ -131,6 +158,7 @@ export function prepareDailyOfficialData({
     isTemplate,
     lang,
     statusKeys: OFFICIAL_STATUS_KEYS,
+    counts: { base: baseCounts, extra: extraCounts },
     generatedAt,
     header: {
       serial,

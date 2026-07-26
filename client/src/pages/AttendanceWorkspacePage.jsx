@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { IconButton } from '@mui/material';
+import { DoorOpen, GraduationCap } from 'lucide-react';
 import ProgramTermSelector from '@components/workspace/ProgramTermSelector';
 import YearTermSelector from '@components/workspace/YearTermSelector';
 import OfficialWeeklyScheduleGrid from '@components/workspace/OfficialWeeklyScheduleGrid';
@@ -10,6 +12,8 @@ import ClassActionMenu from '@components/workspace/ClassActionMenu';
 import ClassHistoryDrawer from '@components/workspace/ClassHistoryDrawer';
 import InboxOutboxDrawer from '@components/workspace/InboxOutboxDrawer';
 import WorkspaceActionFab from '@components/workspace/WorkspaceActionFab';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
+import { WELCOME_STORAGE_KEYS, WELCOME_COLORS } from '@components/welcome/welcomeControls.constants.js';
 import { getScheduleStatus, getAllPrograms, getProgramTerms } from '@services/business/attendanceWorkspaceService';
 import { loadWeeklyScheduleSources } from '@services/business/weeklyScheduleExportService';
 import { prepareWeeklyScheduleData } from '@services/export/official-reports/engine/prepareWeeklyScheduleData';
@@ -40,8 +44,36 @@ const AttendanceWorkspacePage = () => {
   const [inboxInitialTab, setInboxInitialTab] = useState('inbox');
   const [historyState, setHistoryState] = useState({ open: false, classInfo: null, date: null });
   const [deepLinkHandled, setDeepLinkHandled] = useState(false);
+  const [showRoom, setShowRoom] = useState(() => {
+    try {
+      const saved = localStorage.getItem(WELCOME_STORAGE_KEYS.SCHEDULE_SHOW_ROOM);
+      return saved ? saved !== 'false' : true;
+    } catch { return true; }
+  });
+  const [showInstructor, setShowInstructor] = useState(() => {
+    try {
+      const saved = localStorage.getItem(WELCOME_STORAGE_KEYS.SCHEDULE_SHOW_INSTRUCTOR);
+      return saved ? saved !== 'false' : true;
+    } catch { return true; }
+  });
 
   const instructorId = user?.dbId;
+
+  const handleToggleShowRoom = useCallback(() => {
+    setShowRoom((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(WELCOME_STORAGE_KEYS.SCHEDULE_SHOW_ROOM, String(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  const handleToggleShowInstructor = useCallback(() => {
+    setShowInstructor((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(WELCOME_STORAGE_KEYS.SCHEDULE_SHOW_INSTRUCTOR, String(next)); } catch {}
+      return next;
+    });
+  }, []);
 
   const handleProgramSelect = useCallback((payload) => {
     setSelection((prev) => ({ ...prev, ...payload }));
@@ -156,7 +188,7 @@ const AttendanceWorkspacePage = () => {
     };
 
     loadSchedule();
-  }, [step, selection?.program, selection?.academicTerm, selectedDate, lang]);
+  }, [step, selection?.program, selection?.academicTerm, selectedDate, lang, t]);
 
   const handleCellClick = useCallback((slot, anchor) => {
     const session = slot?.session || (slot?.class ? {
@@ -342,6 +374,37 @@ const AttendanceWorkspacePage = () => {
               }}
             />
           </label>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <ColoredTooltip title={showRoom ? t('hide_room') : t('show_room')} color={WELCOME_COLORS.gold} placement="bottom">
+              <IconButton
+                size="small"
+                onClick={handleToggleShowRoom}
+                sx={{
+                  width: 28,
+                  height: 28,
+                  color: showRoom ? (isDark ? '#f1f5f9' : '#1e293b') : (isDark ? '#64748b' : '#94a3b8'),
+                }}
+                aria-label={showRoom ? t('hide_room') : t('show_room')}
+              >
+                <DoorOpen size={14} />
+              </IconButton>
+            </ColoredTooltip>
+            <ColoredTooltip title={showInstructor ? t('hide_instructor') : t('show_instructor')} color={WELCOME_COLORS.gold} placement="bottom">
+              <IconButton
+                size="small"
+                onClick={handleToggleShowInstructor}
+                sx={{
+                  width: 28,
+                  height: 28,
+                  color: showInstructor ? (isDark ? '#f1f5f9' : '#1e293b') : (isDark ? '#64748b' : '#94a3b8'),
+                }}
+                aria-label={showInstructor ? t('hide_instructor') : t('show_instructor')}
+              >
+                <GraduationCap size={14} />
+              </IconButton>
+            </ColoredTooltip>
+          </div>
         </div>
 
         {loading ? (
@@ -356,6 +419,8 @@ const AttendanceWorkspacePage = () => {
             interactiveAll={canInteractAll}
             selectedDate={selectedDate}
             onCellClick={handleCellClick}
+            showInstructor={showInstructor}
+            showRoom={showRoom}
           />
         )}
 

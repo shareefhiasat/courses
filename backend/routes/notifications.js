@@ -12,6 +12,7 @@ import {
   markNotificationUnread,
   markAllRead,
   archiveNotification,
+  unarchiveNotification,
   archiveAllRead,
   deleteNotification,
   getPreferences,
@@ -31,6 +32,7 @@ router.patch('/:notificationId/read', notifOps.update, markNotificationRead);
 router.patch('/:notificationId/unread', notifOps.update, markNotificationUnread);
 router.post('/mark-all-read', notifOps.update, markAllRead);
 router.patch('/:notificationId/archive', notifOps.update, archiveNotification);
+router.patch('/:notificationId/unarchive', notifOps.update, unarchiveNotification);
 router.post('/archive-all-read', notifOps.update, archiveAllRead);
 router.delete('/:notificationId', notifOps.update, deleteNotification);
 

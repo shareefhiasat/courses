@@ -2,15 +2,14 @@ import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
+import { EXPORT_FORMAT, downloadBlob } from '@services/export/official-reports/index.jsx';
 import {
   exportWeeklyScheduleForScope,
   exportDailyOfficialTemplate,
   exportDailyOfficialForDate,
 } from '@services/business/accessScopeExportService.js';
-import { FileText, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { FileText, FileSpreadsheet, AlertCircle, CheckCircle2, ExternalLink } from 'lucide-react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton } from '@mui/material';
-import PdfPreviewDialog from '@components/workspace/PdfPreviewDialog.jsx';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import useQRPermissions from '@hooks/useQRPermissions';
 import { isHROnlyViewer } from '@components/operations-board/hrAttendancePrivacy.js';
@@ -31,6 +30,7 @@ function ScheduleContextMenu({
   onOpenHistory,
   onOpenOperations,
   onOpenNotifications,
+  onExportSuccess,
 }) {
   const { user, isAdmin, isHR, isSuperAdmin, isInstructor } = useAuth();
   const { t, lang } = useLang();
@@ -40,8 +40,6 @@ function ScheduleContextMenu({
   const [exporting, setExporting] = useState(null);
   const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
   const [existingWorkflow, setExistingWorkflow] = useState(null);
-  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
-  const [dailyPreviewOpen, setDailyPreviewOpen] = useState(false);
 
   const cls = session?.class;
   const subject = cls?.subject;
@@ -75,6 +73,33 @@ function ScheduleContextMenu({
     }
   }, [onClose]);
 
+  const buildExportBanner = useCallback((label, format, blob, filename, blobUrl) => ({
+    pillColor: '#059669',
+    icon: <CheckCircle2 size={16} className="shrink-0" />,
+    message: (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0px', fontSize: '0.75rem' }}>
+        {`${label} — ${t('export_success') || 'Export successful'}`}
+        <button
+          type="button"
+          className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
+          onClick={() =>
+            format === EXPORT_FORMAT.EXCEL
+              ? downloadBlob(blob, `${filename}.xlsx`)
+              : window.open(blobUrl, '_blank')
+          }
+          style={{ marginLeft: '8px' }}
+          aria-label={
+            format === EXPORT_FORMAT.EXCEL
+              ? (t('download_file') || 'Download file')
+              : (t('open_in_new_tab') || 'Open in new tab')
+          }
+        >
+          <ExternalLink size={14} />
+        </button>
+      </span>
+    ),
+  }), [t]);
+
   const handleScan = useCallback((mode) => {
     if (!cls) return;
     const params = new URLSearchParams({
@@ -84,9 +109,7 @@ function ScheduleContextMenu({
       programId: cls.programId || cls.program?.id || '',
       subjectId: cls.subjectId || cls.subject?.id || '',
     });
-    if (mode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
-      params.set('mode', ATTENDANCE_TYPE_CATEGORY.STANDUP);
-    }
+    params.set('mode', mode);
     window.open(`/qr-scanner?${params.toString()}`, '_blank');
     onClose();
   }, [cls, dateStr, onClose]);
@@ -107,13 +130,41 @@ function ScheduleContextMenu({
   }, [onClose]);
 
   const handlePreviewPdf = useCallback(() => {
+    if (!existingWorkflow?.fileId) return;
     onClose();
-    setPdfPreviewOpen(true);
-  }, [onClose]);
-
-  const handleClosePreview = useCallback(() => {
-    setPdfPreviewOpen(false);
-  }, []);
+    runExport('preview-workflow-pdf', async () => {
+      try {
+        const { apiService } = await import('@services/api/apiService.js');
+        const response = await apiService.get(`/drive/files/${existingWorkflow.fileId}/download`, {
+          responseType: 'blob',
+        });
+        const blob = response.data;
+        const blobUrl = URL.createObjectURL(blob);
+        onExportSuccess?.(buildExportBanner(
+          t('operations_board_preview_pdf') || 'Preview PDF',
+          EXPORT_FORMAT.PDF,
+          blob,
+          existingWorkflow.fileName || 'workflow_document',
+          blobUrl,
+        ));
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      } catch (err) {
+        console.error('[ScheduleContextMenu] preview PDF failed:', err);
+        const errorMsg = err.response?.status === 404
+          ? (t('file_not_found_reinitiate') || 'File not found in storage. Please reject and re-initiate the workflow to generate a new document.')
+          : err.response?.status === 403
+          ? (t('access_denied') || 'Access denied. You do not have permission to view this file.')
+          : err.response?.status === 500
+          ? (t('server_error') || 'Server error. The file may not exist in storage. Try rejecting and re-initiating the workflow.')
+          : (err.message || (t('operations_board_preview_failed') || 'Preview unavailable'));
+        onExportSuccess?.({
+          pillColor: '#dc2626',
+          icon: <AlertCircle size={16} className="shrink-0" />,
+          message: errorMsg,
+        });
+      }
+    });
+  }, [existingWorkflow?.fileId, existingWorkflow?.fileName, onClose, runExport, onExportSuccess, buildExportBanner, t]);
 
   const handleCloseWorkflowDialog = useCallback(() => {
     setWorkflowDialogOpen(false);
@@ -155,79 +206,49 @@ function ScheduleContextMenu({
     const items = [];
 
     if (canExport && cls) {
-      items.push({
-        id: 'export-weekly',
-        label: t('weekly_schedule'),
-        icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
-        trailingActions: [
-          {
-            title: t('export_pdf') || 'PDF',
-            icon: <FileText size={16} style={{ color: '#e53935' }} />,
-            tooltipColor: '#e53935',
-            onClick: () => runExport('export-weekly-pdf', () =>
-              exportWeeklyScheduleForScope({ cls, program, subject, academicTerm, lang, t, user, format: EXPORT_FORMAT.PDF })),
-          },
-          {
-            title: t('export_excel') || 'Excel',
-            icon: <FileSpreadsheet size={16} style={{ color: '#43a047' }} />,
-            tooltipColor: '#43a047',
-            onClick: () => runExport('export-weekly-excel', () =>
-              exportWeeklyScheduleForScope({ cls, program, subject, academicTerm, lang, t, user, format: EXPORT_FORMAT.EXCEL })),
-          },
-        ],
-      });
-      items.push({
-        id: 'export-daily',
-        label: t('daily_official'),
-        icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
-        trailingActions: [
-          {
-            title: t('export_pdf') || 'PDF',
-            icon: <FileText size={16} style={{ color: '#e53935' }} />,
-            tooltipColor: '#e53935',
-            onClick: () => {
-              onClose();
-              setDailyPreviewOpen(true);
+      // Hide daily export options for HR-only users
+      if (!hrOnly) {
+        items.push({
+          id: 'export-daily',
+          label: t('daily_official'),
+          icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
+          trailingActions: [
+            {
+              title: t('export_pdf') || 'PDF',
+              icon: <FileText size={16} style={{ color: '#e53935' }} />,
+              tooltipColor: '#e53935',
+              onClick: () => runExport('export-daily-pdf', async () => {
+                try {
+                  const result = await exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.PDF, skipDownload: true });
+                  const blobUrl = URL.createObjectURL(result.blob);
+                  onExportSuccess?.(buildExportBanner(`${t('daily_official') || 'Daily Official'} PDF`, EXPORT_FORMAT.PDF, result.blob, result.filename, blobUrl));
+                  setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+                } catch (err) {
+                  console.error('[ScheduleContextMenu] export daily pdf failed:', err);
+                  throw err;
+                }
+              }),
             },
-          },
-          {
-            title: t('export_excel') || 'Excel',
-            icon: <FileSpreadsheet size={16} style={{ color: '#43a047' }} />,
-            tooltipColor: '#43a047',
-            onClick: () => runExport('export-daily-excel', () =>
-              exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.EXCEL })),
-          },
-        ],
-      });
-      items.push({
-        id: 'export-templates',
-        label: t('templates') || 'Templates',
-        icon: getThemedIcon('ui', 'file_text', 18, 'currentColor'),
-        children: [
-          {
-            id: 'template-daily',
-            label: t('daily_template') || 'Daily',
-            icon: getThemedIcon('ui', 'file_text', 18, 'currentColor'),
-            trailingActions: [
-              {
-                title: t('export_pdf') || 'PDF',
-                icon: <FileText size={16} style={{ color: '#e53935' }} />,
-                tooltipColor: '#e53935',
-                onClick: () => runExport('export-template-pdf', () =>
-                  exportDailyOfficialTemplate({ cls, program, subject, academicTerm, lang, user, instructorName: slotInstructor, format: EXPORT_FORMAT.PDF })),
-              },
-              {
-                title: t('export_excel') || 'Excel',
-                icon: <FileSpreadsheet size={16} style={{ color: '#43a047' }} />,
-                tooltipColor: '#43a047',
-                onClick: () => runExport('export-template-excel', () =>
-                  exportDailyOfficialTemplate({ cls, program, subject, academicTerm, lang, user, instructorName: slotInstructor, format: EXPORT_FORMAT.EXCEL })),
-              },
-            ],
-          },
-        ],
-      });
-      items.push({ divider: true });
+            {
+              title: t('export_excel') || 'Excel',
+              icon: <FileSpreadsheet size={16} style={{ color: '#43a047' }} />,
+              tooltipColor: '#43a047',
+              onClick: () => runExport('export-daily-excel', async () => {
+                try {
+                  const result = await exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.EXCEL, skipDownload: true });
+                  const blobUrl = URL.createObjectURL(result.blob);
+                  onExportSuccess?.(buildExportBanner(`${t('daily_official') || 'Daily Official'} Excel`, EXPORT_FORMAT.EXCEL, result.blob, result.filename, blobUrl));
+                  setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+                } catch (err) {
+                  console.error('[ScheduleContextMenu] export daily excel failed:', err);
+                  throw err;
+                }
+              }),
+            },
+          ],
+        });
+        items.push({ divider: true });
+      }
     }
 
     const attendanceChildren = [];
@@ -273,38 +294,59 @@ function ScheduleContextMenu({
       ? ((() => {
         const status = String(existingWorkflow.status || '').toUpperCase();
         const statusColors = {
-          APPROVED: '#16a34a',
-          REJECTED: '#dc2626',
-          DRAFT: '#f59e0b',
-          SUBMITTED: '#f59e0b',
-          UNDER_ADMIN_REVIEW: '#f59e0b',
-          UNDER_HR_REVIEW: '#f59e0b',
+          APPROVED: { bg: '#16a34a', text: '#ffffff', border: '#16a34a' },
+          REJECTED: { bg: '#dc2626', text: '#ffffff', border: '#dc2626' },
+          DRAFT: { bg: '#6b7280', text: '#ffffff', border: '#6b7280' },
+          SUBMITTED: { bg: '#2563eb', text: '#ffffff', border: '#2563eb' },
+          UNDER_ADMIN_REVIEW: { bg: '#f59e0b', text: '#ffffff', border: '#f59e0b' },
+          UNDER_HR_REVIEW: { bg: '#e11d48', text: '#ffffff', border: '#e11d48' },
         };
-        const color = statusColors[status] || '#f59e0b';
+        const colorCfg = statusColors[status] || { bg: '#6b7280', text: '#ffffff', border: '#6b7280' };
         const statusLabel = t(`workflow_status_${status.toLowerCase()}`, status);
-        const iconColor = status === 'APPROVED' ? '#16a34a' : status === 'REJECTED' ? '#dc2626' : '#f59e0b';
+        const iconColor = colorCfg.bg;
         const displayStatus = (hrOnly && status === 'REJECTED') ? null : status;
         if (!displayStatus) return [];
-        return [{
+        const workflowActions = [{
           id: 'daily-attendance-existing',
           labelNode: (
-            <span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               {t('workspace_menu_daily_attendance') || 'Daily attendance'}
-              {' — '}
-              <span style={{ color, fontWeight: 600 }}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '2px 10px',
+                borderRadius: '9999px',
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                backgroundColor: colorCfg.bg,
+                color: colorCfg.text,
+                border: `1px solid ${colorCfg.border}`,
+                lineHeight: '1.4',
+                whiteSpace: 'nowrap',
+              }}>
                 {statusLabel}
               </span>
             </span>
           ),
           icon: <AlertCircle size={18} color={iconColor} />,
           onClick: () => handleGoToOperationsFromWorkflow(existingWorkflow),
-          trailingActions: existingWorkflow.fileId ? [{
+          trailingActions: (existingWorkflow.fileId && status !== 'DRAFT') ? [{
             title: t('operations_board_preview_pdf') || 'Preview PDF',
             icon: <FileText size={16} color="#3b82f6" />,
             tooltipColor: '#3b82f6',
             onClick: handlePreviewPdf,
           }] : undefined,
         }];
+        if (status === 'REJECTED' || status === 'DRAFT' || !existingWorkflow.fileId) {
+          workflowActions.push({
+            id: 'reinitiate-workflow',
+            labelKey: 'workspace_menu_workflow_initiate',
+            labelFallback: 'Re-initiate',
+            icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
+            onClick: handleInitiateWorkflow,
+          });
+        }
+        return workflowActions;
       })())
       : [{
         id: 'initiate-workflow',
@@ -371,34 +413,6 @@ function ScheduleContextMenu({
         user={user}
         onGoToOperations={handleGoToOperationsFromWorkflow}
         knownExisting={existingWorkflow}
-      />
-      <PdfPreviewDialog
-        open={pdfPreviewOpen}
-        onClose={handleClosePreview}
-        cls={cls}
-        program={program}
-        subject={subject}
-        academicTerm={academicTerm}
-        date={dateStr}
-        instructorName={slotInstructor}
-        user={user}
-        title={t('operations_board_preview_pdf') || 'Preview PDF'}
-        fileId={existingWorkflow?.fileId}
-        isApproved={String(existingWorkflow?.status || '').toUpperCase() === 'APPROVED'}
-      />
-      <PdfPreviewDialog
-        open={dailyPreviewOpen}
-        onClose={() => setDailyPreviewOpen(false)}
-        cls={cls}
-        program={program}
-        subject={subject}
-        academicTerm={academicTerm}
-        date={dateStr}
-        instructorName={slotInstructor}
-        user={user}
-        title={t('daily_official') || 'Daily Official'}
-        fileId={existingWorkflow?.fileId}
-        isApproved={String(existingWorkflow?.status || '').toUpperCase() === 'APPROVED'}
       />
     </>
   );

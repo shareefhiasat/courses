@@ -147,6 +147,7 @@ function ScheduleTimeLineOverlay({
   columns,
   days,
   t,
+  lang = 'en',
   onOutsideHoursChange,
 }) {
   const [lineTop, setLineTop] = useState(null);
@@ -247,19 +248,25 @@ function ScheduleTimeLineOverlay({
         if (dataCells.length) {
           const firstCellRect = dataCells[0].getBoundingClientRect();
           const lastCellRect = dataCells[dataCells.length - 1].getBoundingClientRect();
-          const rowLeftPx = firstCellRect.left - wrapRect.left;
-          const rowWidthPx = lastCellRect.right - firstCellRect.left;
+          const isRtl = firstCellRect.left > lastCellRect.left;
+          const rowLeftPx = Math.min(firstCellRect.left, lastCellRect.left) - wrapRect.left;
+          const rowWidthPx = Math.max(firstCellRect.right, lastCellRect.right) - Math.min(firstCellRect.left, lastCellRect.left);
           setRowLeft(rowLeftPx);
           setRowWidth(rowWidthPx);
 
           if (isInSlot && dataCells[clampedColumnIndex]) {
             const cellRect = dataCells[clampedColumnIndex].getBoundingClientRect();
-            const offsetWithinRow = (cellRect.left - firstCellRect.left) + cellRect.width * clampedWithinSlotPct;
+            const cellLeft = cellRect.left - wrapRect.left;
+            const cellRight = cellRect.right - wrapRect.left;
+            const offsetWithinRow = isRtl
+              ? (cellRight - rowLeftPx) - cellRect.width * clampedWithinSlotPct
+              : (cellLeft - rowLeftPx) + cellRect.width * clampedWithinSlotPct;
             setDotOffset(offsetWithinRow);
           } else {
-            // When not in a slot, use linear time-to-pixel mapping across the row
-            // The row spans from dayStartMin to dayEndMin (actual schedule bounds)
-            setDotOffset(rowWidthPx * timePct);
+            // When not in a slot, use linear time-to-pixel mapping across the row.
+            // In RTL the visual flow is right-to-left, so invert the percentage.
+            const rawOffset = isRtl ? rowWidthPx * (1 - timePct) : rowWidthPx * timePct;
+            setDotOffset(rawOffset);
           }
         }
       }
@@ -291,7 +298,13 @@ function ScheduleTimeLineOverlay({
 
   if (lineTop == null || rowLeft == null || rowWidth == null) return null;
 
-  const label = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const label = (() => {
+    const h24 = now.getHours();
+    const m = now.getMinutes();
+    const h12 = (h24 + 11) % 12 + 1;
+    const ampm = lang === 'ar' ? (h24 >= 12 ? 'م' : 'ص') : (h24 >= 12 ? 'PM' : 'AM');
+    return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+  })();
 
   return (
     <div 
@@ -305,11 +318,9 @@ function ScheduleTimeLineOverlay({
       aria-hidden
     >
       <div className={gridStyles.timeLineDash} />
-      <span className={gridStyles.timeLineDot} style={{ left: `${dotOffset}px` }} />
-      <div className={gridStyles.timeLineTooltip} style={{ left: `${dotOffset}px` }}>
-        {label}
-        <span className={gridStyles.timeLineTooltipArrow} />
-      </div>
+      <ColoredTooltip title={label} color={PURPLE_TOOLTIP} placement="top">
+        <span className={gridStyles.timeLineDot} style={{ left: `${dotOffset}px` }} />
+      </ColoredTooltip>
     </div>
   );
 }
@@ -344,18 +355,17 @@ function WorkflowStatusGroup({ status, t, lang, selectedDate, hideTooltips = fal
   return (
     <span className={gridStyles.workflowGroup}>
       {!hideTooltips && (
-        <ColoredTooltip title={label} color={color} placement="bottom">
+        <ScheduleStatusHistoryTooltip status={status} lang={lang} fallbackDate={selectedDate} t={t} currentColor={color}>
           <span className={gridStyles.workflowIconWrap} style={{ '--workflow-color': color }}>
             <WorkflowIcon className={gridStyles.workflowIconSvg} color={color} strokeWidth={2.5} />
           </span>
-        </ColoredTooltip>
+        </ScheduleStatusHistoryTooltip>
       )}
       {hideTooltips && (
         <span className={gridStyles.workflowIconWrap} style={{ '--workflow-color': color }}>
           <WorkflowIcon className={gridStyles.workflowIconSvg} color={color} strokeWidth={2.5} />
         </span>
       )}
-      <StatusDot status={status} t={t} lang={lang} selectedDate={selectedDate} hideTooltips={hideTooltips} />
     </span>
   );
 }
@@ -487,7 +497,7 @@ function StatusDot({ status, t, lang, selectedDate, hideTooltips = false }) {
   }
 
   return (
-    <ScheduleStatusHistoryTooltip status={status} lang={lang} fallbackDate={selectedDate}>
+    <ScheduleStatusHistoryTooltip status={status} lang={lang} fallbackDate={selectedDate} t={t} currentColor={dotColor}>
       <span className={gridStyles.statusDotWrap}>
         <span
           className={`${gridStyles.statusDot} ${gridStyles[`statusDot_${key}`]}`}
@@ -510,7 +520,7 @@ function CellContent({ children, className, ltr }) {
   );
 }
 
-function VerticalText({ children, compact }) {
+function VerticalText({ children, compact, fontSize, minHeight, className }) {
   let content = children;
   const text = typeof children === 'string' ? children.trim() : '';
   const shouldSplitWords = compact && text.includes(' ') && !/\d{1,2}:\d{2}/.test(text);
@@ -525,9 +535,13 @@ function VerticalText({ children, compact }) {
     ));
   }
 
+  const wrapStyle = minHeight !== undefined ? { minHeight } : undefined;
+  const textStyle = fontSize !== undefined ? { fontSize } : undefined;
+  const textClass = `${styles.scheduleVerticalText}${compact ? ` ${styles.scheduleBreakVertical}` : ''}${className ? ` ${className}` : ''}`;
+
   return (
-    <div className={compact ? styles.scheduleBreakVerticalWrap : styles.scheduleVerticalTextWrap}>
-      <span className={`${styles.scheduleVerticalText} ${compact ? styles.scheduleBreakVertical : ''}`}>
+    <div className={compact ? styles.scheduleBreakVerticalWrap : styles.scheduleVerticalTextWrap} style={wrapStyle}>
+      <span className={textClass} style={textStyle}>
         {content}
       </span>
     </div>
@@ -566,14 +580,18 @@ function InteractiveSlotCell({
   hideNotesComments = false,
   hideTooltips = false,
   onGenerateDailyAttendance,
+  rowSpan = 4,
 }) {
   if (isBreak) {
     if (rowType !== 'subject') return null;
     const dayHasClasses = day && Object.values(day.slots || {}).some(s => s && s.classId && !s.isBreak);
+    const breakFontSize = rowSpan <= 2 ? '7px' : rowSpan === 3 ? '9px' : undefined;
     return (
-      <td className={styles.scheduleBreakCell} rowSpan={4}>
+      <td className={styles.scheduleBreakCell} rowSpan={rowSpan}>
         <CellContent ltr className={gridStyles.breakCellInner}>
-          <VerticalText compact>{dayHasClasses ? (slot?.time || '—') : '—'}</VerticalText>
+          <VerticalText compact fontSize={breakFontSize} minHeight={0}>
+            {dayHasClasses ? (slot?.time || '—') : '—'}
+          </VerticalText>
         </CellContent>
       </td>
     );
@@ -786,14 +804,17 @@ function DayBlock({
   hideNotesComments = false,
   hideTooltips = false,
   onGenerateDailyAttendance,
+  rowTypes,
+  rowSpan,
+  showDayDate = true,
 }) {
-  const rowTypes = ['subject', 'time', 'instructor', 'room'];
   const rowLabelMap = {
     subject: rowLabels.subject,
     time: rowLabels.time,
     instructor: rowLabels.instructor,
     room: rowLabels.room,
   };
+  const dayFontSize = rowSpan <= 2 ? '8px' : rowSpan === 3 ? '10px' : undefined;
 
   return (
     <tbody className={isTodayRow ? gridStyles.dayBlockWrap : undefined} data-day={day.dayCode}>
@@ -803,11 +824,11 @@ function DayBlock({
           className={`${styles.scheduleDayRow} ${isTodayRow ? gridStyles.todayRow : ''}`}
         >
           {rowIndex === 0 && (
-            <td className={styles.scheduleDayCell} rowSpan={4}>
+            <td className={styles.scheduleDayCell} rowSpan={rowSpan}>
               <div className={gridStyles.verticalCellInner}>
-                <VerticalText>
+                <VerticalText fontSize={dayFontSize} minHeight={0}>
                   {day.dayLabel}
-                  {(() => {
+                  {showDayDate && (() => {
                     if (!selectedDate) return null;
                     const anchor = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
                     const weekStart = new Date(anchor);
@@ -869,7 +890,7 @@ function DayBlock({
                 slot={slot}
                 day={day}
                 rowType={rowType}
-                isBreak={col.isBreak}
+                isBreak={col.isBreak || isOfficeHourColumn(col)}
                 isMine={isMine}
                 isClickable={isClickable}
                 isDimmed={isDimmed}
@@ -886,6 +907,7 @@ function DayBlock({
                 hideNotesComments={hideNotesComments}
                 hideTooltips={hideTooltips}
                 onGenerateDailyAttendance={onGenerateDailyAttendance}
+                rowSpan={rowSpan}
               />
             );
           })}
@@ -915,6 +937,11 @@ const OfficialWeeklyScheduleGrid = ({
   hideNotesComments = false,
   hideTooltips = false,
   hideLegend = false,
+  showInstructor = true,
+  showRoom = true,
+  showDayDate = true,
+  showBreakColumns = true,
+  dayFocus = false,
 }) => {
   const { lang, t } = useLang();
   const { theme } = useTheme();
@@ -953,11 +980,34 @@ const OfficialWeeklyScheduleGrid = ({
     return () => document.removeEventListener('contextmenu', handleContextMenu, true);
   }, [onCellClick, scheduleData]);
 
-  const columnWidths = useMemo(() => {
+  const visibleColumns = useMemo(() => {
     const cols = scheduleData?.columns || [];
-    const narrow = measureNarrowColumnWidths(cols, scheduleData?.days);
-    return cols.map((col) => resolveDataColumnWidth(col, cols, narrow));
-  }, [scheduleData?.columns, scheduleData?.days]);
+    if (showBreakColumns) return cols;
+    return cols.filter((col) => !col.isBreak);
+  }, [scheduleData?.columns, showBreakColumns]);
+
+  const displayDays = useMemo(() => {
+    const allDays = scheduleData?.days || [];
+    if (!dayFocus || allDays.length === 0) return allDays;
+    const focusDayCode = DAY_CODES[selectedDate.getDay()];
+    const filtered = allDays.filter((day) => day.dayCode === focusDayCode);
+    return filtered.length > 0 ? filtered : allDays;
+  }, [scheduleData?.days, dayFocus, selectedDate]);
+
+  const columnWidths = useMemo(() => {
+    const narrow = measureNarrowColumnWidths(visibleColumns, displayDays);
+    return visibleColumns.map((col) => resolveDataColumnWidth(col, visibleColumns, narrow));
+  }, [visibleColumns, displayDays]);
+
+  const visibleRowTypes = useMemo(() => {
+    const all = ['subject', 'time', 'instructor', 'room'];
+    return all.filter((rt) => {
+      if (rt === 'instructor') return showInstructor;
+      if (rt === 'room') return showRoom;
+      return true;
+    });
+  }, [showInstructor, showRoom]);
+  const rowSpan = visibleRowTypes.length;
 
   if (!scheduleData?.days?.length) {
     return (
@@ -977,8 +1027,9 @@ const OfficialWeeklyScheduleGrid = ({
   const isWorkingToday = WORKING_DAY_CODES.has(todayCode);
   const showTodayTimeline = isViewingCurrentWeek && isWorkingToday;
   const metaLine = [batch, year && term ? `${year} / ${term}` : year || term].filter(Boolean).join(' — ');
-  const { start: dayStartMin, end: dayEndMin } = resolveProgramHours(scheduleData);
+  const { start: dayStartMin, end: dayEndMin } = resolveProgramHours({ ...scheduleData, days: displayDays });
   const dateInputValue = selectedDate.toISOString().split('T')[0];
+  const totalDataRows = (displayDays?.length || 0) * rowSpan;
 
   return (
     <div
@@ -1018,19 +1069,21 @@ const OfficialWeeklyScheduleGrid = ({
           dayStartMin={dayStartMin}
           dayEndMin={dayEndMin}
           visible={showTodayTimeline}
-          columns={columns}
-          days={days}
+          columns={visibleColumns}
+          days={displayDays}
           t={t}
+          lang={lang}
           onOutsideHoursChange={setOutsideHours}
         />
         <table
           ref={tableRef}
           className={`${styles.officialTable} ${styles.weeklyScheduleTable} ${gridStyles.scalableTable} ${fillWidth ? gridStyles.expandedTable : ''}`}
+          style={{ '--schedule-data-rows': String(totalDataRows || 1) }}
         >
           <colgroup>
             <col style={{ width: `${DAY_COL_PCT}%` }} />
             <col style={{ width: `${LABEL_COL_PCT}%` }} />
-            {columns.map((col, idx) => (
+            {visibleColumns.map((col, idx) => (
               <col key={col.key} style={{ width: `${columnWidths[idx]}%` }} />
             ))}
           </colgroup>
@@ -1048,30 +1101,38 @@ const OfficialWeeklyScheduleGrid = ({
                   t={t}
                 />
               </th>
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  className={[
-                    col.isBreak ? styles.scheduleBreakHeader : styles.scheduleLectureHeader,
-                    col.isBreak || isOfficeHourColumn(col) ? gridStyles.narrowColHeader : gridStyles.lectureColHeader,
-                  ].filter(Boolean).join(' ')}
-                >
-                  {col.isBreak ? (
-                    <div className={gridStyles.verticalCellInner}>
-                      <VerticalText compact className={styles.scheduleBreakHeaderLabel}>{col.label}</VerticalText>
-                    </div>
-                  ) : (
-                    <span className={gridStyles.horizontalLectureHeader}>{col.label}</span>
-                  )}
-                </th>
-              ))}
+              {visibleColumns.map((col) => {
+                const isNarrowCol = col.isBreak || isOfficeHourColumn(col);
+                const headerFontSize = isNarrowCol
+                  ? `${Math.min(11, Math.max(6, Math.floor(40 / (String(col.label || '').length * 0.65))))}px`
+                  : undefined;
+                return (
+                  <th
+                    key={col.key}
+                    className={[
+                      isNarrowCol ? styles.scheduleBreakHeader : styles.scheduleLectureHeader,
+                      isNarrowCol ? gridStyles.narrowColHeader : gridStyles.lectureColHeader,
+                    ].filter(Boolean).join(' ')}
+                  >
+                    {isNarrowCol ? (
+                      <div className={gridStyles.verticalCellInner}>
+                        <VerticalText compact className={styles.scheduleBreakHeaderLabel} fontSize={headerFontSize}>
+                          {col.label}
+                        </VerticalText>
+                      </div>
+                    ) : (
+                      <span className={gridStyles.horizontalLectureHeader}>{col.label}</span>
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
-          {days.map((day) => (
+          {displayDays.map((day) => (
             <DayBlock
               key={day.dayCode}
               day={day}
-              columns={columns}
+              columns={visibleColumns}
               rowLabels={rowLabels}
               statusMap={statusMap}
               instructorId={instructorId}
@@ -1086,6 +1147,9 @@ const OfficialWeeklyScheduleGrid = ({
               hideNotesComments={hideNotesComments}
               hideTooltips={hideTooltips}
               onGenerateDailyAttendance={onGenerateDailyAttendance}
+              rowTypes={visibleRowTypes}
+              rowSpan={rowSpan}
+              showDayDate={showDayDate}
             />
           ))}
         </table>

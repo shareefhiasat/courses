@@ -1,19 +1,22 @@
 /**
  * Maps a Prisma Notification record to the frontend-expected shape.
  * Frontend expects: id, type, title, message, data, link, isRead, isArchived, createdAt, priority, event
+ * @param {Object} prismaNotification - Prisma notification record
+ * @param {string} lang - Language code ('en' or 'ar'), defaults to 'en'
  */
-export function mapNotification(prismaNotification) {
+export function mapNotification(prismaNotification, lang = 'en') {
   if (!prismaNotification) return null;
+  const isAr = lang === 'ar';
   return {
     id: prismaNotification.id,
     type: prismaNotification.category,
     category: prismaNotification.category,
     event: prismaNotification.event,
     priority: prismaNotification.priority,
-    title: prismaNotification.titleEn,
+    title: isAr ? (prismaNotification.titleAr || prismaNotification.titleEn) : prismaNotification.titleEn,
     titleEn: prismaNotification.titleEn,
     titleAr: prismaNotification.titleAr,
-    message: prismaNotification.bodyEn,
+    message: isAr ? (prismaNotification.bodyAr || prismaNotification.bodyEn) : prismaNotification.bodyEn,
     bodyEn: prismaNotification.bodyEn,
     bodyAr: prismaNotification.bodyAr,
     link: prismaNotification.link,
@@ -29,7 +32,7 @@ export function mapNotification(prismaNotification) {
   };
 }
 
-export function mapNotifications(prismaNotifications) {
+export function mapNotifications(prismaNotifications, lang = 'en') {
   if (!Array.isArray(prismaNotifications)) return [];
-  return prismaNotifications.map(mapNotification);
+  return prismaNotifications.map(n => mapNotification(n, lang));
 }

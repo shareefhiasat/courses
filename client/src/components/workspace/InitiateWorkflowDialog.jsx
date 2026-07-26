@@ -11,8 +11,9 @@ import {
   Typography,
 } from '@mui/material';
 import { AlertCircle, FileText } from 'lucide-react';
-import WorkflowPdfPreviewPanel from '@components/operations-board/WorkflowPdfPreviewPanel.jsx';
+import { useToast } from '@components/ui/ToastProvider.jsx';
 import { initiateAttendanceWorkflow, findExistingAttendanceWorkflow } from '@services/business/workflowInitiationService.js';
+import { deleteWorkflowDocument } from '@services/api/workflow-documents-api.js';
 
 export default function InitiateWorkflowDialog({
   open,
@@ -34,7 +35,7 @@ export default function InitiateWorkflowDialog({
   const [success, setSuccess] = useState(false);
   const [existingWorkflow, setExistingWorkflow] = useState(null);
   const [precheckExisting, setPrecheckExisting] = useState(knownExisting);
-  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const toast = useToast();
 
   const className = cls
     ? (lang === 'ar' ? cls.nameAr || cls.nameEn || cls.code : cls.nameEn || cls.nameAr || cls.code)
@@ -59,10 +60,30 @@ export default function InitiateWorkflowDialog({
   const handleConfirm = useCallback(async () => {
     if (!cls?.id || !selectedDate) return;
     if (precheckExisting) {
-      setErrorSeverity('warning');
-      setError(t('initiate_workflow_in_progress') || 'A workflow already exists for this class and date.');
-      setExistingWorkflow(precheckExisting);
-      return;
+      const existingStatus = String(precheckExisting.status || '').toUpperCase();
+      if (existingStatus === 'DRAFT' || existingStatus === 'REJECTED') {
+        setLoading(true);
+        setError(null);
+        setPhase(t('initiate_workflow_reinitiating') || 'Re-initializing workflow…');
+        try {
+          await deleteWorkflowDocument(precheckExisting.id);
+          setPrecheckExisting(null);
+          setExistingWorkflow(null);
+        } catch (delErr) {
+          console.error('[InitiateWorkflowDialog] Failed to delete existing workflow:', delErr);
+          setErrorSeverity('error');
+          setError(t('initiate_workflow_delete_failed') || 'Failed to remove existing workflow. Please try again.');
+          setLoading(false);
+          setPhase('');
+          return;
+        }
+        setPhase(t('initiate_workflow_exporting') || 'Exporting…');
+      } else {
+        setErrorSeverity('warning');
+        setError(t('initiate_workflow_in_progress') || 'A workflow already exists for this class and date.');
+        setExistingWorkflow(precheckExisting);
+        return;
+      }
     }
     setLoading(true);
     setError(null);
@@ -92,7 +113,8 @@ export default function InitiateWorkflowDialog({
         setExistingWorkflow(result.existingDraft || null);
       } else {
         setErrorSeverity('error');
-        setError(result.error || (t('initiate_workflow_failed') || 'Failed to create workflow. Please try again.'));
+        const translatedError = result.errorKey ? t(result.errorKey, result.error) : result.error;
+        setError(translatedError || (t('initiate_workflow_failed') || 'Failed to create workflow. Please try again.'));
       }
     } catch (err) {
       console.error('[InitiateWorkflowDialog] error:', err);
@@ -110,7 +132,6 @@ export default function InitiateWorkflowDialog({
     setSuccess(false);
     setPhase('');
     setExistingWorkflow(null);
-    setPdfPreviewOpen(false);
     onClose();
   }, [loading, onClose]);
 
@@ -121,10 +142,29 @@ export default function InitiateWorkflowDialog({
 
   const activeExisting = existingWorkflow || precheckExisting;
 
-  const handlePreviewPdf = useCallback(() => {
+  const handlePreviewPdf = useCallback(async () => {
     if (!activeExisting?.fileId) return;
-    setPdfPreviewOpen(true);
-  }, [activeExisting?.fileId]);
+    try {
+      const { apiService } = await import('@services/api/apiService.js');
+      const response = await apiService.get(`/drive/files/${activeExisting.fileId}/download`, {
+        responseType: 'blob',
+      });
+      const blobUrl = URL.createObjectURL(response.data);
+      window.open(blobUrl, '_blank');
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      toast?.showSuccess(t('export_success') || 'Export successful');
+    } catch (err) {
+      console.error('[InitiateWorkflowDialog] preview PDF failed:', err);
+      const errorMsg = err.response?.status === 404
+        ? (t('file_not_found_reinitiate') || 'File not found in storage. Please reject and re-initiate the workflow to generate a new document.')
+        : err.response?.status === 403
+        ? (t('access_denied') || 'Access denied. You do not have permission to view this file.')
+        : err.response?.status === 500
+        ? (t('server_error') || 'Server error. The file may not exist in storage. Try rejecting and re-initiating the workflow.')
+        : (err.message || (t('operations_board_preview_failed') || 'Preview unavailable'));
+      toast?.showError(errorMsg);
+    }
+  }, [activeExisting?.fileId, toast, t]);
 
   return (
     <>
@@ -150,12 +190,16 @@ export default function InitiateWorkflowDialog({
             )}
             {precheckExisting && !error && (
               <Alert
-                severity="warning"
+                severity={['DRAFT', 'REJECTED'].includes(String(precheckExisting.status || '').toUpperCase()) ? 'info' : 'warning'}
                 icon={<AlertCircle size={20} />}
                 data-testid="initiate-workflow-existing-hint"
               >
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <span>{t('initiate_workflow_existing_hint') || 'A workflow already exists for this class and date.'}</span>
+                  <span>
+                    {['DRAFT', 'REJECTED'].includes(String(precheckExisting.status || '').toUpperCase())
+                      ? (t('initiate_workflow_reinitiate_hint') || 'An existing workflow was found in this state. Click "Re-initiate" to delete it and create a fresh one.')
+                      : (t('initiate_workflow_existing_hint') || 'A workflow already exists for this class and date.')}
+                  </span>
                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                     <Button
                       size="small"
@@ -165,7 +209,7 @@ export default function InitiateWorkflowDialog({
                     >
                       {t('initiate_workflow_go_operations') || 'Go to Operations'}
                     </Button>
-                    {precheckExisting.fileId && (
+                    {precheckExisting.fileId && !['DRAFT'].includes(String(precheckExisting.status || '').toUpperCase()) && (
                       <Button
                         size="small"
                         variant="text"
@@ -229,49 +273,16 @@ export default function InitiateWorkflowDialog({
             </Button>
             <Button
               onClick={handleConfirm}
-              disabled={loading || !cls?.id || Boolean(precheckExisting)}
+              disabled={loading || !cls?.id || Boolean(precheckExisting && !['DRAFT', 'REJECTED'].includes(String(precheckExisting.status || '').toUpperCase()))}
               variant="contained"
               size="small"
               data-testid="initiate-workflow-confirm"
             >
-              {t('initiate_workflow_confirm') || 'Confirm'}
+              {precheckExisting && ['DRAFT', 'REJECTED'].includes(String(precheckExisting.status || '').toUpperCase())
+                ? (t('initiate_workflow_reinitiate') || 'Re-initiate')
+                : (t('initiate_workflow_confirm') || 'Confirm')}
             </Button>
           </>
-        )}
-      </DialogActions>
-    </Dialog>
-    <Dialog
-      open={pdfPreviewOpen}
-      onClose={() => setPdfPreviewOpen(false)}
-      maxWidth="md"
-      fullWidth
-      data-testid="initiate-workflow-pdf-preview-dialog"
-    >
-      <DialogTitle>{t('operations_board_preview_pdf') || 'Preview PDF'}</DialogTitle>
-      <DialogContent>
-        <WorkflowPdfPreviewPanel
-          fileId={activeExisting?.fileId}
-          fileName={activeExisting?.fileName || activeExisting?.title}
-          generatedAt={activeExisting?.createdAt || activeExisting?.fileCreatedAt || undefined}
-          open={pdfPreviewOpen}
-          onClose={() => setPdfPreviewOpen(false)}
-          t={t}
-        />
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setPdfPreviewOpen(false)}>
-          {t('close') || 'Close'}
-        </Button>
-        {activeExisting && (
-          <Button
-            variant="contained"
-            onClick={() => {
-              setPdfPreviewOpen(false);
-              goToExisting(activeExisting);
-            }}
-          >
-            {t('initiate_workflow_go_operations') || 'Go to Operations'}
-          </Button>
         )}
       </DialogActions>
     </Dialog>

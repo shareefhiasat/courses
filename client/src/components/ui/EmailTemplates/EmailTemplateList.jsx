@@ -549,7 +549,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                 ))}
                                 {template.variables.length > 8 && (
                                     <span style={{ fontSize: 'var(--font-size-xs)', color: '#666', fontWeight: '500' }}>
-                            +{template.variables.length - 8} more
+                            +{template.variables.length - 8} {t('more')}
                           </span>
                                 )}
                               </div>

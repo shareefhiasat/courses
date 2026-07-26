@@ -45,6 +45,7 @@ export async function createShare(input, actor) {
       subjectRole,
       permission = 'VIEW',
       expiresAt,
+      skipNotification,
     } = input || {};
     if (!actor?.userId) return err('NO_ACTOR', 'Authenticated actor required');
     if (!fileId && !folderId) return err('INVALID_INPUT', 'fileId or folderId required');
@@ -109,7 +110,7 @@ export async function createShare(input, actor) {
     }
 
     // Send notification for new share (not updates)
-    if (!existing) {
+    if (!existing && !skipNotification) {
       try {
         const sharer = await prisma.user.findUnique({
           where: { id: actor.userId },

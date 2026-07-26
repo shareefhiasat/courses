@@ -34,6 +34,10 @@ const RAW_TEMPLATES = {
     en: '{{workflowName}}',
     ar: '{{workflowName}}'
   },
+  [EVENTS.WORKFLOW_SENT_FOR_APPROVAL]: {
+    en: '{{workflowName}}',
+    ar: '{{workflowName}}'
+  },
   [EVENTS.WORKFLOW_RESUBMITTED]: {
     en: '{{workflowName}}',
     ar: '{{workflowName}}'
@@ -485,6 +489,7 @@ const RAW_TITLE_TEMPLATES = {
   [EVENTS.WORKFLOW_REJECTED]: { en: 'Workflow Rejected', ar: 'تم رفض سير العمل' },
   [EVENTS.WORKFLOW_RETURNED]: { en: 'Workflow Returned', ar: 'تم إرجاع سير العمل' },
   [EVENTS.WORKFLOW_SENT_FOR_REVIEW]: { en: 'Review Requested', ar: 'طلب مراجعة' },
+  [EVENTS.WORKFLOW_SENT_FOR_APPROVAL]: { en: 'Sent for Admin Approval', ar: 'أُرسل للموافقة الإدارية' },
   [EVENTS.WORKFLOW_RESUBMITTED]: { en: 'Workflow Resubmitted', ar: 'إعادة تقديم سير العمل' },
   [EVENTS.WORKFLOW_COMPLETED]: { en: 'Workflow Completed', ar: 'تم إكمال سير العمل' },
   [EVENTS.WORKFLOW_SLA_WARNING]: { en: 'SLA Warning', ar: 'تحذير SLA' },

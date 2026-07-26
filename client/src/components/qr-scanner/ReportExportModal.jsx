@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
 import { Button, Card, CardBody } from '@ui';
+import { FileText, FileSpreadsheet } from 'lucide-react';
 import { getThemedIcon } from '@constants/iconTypes';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { REPORT_TYPE_IDS, RECIPIENT_ROLES } from '@constants/reportConstants';
 import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
-import OfficialExportFormatPicker from './OfficialExportFormatPicker.jsx';
 import ExportSuccessPanel from '@components/export/ExportSuccessPanel.jsx';
 
 
@@ -88,19 +89,17 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
                 </Button>
               </div>
             </>
-          ) : (
-          <>
-          {isDailyOfficial && setOfficialExportFormat && (
-            <OfficialExportFormatPicker
-              exportFormat={officialExportFormat}
-              setExportFormat={setOfficialExportFormat}
+          ) : isDailyOfficial ? (
+            <DailyOfficialExport
               t={t}
               theme={theme}
-              showLabel={false}
+              isExporting={isExporting}
+              setOfficialExportFormat={setOfficialExportFormat}
+              onExport={onExport}
+              onClose={onClose}
             />
-          )}
-
-          {!isDailyOfficial && (
+          ) : (
+          <>
           <div style={{
             background: isSummaryReport
               ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
@@ -123,7 +122,6 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
               )}
             </h2>
           </div>
-          )}
 
           
           {isSummaryReport && (
@@ -796,6 +794,129 @@ const ActionButtons = ({
         }}
       >
         {exportLabel}
+      </Button>
+    </div>
+  );
+};
+
+const DailyOfficialExport = ({
+  t,
+  theme,
+  isExporting,
+  setOfficialExportFormat,
+  onExport,
+  onClose,
+}) => {
+  const handleExport = (format) => {
+    if (setOfficialExportFormat) {
+      setOfficialExportFormat(format);
+    }
+    if (onExport) {
+      onExport(format);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '1.5rem',
+        padding: '1rem 0',
+      }}
+    >
+      <ColoredTooltip
+        title={
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+              fontSize: 12,
+              padding: '4px 0',
+            }}
+          >
+            <div style={{ fontWeight: 600, marginBottom: 2 }}>
+              {t('daily_official') || 'Daily Official'}
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  cursor: 'pointer',
+                  color: '#e53935',
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleExport(EXPORT_FORMAT.PDF);
+                }}
+              >
+                <FileText size={14} /> PDF
+              </span>
+              <span
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  cursor: 'pointer',
+                  color: '#43a047',
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleExport(EXPORT_FORMAT.EXCEL);
+                }}
+              >
+                <FileSpreadsheet size={14} /> Excel
+              </span>
+            </div>
+          </div>
+        }
+        color="#64748b"
+        placement="bottom"
+      >
+        <button
+          type="button"
+          disabled={isExporting}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.75rem',
+            padding: '1.5rem 2rem',
+            borderRadius: '0.75rem',
+            border: '1px solid var(--border, #e5e7eb)',
+            background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : '#f9fafb',
+            cursor: isExporting ? 'not-allowed' : 'pointer',
+          }}
+        >
+          <div style={{ fontSize: '2.5rem', color: '#64748b' }}>
+            {getThemedIcon('ui', 'file_signature', 40, theme)}
+          </div>
+          <div
+            style={{
+              fontSize: '1.1rem',
+              fontWeight: 600,
+              color: theme === 'dark' ? '#f1f5f9' : '#374151',
+            }}
+          >
+            {t('daily_official') || 'Daily Official'}
+          </div>
+          <div
+            style={{
+              fontSize: '0.8rem',
+              color: theme === 'dark' ? '#94a3b8' : '#6b7280',
+            }}
+          >
+            {t('hover_to_choose_format') || 'Hover to choose format'}
+          </div>
+        </button>
+      </ColoredTooltip>
+
+      <Button variant="outline" onClick={onClose} disabled={isExporting}>
+        {t('cancel')}
       </Button>
     </div>
   );

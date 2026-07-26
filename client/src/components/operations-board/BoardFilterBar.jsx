@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { Box, Tab, Tabs, ToggleButton, ToggleButtonGroup, IconButton } from '@mui/material';
-import { ArrowUpDown, ArrowDownAZ, Columns3, Calendar, KanbanSquare, Workflow, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowUpDown, ArrowDownAZ, Calendar, KanbanSquare, Workflow, Users, ChevronLeft, ChevronRight, User, UserX, Maximize2, LayoutTemplate } from 'lucide-react';
 import DatePicker from '@components/ui/DatePicker/DatePicker';
 import { Input } from '@/components/kibo/ui/input';
 import { useLang } from '@contexts/LangContext';
@@ -20,13 +20,16 @@ export default function BoardFilterBar({
   onSortChange,
   lane = 'attendance',
   onLaneChange,
-  onResetLaneWidths,
+  onAutoFitContent,
+  onAutoFitScreen,
   showLaneReset = false,
   roleContext = {},
   embedded = false,
   expanded = false,
   onToggleExpand,
   viewMode = 'day',
+  showAvatars = true,
+  onToggleShowAvatars,
 }) {
   const { t, lang } = useLang();
   const theme = useTheme();
@@ -77,7 +80,7 @@ export default function BoardFilterBar({
         overflow: 'hidden',
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.25 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 0.75, py: 0.15 }}>
         {onLaneChange && !isInstructor && (
           <Tabs
             value={lane}
@@ -85,15 +88,15 @@ export default function BoardFilterBar({
             data-tour="operations-board-lane-tabs"
             data-filter-tabs="true"
             sx={{
-              minHeight: 30,
+              minHeight: 24,
               '& .MuiTabs-indicator': { display: 'none' },
               '& .MuiTabs-flexContainer': { gap: '2px' },
               '& .MuiTab-root': {
-                minHeight: 30,
+                minHeight: 24,
                 textTransform: 'none',
-                fontSize: '0.8125rem',
-                py: 0.25,
-                px: 1.25,
+                fontSize: '0.7rem',
+                py: 0.15,
+                px: 0.75,
                 borderRadius: '999px',
                 fontWeight: 500,
                 color: 'text.secondary',
@@ -126,8 +129,11 @@ export default function BoardFilterBar({
               value="attendance"
               icon={<Users size={14} />}
               iconPosition="start"
-              label={t('operations_board_tab_attendance') || 'Attendance'}
-              title={viewMode === 'week' ? (t('operations_board_attendance_week_disabled') || 'Attendance board is not available in week mode') : (t('operations_board_tab_attendance') || 'Attendance')}
+              label={(
+                <ColoredTooltip title={viewMode === 'week' ? (t('operations_board_attendance_week_disabled') || 'Attendance board is not available in week mode') : (t('operations_board_tab_attendance') || 'Attendance')} placement="top">
+                  <span>{t('operations_board_tab_attendance') || 'Attendance'}</span>
+                </ColoredTooltip>
+              )}
               data-testid="operations-board-tab-attendance"
               disabled={viewMode === 'week'}
             />
@@ -136,8 +142,11 @@ export default function BoardFilterBar({
               value="status"
               icon={<Workflow size={14} />}
               iconPosition="start"
-              label={t('operations_board_tab_workflow') || 'Workflow'}
-              title={t('operations_board_tab_workflow') || 'Workflow'}
+              label={(
+                <ColoredTooltip title={t('operations_board_tab_workflow') || 'Workflow'} placement="top">
+                  <span>{t('operations_board_tab_workflow') || 'Workflow'}</span>
+                </ColoredTooltip>
+              )}
               data-testid="operations-board-tab-workflow"
             />
             )}
@@ -150,15 +159,15 @@ export default function BoardFilterBar({
             data-tour="operations-board-panel-tabs"
             data-filter-tabs="true"
             sx={{
-              minHeight: 28,
+              minHeight: 24,
               '& .MuiTabs-indicator': { display: 'none' },
               '& .MuiTabs-flexContainer': { gap: '2px' },
               '& .MuiTab-root': {
-                minHeight: 28,
+                minHeight: 24,
                 textTransform: 'none',
-                fontSize: '0.75rem',
-                py: 0.25,
-                px: 1.25,
+                fontSize: '0.7rem',
+                py: 0.15,
+                px: 0.75,
                 borderRadius: '999px',
                 fontWeight: 500,
                 color: 'text.secondary',
@@ -190,23 +199,29 @@ export default function BoardFilterBar({
               value="board"
               icon={<KanbanSquare size={14} />}
               iconPosition="start"
-              label={t('operations_board_tab_board')}
-              title={t('operations_board_tab_board')}
+              label={(
+                <ColoredTooltip title={t('operations_board_tab_board')} placement="top">
+                  <span>{t('operations_board_tab_board')}</span>
+                </ColoredTooltip>
+              )}
               data-testid="operations-board-tab-board"
             />
             <Tab
               value="calendar"
               icon={<Calendar size={14} />}
               iconPosition="start"
-              label={t('operations_board_tab_calendar')}
-              title={t('operations_board_tab_calendar')}
+              label={(
+                <ColoredTooltip title={t('operations_board_tab_calendar')} placement="top">
+                  <span>{t('operations_board_tab_calendar')}</span>
+                </ColoredTooltip>
+              )}
               data-testid="operations-board-tab-calendar"
             />
           </Tabs>
         )}
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, justifyContent: 'flex-end' }}>
-          {panelTab === 'board' && !isInstructor && (
+          {panelTab === 'board' && (
             <Box
               data-tour="operations-board-search"
               sx={{
@@ -231,24 +246,55 @@ export default function BoardFilterBar({
               />
             </Box>
           )}
-          {showLaneReset && onResetLaneWidths && !isInstructor && (
+          {showLaneReset && onAutoFitContent && (
             <ColoredTooltip
-              title={t('operations_board_reset_lanes') || 'Reset lane widths'}
+              title={t('operations_board_auto_fit_content') || 'Auto-fit content'}
               color="#3b82f6"
               placement="bottom"
             >
               <IconButton
                 size="small"
-                onClick={onResetLaneWidths}
-                data-testid="operations-board-reset-lanes"
-                data-tour="operations-board-reset-lanes"
+                onClick={onAutoFitContent}
+                data-testid="operations-board-auto-fit-content"
                 sx={{ width: 32, height: 32, flexShrink: 0 }}
               >
-                <Columns3 size={16} />
+                <LayoutTemplate size={16} />
               </IconButton>
             </ColoredTooltip>
           )}
-          {(panelTab === 'board' || panelTab === 'table') && onSortChange && !isInstructor && (
+          {showLaneReset && onAutoFitScreen && (
+            <ColoredTooltip
+              title={t('operations_board_auto_fit_screen') || 'Auto-fit screen'}
+              color="#3b82f6"
+              placement="bottom"
+            >
+              <IconButton
+                size="small"
+                onClick={onAutoFitScreen}
+                data-testid="operations-board-auto-fit-screen"
+                sx={{ width: 32, height: 32, flexShrink: 0 }}
+              >
+                <Maximize2 size={16} />
+              </IconButton>
+            </ColoredTooltip>
+          )}
+          {panelTab === 'board' && lane === 'attendance' && onToggleShowAvatars && !isInstructor && (
+            <ColoredTooltip
+              title={showAvatars ? (t('operations_board_hide_avatars') || 'Hide avatars') : (t('operations_board_show_avatars') || 'Show avatars')}
+              color="#3b82f6"
+              placement="bottom"
+            >
+              <IconButton
+                size="small"
+                onClick={onToggleShowAvatars}
+                data-testid="operations-board-toggle-avatars"
+                sx={{ width: 32, height: 32, flexShrink: 0, color: showAvatars ? 'primary.main' : 'text.secondary' }}
+              >
+                {showAvatars ? <User size={18} /> : <UserX size={18} />}
+              </IconButton>
+            </ColoredTooltip>
+          )}
+          {(panelTab === 'board' || panelTab === 'table') && onSortChange && (
             <ToggleButtonGroup
               size="small"
               value={sortBy}

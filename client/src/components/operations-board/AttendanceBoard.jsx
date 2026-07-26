@@ -24,7 +24,7 @@ import {
   maskAttendanceColumnForHR,
   maskAttendanceStatsForHR,
 } from './hrAttendancePrivacy.js';
-import { fetchAttendanceStats, ATTENDANCE_COLUMNS } from '@services/business/operationsBoardService.js';
+import { fetchAttendanceStats, ATTENDANCE_COLUMNS, ATTENDANCE_BOARD_LANES } from '@services/business/operationsBoardService.js';
 import { getParticipationsByClassAndDate } from '@services/business/participationService.js';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
@@ -32,12 +32,17 @@ import { ATTENDANCE_BOARD_COLORS, BOARD_PARTICIPATION_COLOR } from '@constants/w
 
 const CARD_ORDER_KEY = 'operations_board_card_order';
 
-function BoardStatusDot({ column }) {
+function scalePx(base, fontScale = 100) {
+  return Math.max(6, Math.round(base * (fontScale / 100)));
+}
+
+function BoardStatusDot({ column, fontScale = 100 }) {
   const color = ATTENDANCE_BOARD_COLORS[column] || '#6b7280';
+  const dotSize = scalePx(8, fontScale);
   return (
     <span
-      className={`inline-block h-2 w-2 shrink-0 rounded-full ${column === 'NOT_TAKEN' ? gridStyles.legendDotPulse : ''}`}
-      style={{ backgroundColor: color, '--dot-color': color }}
+      className={`inline-block shrink-0 rounded-full ${column === ATTENDANCE_BOARD_LANES.NOT_TAKEN ? gridStyles.legendDotPulse : ''}`}
+      style={{ backgroundColor: color, '--dot-color': color, width: dotSize, height: dotSize }}
       aria-hidden
     />
   );
@@ -58,6 +63,19 @@ function saveCardOrder(classId, date, orderMap) {
   try {
     localStorage.setItem(getCardOrderKey(classId, date), JSON.stringify(orderMap));
   } catch {}
+}
+
+function getItemOrderId(item) {
+  return item.userId || item.id;
+}
+
+function getStoredIndex(stored, column, item) {
+  const colOrder = stored?.[column];
+  if (!Array.isArray(colOrder)) return -1;
+  const stableId = getItemOrderId(item);
+  let idx = colOrder.indexOf(stableId);
+  if (idx === -1) idx = colOrder.indexOf(item.id);
+  return idx;
 }
 
 function sortDataForBoard(data, sortBy, classId, date, lang) {
@@ -88,11 +106,13 @@ function applyStoredOrder(data, classId, date) {
   const stored = loadCardOrder(classId, date);
   if (!stored) return data;
   return [...data].sort((a, b) => {
-    const aOrder = stored[a.column]?.indexOf(a.id);
-    const bOrder = stored[b.column]?.indexOf(b.id);
-    if (aOrder == null && bOrder == null) return 0;
-    if (aOrder == null) return 1;
-    if (bOrder == null) return -1;
+    const aOrder = getStoredIndex(stored, a.column, a);
+    const bOrder = getStoredIndex(stored, b.column, b);
+    const aKnown = aOrder !== -1;
+    const bKnown = bOrder !== -1;
+    if (!aKnown && !bKnown) return 0;
+    if (!aKnown) return 1;
+    if (!bKnown) return -1;
     return aOrder - bOrder;
   });
 }
@@ -118,7 +138,15 @@ function AttendanceCardHoverTooltip({ item, stats, participationCount, t, lang, 
 
   return (
     <div style={{ maxWidth: 220, fontSize: '0.75rem', lineHeight: 1.45, color: labelColor }}>
-      <div style={{ fontWeight: 700, marginBottom: 4, color: nameColor }}>{studentName}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <BoardStudentAvatar
+          name={studentName}
+          profileImageUrl={item.profileImageUrl}
+          size="md"
+          borderColor={statusColor}
+        />
+        <div style={{ fontWeight: 700, color: nameColor }}>{studentName}</div>
+      </div>
       {item.studentNumber && (
         <div style={{ marginBottom: 2 }}>
           <span>{t('operations_board_profile_student_number') || 'Student Number'}: </span>
@@ -193,7 +221,9 @@ export default function AttendanceBoard({
   onBulkMove,
   participationRefreshKey = 0,
   fontScale = 100,
+  showAvatars = true,
 }) {
+  const isRTL = lang === 'ar';
   const hrViewer = isHROnlyViewer(roleContext);
   const isInstructorOnly = roleContext?.isInstructor && !roleContext?.isAdmin && !roleContext?.isHR && !roleContext?.isSuperAdmin;
   const sourceData = hrViewer ? mapAttendanceBoardDataForHR(data, roleContext) : data;
@@ -263,7 +293,7 @@ export default function AttendanceBoard({
   const persistCardOrder = useCallback((items) => {
     const orderMap = {};
     for (const col of columns) {
-      orderMap[col.id] = items.filter((d) => d.column === col.id).map((d) => d.id);
+      orderMap[col.id] = items.filter((d) => d.column === col.id).map((d) => getItemOrderId(d));
     }
     saveCardOrder(classId, date, orderMap);
   }, [columns, classId, date]);
@@ -286,12 +316,10 @@ export default function AttendanceBoard({
     }
 
     if (fromColumn === toColumn) {
-      if (sortBy === 'system') {
-        setBoardData((prev) => {
-          persistCardOrder(prev);
-          return prev;
-        });
-      }
+      setBoardData((prev) => {
+        if (sortBy === 'system') persistCardOrder(prev);
+        return sortDataForBoard(prev, sortBy, classId, date, lang);
+      });
       return;
     }
 
@@ -304,7 +332,7 @@ export default function AttendanceBoard({
     setBoardData((prev) => {
       const next = prev.map((item) => (item.id === active.id ? { ...item, column: toColumn } : item));
       if (sortBy === 'system') persistCardOrder(next);
-      return next;
+      return sortDataForBoard(next, sortBy, classId, date, lang);
     });
     onDragEnd?.(active.id, fromColumn, toColumn);
   }, [boardData, columns, data, classId, date, lang, sortBy, onDragEnd, onDragRejected, roleContext, persistCardOrder]);
@@ -326,10 +354,10 @@ export default function AttendanceBoard({
     setBoardData((prev) => {
       const next = prev.map((d) => (d.id === item.id ? { ...d, column: toColumn } : d));
       if (sortBy === 'system') persistCardOrder(next);
-      return next;
+      return sortDataForBoard(next, sortBy, classId, date, lang);
     });
     onDragEnd?.(item.id, item.column, toColumn);
-  }, [columns, roleContext, sortBy, persistCardOrder, onDragEnd]);
+  }, [columns, roleContext, sortBy, persistCardOrder, onDragEnd, classId, date, lang]);
 
   const handleQuickRevert = useCallback((item, e) => {
     e.stopPropagation();
@@ -342,10 +370,10 @@ export default function AttendanceBoard({
     setBoardData((prev) => {
       const next = prev.map((d) => (d.id === item.id ? { ...d, column: toColumn } : d));
       if (sortBy === 'system') persistCardOrder(next);
-      return next;
+      return sortDataForBoard(next, sortBy, classId, date, lang);
     });
     onDragEnd?.(item.id, item.column, toColumn);
-  }, [columns, roleContext, sortBy, persistCardOrder, onDragEnd]);
+  }, [columns, roleContext, sortBy, persistCardOrder, onDragEnd, classId, date, lang]);
 
   return (
     <KanbanProvider
@@ -372,26 +400,28 @@ export default function AttendanceBoard({
           className={`operations-board-lane ${laneClass}${collapsed ? ' operations-board-lane-collapsed' : ''}`}
           style={{
             '--lane-color': column.color || ATTENDANCE_BOARD_COLORS.NOT_TAKEN,
+            direction: isRTL ? 'rtl' : 'ltr',
           }}
         >
           {!collapsed && onLaneResize && (
-            <div
-              className="operations-board-lane-resize-handle"
-              role="separator"
-              aria-orientation="vertical"
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onLaneResize(column.id, e);
-              }}
-              onDoubleClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onLaneWidthsReset?.();
-              }}
-              title={t('operations_board_resize_lane') || 'Drag to resize lane'}
-              data-testid={`operations-board-lane-resize-${column.id}`}
-            />
+            <ColoredTooltip title={t('operations_board_resize_lane') || 'Drag to resize lane'} placement="top" color={column.color || ATTENDANCE_BOARD_COLORS.NOT_TAKEN}>
+              <div
+                className="operations-board-lane-resize-handle"
+                role="separator"
+                aria-orientation="vertical"
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onLaneResize(column.id, e);
+                }}
+                onDoubleClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onLaneWidthsReset?.();
+                }}
+                data-testid={`operations-board-lane-resize-${column.id}`}
+              />
+            </ColoredTooltip>
           )}
           <BoardLaneHeader
             column={column}
@@ -399,7 +429,7 @@ export default function AttendanceBoard({
             collapsed={collapsed}
             onToggleCollapse={onToggleLaneCollapse}
             t={t}
-            pulse={column.id === 'NOT_TAKEN'}
+            pulse
             onBulkMove={onBulkMove}
             columns={columns}
             canMoveTo={(from, to) => canMoveAttendanceToColumn(to, roleContext)}
@@ -413,6 +443,23 @@ export default function AttendanceBoard({
               const displayColumn = maskAttendanceColumnForHR(item.column, roleContext);
               const statusColor = ATTENDANCE_BOARD_COLORS[displayColumn] || ATTENDANCE_BOARD_COLORS.NOT_TAKEN;
               if (collapsed) {
+                const colIds = columns.map((c) => c.id);
+                const currentIdx = colIds.indexOf(item.column);
+                const canAdvance = currentIdx >= 0 && currentIdx < colIds.length - 1 && canMoveAttendanceToColumn(colIds[currentIdx + 1], roleContext);
+                const canRevert = currentIdx > 0 && canMoveAttendanceToColumn(colIds[currentIdx - 1], roleContext);
+                const quickBtnStyle = {
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: scalePx(18, fontScale),
+                  height: scalePx(18, fontScale),
+                  border: 'none',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  color: statusColor,
+                  borderRadius: 4,
+                  padding: 0,
+                };
                 return (
                   <KanbanCard
                     column={column.id}
@@ -420,20 +467,67 @@ export default function AttendanceBoard({
                     key={item.id}
                     name={studentName}
                     className="operations-attendance-card operations-board-card-collapsed"
-                    style={{ '--card-status-color': statusColor }}
+                    style={{ '--card-status-color': statusColor, direction: isRTL ? 'rtl' : 'ltr' }}
                   >
-                    <div
-                      className="flex justify-center"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onCardClick(item);
-                      }}
-                    >
-                      <BoardStudentAvatar
-                        name={studentName}
-                        profileImageUrl={item.profileImageUrl}
-                        size="sm"
-                      />
+                    <div className="flex flex-col items-center gap-1">
+                      <div
+                        className="flex justify-center"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onCardClick(item);
+                        }}
+                      >
+                        {showAvatars ? (
+                          <BoardStudentAvatar
+                            name={studentName}
+                            profileImageUrl={item.profileImageUrl}
+                            size="sm"
+                            fontScale={fontScale}
+                            borderColor={statusColor}
+                          />
+                        ) : (
+                          <div
+                            className="flex items-center justify-center rounded-full font-medium text-white"
+                            style={{
+                              width: scalePx(28, fontScale),
+                              height: scalePx(28, fontScale),
+                              fontSize: scalePx(10, fontScale),
+                              backgroundColor: statusColor,
+                            }}
+                            aria-label={studentName}
+                          >
+                            {studentName?.charAt(0)?.toUpperCase() || '?'}
+                          </div>
+                        )}
+                      </div>
+                      {(canRevert || canAdvance) && (
+                        <div className="flex items-center justify-center gap-0.5">
+                          {canRevert && (
+                            <button
+                              type="button"
+                              aria-label={t('operations_board_quick_revert') || 'Move to previous status'}
+                              onClick={(e) => handleQuickRevert(item, e)}
+                              style={quickBtnStyle}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = `${statusColor}1a`; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                            >
+                              {isRTL ? <ChevronRight size={10} /> : <ChevronLeft size={10} />}
+                            </button>
+                          )}
+                          {canAdvance && (
+                            <button
+                              type="button"
+                              aria-label={t('operations_board_quick_advance') || 'Move to next status'}
+                              onClick={(e) => handleQuickAdvance(item, e)}
+                              style={quickBtnStyle}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = `${statusColor}1a`; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                            >
+                              {isRTL ? <ChevronLeft size={10} /> : <ChevronRight size={10} />}
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </KanbanCard>
                 );
@@ -442,14 +536,28 @@ export default function AttendanceBoard({
               const currentIdx = colIds.indexOf(item.column);
               const canAdvance = currentIdx >= 0 && currentIdx < colIds.length - 1 && canMoveAttendanceToColumn(colIds[currentIdx + 1], roleContext);
               const canRevert = currentIdx > 0 && canMoveAttendanceToColumn(colIds[currentIdx - 1], roleContext);
+              const quickMoveButtonStyle = {
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: scalePx(22, fontScale),
+                alignSelf: 'stretch',
+                minHeight: scalePx(40, fontScale),
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                color: statusColor,
+                flexShrink: 0,
+                transition: 'background 0.15s',
+              };
               return (
                 <KanbanCard
                   column={column.id}
                   id={item.id}
                   key={item.id}
                   name={studentName}
-                  className="operations-attendance-card"
-                  style={{ '--card-status-color': statusColor }}
+                  className="operations-attendance-card cursor-default"
+                  style={{ '--card-status-color': statusColor, direction: isRTL ? 'rtl' : 'ltr' }}
                 >
                   <ColoredTooltip
                     title={(
@@ -466,124 +574,85 @@ export default function AttendanceBoard({
                     placement="top"
                   >
                     <div
-                      className="relative flex items-center gap-2.5"
-                      onClick={(e) => {
-                        if (canAdvance) {
-                          handleQuickAdvance(item, e);
-                        } else if (canRevert) {
-                          handleQuickRevert(item, e);
-                        }
-                      }}
+                      className="relative flex items-center gap-2.5 select-none"
                       onDoubleClick={(e) => {
                         e.stopPropagation();
                         onCardClick(item);
                       }}
                     >
-                      {!hrViewer && (item.notes || participationCount > 0) && (
+                      {(item.notes || participationCount > 0) && (
                         <div className="absolute -top-1 -right-1 flex gap-0.5 z-10">
                           {item.notes && (
-                            <ColoredTooltip title={t('operations_board_has_note') || 'Has a note'} color="#ef4444" placement="top">
-                              <Star size={12} fill="#ef4444" color="#ef4444" data-testid={`card-notes-star-${item.id}`} />
-                            </ColoredTooltip>
+                            <Star size={scalePx(8, fontScale)} fill="#ef4444" color="#ef4444" data-testid={`card-notes-star-${item.id}`} />
                           )}
                           {participationCount > 0 && (
-                            <ColoredTooltip title={t('operations_board_has_participation') || 'Has participation'} color={BOARD_PARTICIPATION_COLOR} placement="top">
-                              <Star size={12} fill={BOARD_PARTICIPATION_COLOR} color={BOARD_PARTICIPATION_COLOR} data-testid={`card-participation-star-${item.id}`} />
-                            </ColoredTooltip>
+                            <Star size={scalePx(8, fontScale)} fill={BOARD_PARTICIPATION_COLOR} color={BOARD_PARTICIPATION_COLOR} data-testid={`card-participation-star-${item.id}`} />
                           )}
                         </div>
                       )}
-                      <BoardStudentAvatar
-                        name={studentName}
-                        profileImageUrl={item.profileImageUrl}
-                        size="md"
-                      />
-                      <div className="min-w-0 flex-1">
+                      {canRevert && (
+                        <button
+                          aria-label={t('operations_board_quick_revert') || 'Move to previous status'}
+                          onClick={(e) => handleQuickRevert(item, e)}
+                          data-testid={`card-quick-revert-${item.id}`}
+                          style={quickMoveButtonStyle}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = `${statusColor}1a`; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          {isRTL ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+                        </button>
+                      )}
+                      {showAvatars && (
+                        <BoardStudentAvatar
+                          name={studentName}
+                          profileImageUrl={item.profileImageUrl}
+                          size="md"
+                          fontScale={fontScale}
+                          borderColor={statusColor}
+                        />
+                      )}
+                      <div className="min-w-0 flex-1" style={{ paddingLeft: (showAvatars || canRevert) ? 0 : '0.75rem' }}>
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <BoardStatusDot column={displayColumn} />
-                          <p className="m-0 truncate text-sm font-medium leading-tight">{studentName}</p>
+                          <BoardStatusDot column={displayColumn} fontScale={fontScale} />
+                          <p className="m-0 truncate text-sm font-medium leading-tight" style={{ fontSize: scalePx(14, fontScale) }}>{studentName}</p>
                         </div>
-                        {item.studentNumber && (
-                          <div className="text-[0.65rem] text-muted-foreground leading-tight" style={{ opacity: 0.7 }}>
-                            {item.studentNumber}
-                          </div>
-                        )}
-                        {stats && stats.total > 0 && !isInstructorOnly && (
-                          <div className="mt-1 flex items-center gap-1.5 text-[0.7rem] text-muted-foreground" data-testid={`attendance-summary-${item.id}`}>
-                            <span className="inline-flex items-center gap-0.5">
-                              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: ATTENDANCE_BOARD_COLORS.PRESENT }} />
-                              {stats.present}
-                            </span>
-                            {!hrViewer && stats.late > 0 && (
-                            <span className="inline-flex items-center gap-0.5">
-                              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: ATTENDANCE_BOARD_COLORS.LATE }} />
-                              {stats.late}
-                            </span>
+                        {stats && !isInstructorOnly && (
+                          <div className="mt-1.5 flex items-center gap-1.5 text-muted-foreground" style={{ fontSize: scalePx(11, fontScale) }} data-testid={`attendance-summary-${item.id}`}>
+                            {stats.total > 0 ? (
+                              <>
+                                <span className="inline-flex items-center gap-0.5">
+                                  <span className="rounded-full shrink-0" style={{ backgroundColor: ATTENDANCE_BOARD_COLORS.PRESENT, width: scalePx(8, fontScale), height: scalePx(8, fontScale) }} />
+                                  {stats.present}
+                                </span>
+                                {!hrViewer && stats.late > 0 && (
+                                <span className="inline-flex items-center gap-0.5">
+                                  <span className="rounded-full shrink-0" style={{ backgroundColor: ATTENDANCE_BOARD_COLORS.LATE, width: scalePx(8, fontScale), height: scalePx(8, fontScale) }} />
+                                  {stats.late}
+                                </span>
+                                )}
+                                <span className="inline-flex items-center gap-0.5">
+                                  <span className="rounded-full shrink-0" style={{ backgroundColor: ATTENDANCE_BOARD_COLORS.ABSENT, width: scalePx(8, fontScale), height: scalePx(8, fontScale) }} />
+                                  {stats.absent}
+                                </span>
+                                <span>/ {stats.total}</span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground/70 py-0.5" style={{ fontSize: scalePx(10, fontScale) }}>{t('operations_board_no_stats_yet') || 'No stats yet'}</span>
                             )}
-                            <span className="inline-flex items-center gap-0.5">
-                              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: ATTENDANCE_BOARD_COLORS.ABSENT }} />
-                              {stats.absent}
-                            </span>
-                            <span>/ {stats.total}</span>
                           </div>
                         )}
                       </div>
-                      {(canRevert || canAdvance) && (
-                        <div
-                          className="flex flex-col items-stretch shrink-0"
-                          style={{ gap: 0 }}
+                      {canAdvance && (
+                        <button
+                          aria-label={t('operations_board_quick_advance') || 'Move to next status'}
+                          onClick={(e) => handleQuickAdvance(item, e)}
+                          data-testid={`card-quick-advance-${item.id}`}
+                          style={quickMoveButtonStyle}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = `${statusColor}1a`; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                         >
-                          {canRevert && (
-                            <button
-                              onClick={(e) => handleQuickRevert(item, e)}
-                              title={t('operations_board_quick_revert') || 'Move to previous status'}
-                              data-testid={`card-quick-revert-${item.id}`}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: 22,
-                                height: '50%',
-                                minHeight: 18,
-                                border: 'none',
-                                background: 'transparent',
-                                cursor: 'pointer',
-                                color: statusColor,
-                                flexShrink: 0,
-                                transition: 'background 0.15s',
-                              }}
-                              onMouseEnter={(e) => { e.currentTarget.style.background = `${statusColor}1a`; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                            >
-                              <ChevronLeft size={14} />
-                            </button>
-                          )}
-                          {canAdvance && (
-                            <button
-                              onClick={(e) => handleQuickAdvance(item, e)}
-                              title={t('operations_board_quick_advance') || 'Move to next status'}
-                              data-testid={`card-quick-advance-${item.id}`}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: 22,
-                                height: '50%',
-                                minHeight: 18,
-                                border: 'none',
-                                background: 'transparent',
-                                cursor: 'pointer',
-                                color: statusColor,
-                                flexShrink: 0,
-                                transition: 'background 0.15s',
-                              }}
-                              onMouseEnter={(e) => { e.currentTarget.style.background = `${statusColor}1a`; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                            >
-                              <ChevronRight size={14} />
-                            </button>
-                          )}
-                        </div>
+                          {isRTL ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+                        </button>
                       )}
                     </div>
                   </ColoredTooltip>

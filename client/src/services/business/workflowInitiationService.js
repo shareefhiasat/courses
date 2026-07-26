@@ -95,27 +95,30 @@ export async function initiateAttendanceWorkflow({
   user,
 }) {
   if (!cls?.id || !date) {
-    return { success: false, error: 'Missing class or date' };
+    return { success: false, errorKey: 'workflow_initiation_error_missing_class_date', error: 'Missing class or date' };
   }
 
   try {
     // Validate that attendance records exist for this class on this date
     const hasAttendance = await checkDailyAttendanceExists(cls.id, date);
     if (!hasAttendance) {
-      return { success: false, error: 'No attendance records found for this class on this date. Cannot initiate a daily workflow without attendance data.' };
+      return { success: false, errorKey: 'workflow_initiation_error_no_attendance_class', error: 'No attendance records found for this class on this date. Cannot initiate a daily workflow without attendance data.' };
     }
 
     const className = lang === 'ar'
       ? cls.nameAr || cls.nameEn || cls.code
       : cls.nameEn || cls.nameAr || cls.code;
 
+    const dailyAttendanceLabel = lang === 'ar' ? 'حضور يومي' : 'Daily Attendance';
+    const descriptionPrefix = lang === 'ar' ? 'سير عمل الحضور اليومي لـ' : 'Daily attendance workflow for';
+
     // Create DRAFT workflow without a filed PDF.
     // The PDF will be generated and filed only when Admin moves it to HR (UNDER_HR_REVIEW).
     const workflowResult = await createCustomWorkflowDocument({
       workflowCategory: 'ATTENDANCE',
       attendanceSubtype: 'DAILY',
-      title: `Daily Attendance - ${className} - ${date}`,
-      description: `Daily attendance workflow for ${className} on ${date}`,
+      title: `${dailyAttendanceLabel} - ${className} - ${date}`,
+      description: `${descriptionPrefix} ${className} on ${date}`,
       attachFile: false,
       classId: cls.id,
       date,
@@ -130,6 +133,7 @@ export async function initiateAttendanceWorkflow({
         return {
           success: false,
           code: 409,
+          errorKey: 'workflow_initiation_error_exists',
           error: data?.error || 'A workflow already exists for this scope',
           existingDraft: existing,
           existingDocument: existing,
@@ -145,6 +149,7 @@ export async function initiateAttendanceWorkflow({
     return {
       success: false,
       code: workflowResult.code || workflowResult.status,
+      errorKey: 'workflow_initiation_error_create',
       error: workflowResult.error || 'Failed to create workflow document',
       existingDraft: workflowResult.existingDocument || workflowResult.data?.existingDocument,
     };
@@ -174,7 +179,7 @@ export async function initiateWeeklyWorkflow({
   user,
 }) {
   if (!weekFrom || !weekTo) {
-    return { success: false, error: 'Missing weekFrom or weekTo' };
+    return { success: false, errorKey: 'workflow_initiation_error_missing_week', error: 'Missing weekFrom or weekTo' };
   }
 
   try {
@@ -188,7 +193,7 @@ export async function initiateWeeklyWorkflow({
     }
 
     if (subjectIds.length === 0) {
-      return { success: false, error: 'No subjects found for the program' };
+      return { success: false, errorKey: 'workflow_initiation_error_no_subjects', error: 'No subjects found for the program' };
     }
 
     // Resolve class IDs if not provided
@@ -201,13 +206,13 @@ export async function initiateWeeklyWorkflow({
     }
 
     if (resolvedClassIds.length === 0) {
-      return { success: false, error: 'No active classes found for the program' };
+      return { success: false, errorKey: 'workflow_initiation_error_no_classes', error: 'No active classes found for the program' };
     }
 
     // Validate that attendance records exist for this week
     const hasAttendance = await checkWeeklyAttendanceExists(resolvedClassIds, weekFrom, weekTo);
     if (!hasAttendance) {
-      return { success: false, error: 'No attendance records found for this week. Cannot initiate a weekly workflow without attendance data.' };
+      return { success: false, errorKey: 'workflow_initiation_error_no_attendance_week', error: 'No attendance records found for this week. Cannot initiate a weekly workflow without attendance data.' };
     }
 
     const violationTypes = {
@@ -235,17 +240,24 @@ export async function initiateWeeklyWorkflow({
     if (!fileId) {
       return {
         success: false,
+        errorKey: 'workflow_initiation_error_upload_pdf',
         error: 'Failed to upload weekly report PDF to Smart Drive.',
       };
     }
 
-    const title = `Weekly Attendance - ${programName || ''} - ${weekFrom} → ${weekTo}`;
+    const title = lang === 'ar'
+      ? `الحضور الأسبوعي - ${programName || ''} - ${weekFrom} → ${weekTo}`
+      : `Weekly Attendance - ${programName || ''} - ${weekFrom} → ${weekTo}`;
+
+    const weeklyDescription = lang === 'ar'
+      ? `سير عمل الحضور الأسبوعي لـ ${programName || ''} من ${weekFrom} إلى ${weekTo}`
+      : `Weekly attendance workflow for ${programName || ''} from ${weekFrom} to ${weekTo}`;
 
     const workflowResult = await createCustomWorkflowDocument({
       workflowCategory: 'ATTENDANCE',
       attendanceSubtype: 'WEEKLY_SUMMARY',
       title,
-      description: `Weekly attendance workflow for ${programName || ''} from ${weekFrom} to ${weekTo}`,
+      description: weeklyDescription,
       attachFile: true,
       fileId,
       dateFrom: weekFrom,
@@ -259,6 +271,7 @@ export async function initiateWeeklyWorkflow({
         return {
           success: false,
           code: 409,
+          errorKey: 'workflow_initiation_error_weekly_exists',
           error: data?.error || 'A weekly workflow already exists for this scope',
           existingDraft: existing,
           existingDocument: existing,
@@ -274,6 +287,7 @@ export async function initiateWeeklyWorkflow({
     return {
       success: false,
       code: workflowResult.code || workflowResult.status,
+      errorKey: 'workflow_initiation_error_create_weekly',
       error: workflowResult.error || 'Failed to create weekly workflow document',
       existingDraft: workflowResult.existingDocument || workflowResult.data?.existingDocument,
     };

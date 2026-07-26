@@ -6,7 +6,7 @@ import {
   ListItem,
   ListItems,
 } from '@/components/kibo-ui/list';
-import { Status, StatusIndicator, StatusLabel } from '@/components/kibo-ui/status';
+import { Badge } from '@/components/kibo/ui/badge';
 import { Star } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
@@ -16,15 +16,6 @@ import {
   resolveBoardStudentName,
 } from './operationsBoardDisplayUtils.js';
 import { getParticipationsByClassAndDate } from '@services/business/participationService.js';
-
-const ATTENDANCE_STATUS_CLASS = {
-  PRESENT: 'online',
-  LATE: 'degraded',
-  ABSENT: 'offline',
-  EXCUSED: 'maintenance',
-  HUMAN_CASE: 'degraded',
-  NOT_TAKEN: 'pending',
-};
 
 export default function BoardListView({ data, columns, onCardClick, onDragEnd }) {
   const { t, lang } = useLang();
@@ -138,10 +129,18 @@ export default function BoardListView({ data, columns, onCardClick, onDragEnd })
                         <p className="m-0 truncate text-xs text-muted-foreground">{className}</p>
                       )}
                     </div>
-                    <Status status={ATTENDANCE_STATUS_CLASS[column.id] || 'offline'} className="shrink-0">
-                      <StatusIndicator />
-                      <StatusLabel>{t(column.i18nKey) || column.name}</StatusLabel>
-                    </Status>
+                    <Badge
+                      variant="outline"
+                      className="shrink-0 text-xs font-medium"
+                      style={{ borderColor: column.color, color: column.color }}
+                    >
+                      <span
+                        className="inline-block h-2 w-2 rounded-full shrink-0 mr-1"
+                        style={{ backgroundColor: column.color }}
+                        aria-hidden
+                      />
+                      {t(column.i18nKey) || column.name}
+                    </Badge>
                   </ListItem>
                 );
               })}

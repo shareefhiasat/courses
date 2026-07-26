@@ -174,14 +174,7 @@ export const getUserRoleDisplay = (userOrRole, t, lang) => {
 };
 
 export const getEnglishUserName = (user, fallback = 'Unknown User') => {
-  if (!user) return fallback;
-  if (user.displayName) return user.displayName;
-  if (user.realName) return user.realName;
-  if (user.name) return user.name;
-  if (user.firstName && user.lastName) return `${user.firstName} ${user.lastName}`;
-  if (user.firstName) return user.firstName;
-  if (user.email) return user.email;
-  return fallback;
+  return getLocalizedUserName(user, 'en', fallback);
 };
 
 export const getUserDisplayName = (user, lang = 'en') => {

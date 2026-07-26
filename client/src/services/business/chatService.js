@@ -323,6 +323,37 @@ export const getAvailableDMUsers = async () => {
 };
 
 /**
+ * Get active users assigned to a given role (e.g. 'hr')
+ * @param {string} role - Role code
+ * @returns {Promise<Object>} { success, data }
+ */
+export const getUsersByRole = async (role) => {
+  try {
+    const data = await apiClient.get(`/chat/users/by-role/${role}`);
+    return { success: true, data: data.data || data };
+  } catch (err) {
+    error(`[${serviceName}] Error getting users by role:`, err);
+    return { success: false, error: err.message, data: [] };
+  }
+};
+
+/**
+ * Get or create a dynamic group chat for all users of a role (e.g. 'hr').
+ * Participants are auto-synced server-side on every call.
+ * @param {string} role - Role code
+ * @returns {Promise<Object>} { success, data }
+ */
+export const getOrCreateRoleGroup = async (role) => {
+  try {
+    const data = await apiClient.post('/chat/rooms/role-group', { role });
+    return { success: true, data: data.data || data };
+  } catch (err) {
+    error(`[${serviceName}] Error getting/creating role group:`, err);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
  * Leave a group chat room (remove self as participant)
  * @param {number} roomId - Group room ID
  * @param {number} userId - User ID to remove (self)
@@ -1003,6 +1034,8 @@ export const chatService = {
   togglePinMessage,
   votePoll,
   getAvailableDMUsers,
+  getUsersByRole,
+  getOrCreateRoleGroup,
   leaveGroupRoom,
   updateGroupRoom,
   getRoomStats,

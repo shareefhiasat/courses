@@ -130,15 +130,25 @@
 
 .operations-board-page .operations-attendance-card {
   max-width: 100%;
+  padding-inline-start: 0.5rem !important;
   border-left: 3px solid var(--card-status-color, transparent) !important;
   border-left-width: 3px !important;
   border-left-style: solid !important;
   border-left-color: var(--card-status-color, transparent) !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-right: none !important;
   transition: box-shadow 0.2s ease, border-color 0.2s ease !important;
 }
 
-.operations-board-page .operations-attendance-card:hover {
-  box-shadow: 0 0 0 1px var(--card-status-color, transparent), 0 4px 12px -2px var(--card-status-color, rgba(0,0,0,0.15)) !important;
+.operations-board-page .operations-attendance-card:hover,
+.operations-board-page .operations-workflow-card:hover {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 0 2px var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))),
+              0 4px 14px -2px color-mix(in srgb, var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) 35%, transparent) !important;
+  border: 1px solid var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) !important;
+  border-left: 3px solid var(--card-status-color, hsl(var(--border))) !important;
 }
 
 .operations-board-page .operations-attendance-card > div {
@@ -346,14 +356,19 @@
   border-left: 3px solid var(--card-status-color, hsl(var(--border))) !important;
   border-radius: calc(var(--radius) - 4px) !important;
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
-  padding: 0.75rem !important;
+  padding: 0.5rem !important;
+  min-height: 96px !important;
   transition: box-shadow 0.2s, border-color 0.2s !important;
 }
 
+.operations-board-page [class*="min-h-40"] > [class*="flex flex-grow"] > div > div:hover,
 .operations-board-page [class*="min-h-40"] [class*="cursor-grab"]:hover {
-  box-shadow: 0 0 0 1px var(--card-status-color, transparent), 0 4px 12px -2px var(--card-status-color, rgba(139, 92, 246, 0.4)) !important;
-  border-color: var(--card-status-color, rgba(139, 92, 246, 0.5)) !important;
-  border-left-color: var(--card-status-color, hsl(var(--border))) !important;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 0 2px var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))),
+              0 4px 14px -2px color-mix(in srgb, var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) 35%, transparent) !important;
+  border: 1px solid var(--card-status-color, var(--lane-color, rgba(139, 92, 246, 0.5))) !important;
+  border-left: 3px solid var(--card-status-color, hsl(var(--border))) !important;
 }
 
 .operations-board-page [class*="min-h-40"] [class*="cursor-grab"] p {
@@ -760,6 +775,12 @@
   box-shadow: none;
 }
 
+/* Swim lane divider color - use lane color instead of default purple */
+.operations-board-page .operations-board-lane > div:not(:first-child),
+.operations-board-page .operations-board-lane-permitted > div:not(:first-child) {
+  border-top-color: var(--lane-color, var(--border, #dee2e6)) !important;
+}
+
 .operations-board-page .operations-board-lane-header {
   border-bottom: 1px solid rgba(15, 23, 42, 0.16) !important;
   background: rgba(15, 23, 42, 0.03);
@@ -881,7 +902,7 @@
 }
 
 .operations-board-lane-collapse-icon {
-  opacity: 0.55;
+  opacity: 0.85;
   color: var(--lane-color, hsl(var(--muted-foreground)));
 }
 
@@ -908,14 +929,14 @@
   justify-content: center;
   border: none;
   background: transparent;
-  color: hsl(var(--muted-foreground));
+  color: var(--lane-color, hsl(var(--muted-foreground)));
   cursor: pointer;
   padding: 0.2rem;
   border-radius: 4px;
 }
 
 .operations-board-lane-bulk-btn:hover {
-  color: hsl(var(--foreground));
+  color: var(--lane-color, hsl(var(--foreground)));
   background: hsl(var(--muted));
 }
 
@@ -956,6 +977,21 @@
   background: hsl(var(--muted));
 }
 
+/* RTL (Arabic) specific styles for bulk menu to ensure background visibility */
+[dir='rtl'] .operations-board-bulk-menu {
+  background: hsl(var(--background)) !important;
+  left: auto !important;
+  right: 0 !important;
+}
+
+[dir='rtl'] .operations-board-bulk-menu-item {
+  background: transparent !important;
+}
+
+[dir='rtl'] .operations-board-bulk-menu-item:hover {
+  background: hsl(var(--muted)) !important;
+}
+
 .operations-board-lane-cards-collapsed {
   padding: 0.35rem 0.2rem !important;
   align-items: center;
@@ -969,9 +1005,9 @@
 .operations-board-lane-resize-handle {
   position: absolute;
   top: 0;
-  right: -6px;
+  right: -10px;
   bottom: 0;
-  width: 14px;
+  width: 8px;
   cursor: col-resize;
   z-index: 50;
   background: transparent;
@@ -981,12 +1017,12 @@
 }
 
 .operations-board-lane-resize-handle:hover {
-  background: rgba(139, 92, 246, 0.25);
+  background: color-mix(in srgb, var(--lane-color, #8b5cf6) 25%, transparent);
 }
 
 [dir='rtl'] .operations-board-lane-resize-handle {
   right: auto;
-  left: -4px;
+  left: -10px;
 }
 
 /* Footer legend spacing on large screens */
@@ -1095,6 +1131,18 @@
   margin-left: 0 !important;
 }
 
+/* Override the global maroon button style for announcement action buttons */
+.operations-board-action-announcement-pill button {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  filter: none !important;
+}
+
+.operations-board-action-announcement-pill button:hover {
+  background-color: rgba(255, 255, 255, 0.3) !important;
+}
+
 .operations-board-drag-invalid-toast {
   border: 1px solid rgba(245, 158, 11, 0.35) !important;
   background: rgba(255, 251, 235, 0.98) !important;
@@ -1140,15 +1188,21 @@
 }
 .operations-board-page .operations-attendance-card:hover,
 .operations-board-page [class*='operations-attendance-card']:hover {
-  border-color: var(--card-status-color, rgba(139, 92, 246, 0.55)) !important;
-  border-left-color: var(--card-status-color, hsl(var(--border))) !important;
-  box-shadow: 0 0 0 1px var(--card-status-color, transparent), 0 4px 12px -2px var(--card-status-color, rgba(139, 92, 246, 0.4)) !important;
+  position: relative;
+  z-index: 1;
+  border: 1px solid var(--card-status-color, rgba(139, 92, 246, 0.55)) !important;
+  border-left: 3px solid var(--card-status-color, hsl(var(--border))) !important;
+  box-shadow: 0 0 0 2px var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))),
+              0 4px 14px -2px color-mix(in srgb, var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) 35%, transparent) !important;
 }
 
 .operations-board-page [class*='min-h-40'] .operations-attendance-card:hover {
-  border-color: var(--card-status-color, rgba(139, 92, 246, 0.55)) !important;
-  border-left-color: var(--card-status-color, hsl(var(--border))) !important;
-  box-shadow: 0 0 0 1px var(--card-status-color, transparent), 0 4px 12px -2px var(--card-status-color, rgba(139, 92, 246, 0.4)) !important;
+  position: relative;
+  z-index: 1;
+  border: 1px solid var(--card-status-color, rgba(139, 92, 246, 0.55)) !important;
+  border-left: 3px solid var(--card-status-color, hsl(var(--border))) !important;
+  box-shadow: 0 0 0 2px var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))),
+              0 4px 14px -2px color-mix(in srgb, var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) 35%, transparent) !important;
 }
 
 @keyframes ops-purple-pulse {

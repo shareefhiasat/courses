@@ -7,7 +7,7 @@ import React, { memo, useState, useCallback, useRef, useEffect } from 'react';
 import { updateUser } from '@services/business/userService';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatDateTime } from '@utils/date';
-import { ROLE_STRINGS } from '@utils/userUtils';
+import { ROLE_STRINGS, resolveUserRole } from '@utils/userUtils';
 import { SIDEBAR_CONFIG } from '../constants/chatConstants';
 
 
@@ -114,6 +114,13 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
     let filtered = safeDirectRooms;
     // Hide archived unless showArchived is on
     filtered = filtered.filter(r => showArchived || !archivedRooms[r.id]);
+    // Hide students - only show admin, HR, and instructor
+    filtered = filtered.filter(room => {
+      const otherId = (room.participants || []).find(p => p !== user.uid);
+      const other = safeAllUsers.find(u => u.docId === otherId);
+      const role = other ? resolveUserRole(other) : null;
+      return role !== 'student';
+    });
     // Favorites only filter
     if (showFavoritesOnly) {
       filtered = filtered.filter(r => (r.starBy || []).includes(user.uid));
@@ -273,7 +280,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
     >
       {/* Class List */}
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
-        {/* Global Chat */}
+        {/* Global Chat - Temporarily hidden */}
+        {false && (
         <div
           onClick={() => handleClassChange('global')}
           style={{
@@ -299,9 +307,10 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
             </div>
           </div>
         </div>
+        )}
 
-        {/* Class Chats */}
-        {archivedClasses !== null && safeClasses
+        {/* Class Chats - Temporarily hidden */}
+        {false && archivedClasses !== null && safeClasses
           .filter(cls => showArchived || !archivedClasses[cls.docId])
           .map(cls => (
           <div

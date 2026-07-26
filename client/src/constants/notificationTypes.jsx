@@ -207,20 +207,22 @@ export const WORKFLOW_EVENT_COLORS = {
 
 export const getCategoryColor = (type) => CATEGORY_COLORS[type] || '#6b7280';
 
-// Returns event-specific color for workflow notifications, falls back to workflow status / category color
+// Returns status-specific color for workflow notifications, falls back to event color / category color
 export const getNotificationBorderColor = (notification) => {
   if (!notification) return '#6b7280';
-  const event = notification.event || notification.data?.event;
-  if (event && WORKFLOW_EVENT_COLORS[event]) {
-    return WORKFLOW_EVENT_COLORS[event];
-  }
   const type = notification.type || notification.category;
   if (String(type).toUpperCase() === 'WORKFLOW') {
+    // Prefer newStatus color to show where the workflow is now
     const status = notification.data?.newStatus || notification.metadata?.newStatus
       || notification.data?.workflowStatus || notification.metadata?.status;
     if (status && WORKFLOW_STATUS_COLORS[status]) {
       return WORKFLOW_STATUS_COLORS[status];
     }
+  }
+  // Fall back to event-specific color
+  const event = notification.event || notification.data?.event;
+  if (event && WORKFLOW_EVENT_COLORS[event]) {
+    return WORKFLOW_EVENT_COLORS[event];
   }
   return getCategoryColor(type);
 };

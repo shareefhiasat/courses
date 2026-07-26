@@ -66,6 +66,7 @@ const LAST_NAME_AR = {
   almarri: 'المري',
   almansouri: 'المنصوري',
   alnaimi: 'النعيمي',
+  nabet: 'نابت',
   student: 'طالب',
   sync: 'مزامنة',
 };

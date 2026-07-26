@@ -6,6 +6,7 @@ import {
   resolveScheduleWorkflowKey,
 } from '@constants/workspaceStatusColors';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 
 const STATUS_LABELS = {
   not_taken: 'Not Taken',
@@ -68,19 +69,19 @@ const ClassCell = ({ session, status, onClick }) => {
         e.currentTarget.style.borderColor = isDark ? '#334155' : '#e2e8f0';
       }}
     >
-      <span
-        className={`${gridStyles.statusDot} ${gridStyles[`statusDot_${statusKey}`] || ''}`}
-        style={{
-          '--dot-color': statusColor.bg,
-          position: 'absolute',
-          top: '6px',
-          right: '6px',
-          flexShrink: 0,
-        }}
-        aria-label={statusColor.label}
-      >
-        <span className={gridStyles.statusDotTooltip}>{statusColor.label}</span>
-      </span>
+      <ColoredTooltip title={statusColor.label} color={statusColor.bg} placement="top">
+        <span
+          className={`${gridStyles.statusDot} ${gridStyles[`statusDot_${statusKey}`] || ''}`}
+          style={{
+            '--dot-color': statusColor.bg,
+            position: 'absolute',
+            top: '6px',
+            right: '6px',
+            flexShrink: 0,
+          }}
+          aria-label={statusColor.label}
+        />
+      </ColoredTooltip>
 
       <div style={{ fontSize: '13px', fontWeight: 600, color: isDark ? '#f1f5f9' : '#1e293b', lineHeight: 1.2 }}>
         {lang === 'ar' && cls?.nameAr ? cls.nameAr : cls?.nameEn || cls?.code}

@@ -19,7 +19,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import useResizableDrawer from '@hooks/useResizableDrawer';
 import { formatDateTime } from '@utils/date';
-import { formatNotificationTime, filterNotifications as filterNotificationsUtil, groupNotificationsByDate, gotoFromNotification as gotoFromNotificationUtil, WORKFLOW_NOTIFICATION_STATUS_FILTERS, getWorkflowSubgroupColor, getWorkflowStatusKey } from '@utils/notificationHelpers';
+import { formatNotificationTime, filterNotifications as filterNotificationsUtil, groupNotificationsByDate, gotoFromNotification as gotoFromNotificationUtil, WORKFLOW_NOTIFICATION_STATUS_FILTERS, getWorkflowSubgroupColor, getWorkflowStatusKey, getLocalizedNotificationTitle } from '@utils/notificationHelpers';
 import Input from './Input';
 import Select from './Select';
 import { RECORD_TYPES } from '@utils/sharedTypes';
@@ -31,13 +31,29 @@ import { ActivityLogger } from '@services/other/activityLogger';
 import useNotifications from '@hooks/useNotifications';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
+import { useToast } from '@ui';
 
 // ── Notification Card (extracted for reuse in sub-groups) ──────────────────
-const NotificationCard = ({ notification, idx, isDark, isRTL, theme, t, formatTime, hoveredCard, setHoveredCard, gotoFromNotification, handleMarkAsRead, handleMarkAsUnread, handleArchive, handleDelete, iconBtnStyle, getNotificationIcon, getCategoryColor, getNotificationBorderColor, PortalTooltip, getThemedIcon, motion, AnimatePresence }) => {
+const NotificationCard = ({ notification, idx, isDark, isRTL, theme, t, lang, formatTime, hoveredCard, setHoveredCard, gotoFromNotification, handleMarkAsRead, handleMarkAsUnread, handleArchive, handleUnarchive, handleDelete, iconBtnStyle, getNotificationIcon, getCategoryColor, getNotificationBorderColor, PortalTooltip, getThemedIcon, motion, AnimatePresence, programs, classes }) => {
   const borderColor = getNotificationBorderColor(notification);
   const accentColor = borderColor || getCategoryColor(notification.type);
   const iconEl = getNotificationIcon(notification.type, 20);
-  const showMessage = notification.message && notification.message !== notification.title && notification.message.trim() !== '';
+  const data = notification.data || notification.metadata || {};
+  const localizedTitle = getLocalizedNotificationTitle(notification, t);
+  const messageText = notification.message || data.message || data.body || notification.body || '';
+  const showMessage = messageText && messageText !== localizedTitle && messageText.trim() !== '';
+  const classId = data.classId || notification.classId;
+  const classItem = classId ? classes.find(c => String(c.id || c.docId) === String(classId)) : null;
+  const programId = data.programId || classItem?.programId;
+  const program = programId ? programs.find(p => String(p.id || p.docId) === String(programId)) : null;
+  const programName = program
+    ? (lang === 'ar' ? (program.nameAr || program.nameEn || program.name || program.code) : (program.nameEn || program.name || program.code))
+    : '';
+  const className = classItem
+    ? (lang === 'ar' ? (classItem.nameAr || classItem.nameEn || classItem.name || classItem.code) : (classItem.name || classItem.code || ''))
+    : '';
+  const contextParts = [programName, className].filter(Boolean);
+  const contextLabel = contextParts.join(' · ');
   return (
     <motion.div
       key={notification.id}
@@ -48,14 +64,14 @@ const NotificationCard = ({ notification, idx, isDark, isRTL, theme, t, formatTi
       onMouseEnter={() => setHoveredCard(notification.id)}
       onMouseLeave={() => setHoveredCard(null)}
       style={{
-        padding: '0.65rem 0.75rem',
-        marginBottom: '0.35rem',
-        borderRadius: '8px',
+        padding: '0.7rem 0.8rem',
+        marginBottom: '0.4rem',
+        borderRadius: '10px',
         background: notification.isRead
           ? (isDark ? 'rgba(255,255,255,0.02)' : '#fafafa')
-          : (isDark ? 'rgba(128,0,32,0.12)' : '#f0f4ff'),
+          : (isDark ? 'rgba(128,0,32,0.10)' : '#f0f4ff'),
         border: `1px solid ${notification.isRead
-          ? (isDark ? 'rgba(255,255,255,0.04)' : '#e5e7eb')
+          ? (isDark ? 'rgba(255,255,255,0.05)' : '#e5e7eb')
           : (isDark ? 'rgba(128,0,32,0.25)' : '#c7d2fe')}`,
         [isRTL ? 'borderRight' : 'borderLeft']: `4px solid ${borderColor}`,
         cursor: 'pointer',
@@ -77,43 +93,59 @@ const NotificationCard = ({ notification, idx, isDark, isRTL, theme, t, formatTi
             marginBottom: '0.15rem'
           }}>
             <div style={{
-              fontWeight: 400,
-              fontSize: '0.8rem',
+              fontWeight: notification.isRead ? 400 : 600,
+              fontSize: '0.82rem',
               color: isDark ? '#fff' : '#111',
-              lineHeight: 1.4
+              lineHeight: 1.4,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              flexWrap: 'wrap'
             }}>
-              {notification.title}
+              {localizedTitle}
             </div>
             {!notification.isRead && (
               <div style={{
-                width: '7px',
-                height: '7px',
+                width: '8px',
+                height: '8px',
                 background: 'var(--color-primary, #800020)',
                 borderRadius: '50%',
                 flexShrink: 0,
-                marginTop: '0.3rem'
+                marginTop: '0.25rem',
+                boxShadow: '0 0 4px var(--color-primary, #800020)'
               }} />
             )}
           </div>
           {showMessage && (
             <div style={{
-              fontSize: '0.8rem',
-              color: isDark ? '#9ca3af' : '#6b7280',
-              lineHeight: 1.4,
-              marginBottom: '0.2rem',
-              wordBreak: 'break-word'
+              fontSize: '0.78rem',
+              color: isDark ? '#b0b8c4' : '#555',
+              lineHeight: 1.5,
+              marginBottom: '0.3rem',
+              wordBreak: 'break-word',
+              overflow: 'hidden',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical'
             }}>
-              {notification.message}
+              {messageText}
             </div>
           )}
           <div style={{
-            fontSize: '0.65rem',
+            fontSize: '0.66rem',
             color: accentColor,
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center'
+            alignItems: 'center',
+            opacity: 0.85
           }}>
             <span>{formatTime(notification.createdAt)}</span>
+            {contextLabel && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                {getThemedIcon('ui', 'tag', 10, isDark ? '#94a3b8' : '#64748b')}
+                <span style={{ color: isDark ? '#94a3b8' : '#64748b' }}>{contextLabel}</span>
+              </span>
+            )}
           </div>
 
           <AnimatePresence>
@@ -155,7 +187,16 @@ const NotificationCard = ({ notification, idx, isDark, isRTL, theme, t, formatTi
                     </button>
                   </PortalTooltip>
                 )}
-                {!notification.isArchived && (
+                {notification.isArchived ? (
+                  <PortalTooltip content={t('unarchive')} position="top">
+                    <button onClick={(e) => handleUnarchive(notification.id, e)} style={{...iconBtnStyle(false), padding: '4px'}}
+                      onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '4px'}) }}
+                      onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '4px'}) }}
+                    >
+                      {getThemedIcon('ui', 'inbox', 14, hoveredCard === notification.id ? 'currentColor' : theme)}
+                    </button>
+                  </PortalTooltip>
+                ) : (
                   <PortalTooltip content={t('archive')} position="top">
                     <button onClick={(e) => handleArchive(notification.id, e)} style={{...iconBtnStyle(false), padding: '4px'}}
                       onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '4px'}) }}
@@ -236,6 +277,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
     markAllAsRead: hookMarkAllAsRead,
     markAsUnread: hookMarkAsUnread,
     archive: hookArchive,
+    unarchive: hookUnarchive,
     remove: hookRemove
   } = feed || {};
 
@@ -259,6 +301,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
   const [hoveredCard, setHoveredCard] = useState(null);
   const drawerRef = useRef(null);
   const isDark = theme === 'dark';
+  const toast = useToast();
 
   useEffect(() => {
     if (!user || !isOpen) return;
@@ -284,7 +327,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
   }, [isOpen, initialFilters]);
 
   useEffect(() => {
-    if (!isOpen || !showAdvanced) return;
+    if (!isOpen) return;
     (async () => {
       try {
         const [programsRes, subjectsRes, classesRes] = await Promise.all([
@@ -300,7 +343,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
         error('NotificationDrawer: Failed to load filter data', { err });
       }
     })();
-  }, [isOpen, showAdvanced]);
+  }, [isOpen]);
 
   const filteredNotifications = useMemo(() => {
     let feed = notifications;
@@ -347,15 +390,18 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
 
   const workflowStatusCounts = useMemo(() => {
     const counts = {};
-    const hideRejected = isHR && !isAdmin && !isSuperAdmin;
+    WORKFLOW_NOTIFICATION_STATUS_FILTERS.forEach((chip) => {
+      if (chip.hideForHR && isHR && !isAdmin && !isSuperAdmin) return;
+      counts[chip.id] = 0;
+    });
     notifications.forEach((n) => {
       if (n.isArchived && !showArchived && filterType !== NOTIFICATION_STATUS.ARCHIVED) return;
       if (!(n.type || '').startsWith('WORKFLOW')) return;
       const key = getWorkflowStatusKey(n);
-      if (hideRejected && key === 'REJECTED') return;
       WORKFLOW_NOTIFICATION_STATUS_FILTERS.forEach((chip) => {
         if (chip.matchKeys ? chip.matchKeys.includes(key) : chip.id === key) {
-          counts[chip.id] = (counts[chip.id] || 0) + 1;
+          if (counts[chip.id] === undefined) counts[chip.id] = 0;
+          counts[chip.id] += 1;
         }
       });
     });
@@ -367,6 +413,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
   }, [filteredNotifications, t]);
 
   const archivedCount = notifications.filter(n => n.isArchived).length;
+  const readCount = notifications.filter(n => n.isRead && !n.isArchived).length;
 
   const formatTime = useCallback((timestamp) => {
     return formatNotificationTime(timestamp, t);
@@ -388,38 +435,69 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
       warn('Failed to log notification dismissed activity:', logError);
     }
     try {
-      await hookMarkAsRead(notificationId);
+      const success = await hookMarkAsRead(notificationId);
+      if (success) toast.success(t('notification_marked_read'));
     } catch {}
-  }, [hookMarkAsRead]);
+  }, [hookMarkAsRead, toast, t]);
 
   const handleMarkAsUnread = useCallback(async (notificationId, e) => {
     e?.stopPropagation();
     try {
-      await hookMarkAsUnread(notificationId);
+      const success = await hookMarkAsUnread(notificationId);
+      if (success) toast.success(t('notification_marked_unread'));
     } catch {}
-  }, [hookMarkAsUnread]);
+  }, [hookMarkAsUnread, toast, t]);
 
   const handleArchive = useCallback(async (notificationId, e) => {
     e?.stopPropagation();
     try {
-      await hookArchive(notificationId);
-    } catch {}
-  }, [hookArchive]);
+      const result = await hookArchive(notificationId);
+      if (result) {
+        toast.success(t('notification_archived'));
+      } else {
+        console.error('[NotificationDrawer] Archive failed - server returned false');
+      }
+    } catch (err) {
+      console.error('[NotificationDrawer] Archive error:', err);
+    }
+  }, [hookArchive, toast, t]);
+
+  const handleUnarchive = useCallback(async (notificationId, e) => {
+    e?.stopPropagation();
+    try {
+      const result = await hookUnarchive(notificationId);
+      if (result) {
+        toast.success(t('notification_unarchived'));
+      } else {
+        console.error('[NotificationDrawer] Unarchive failed - server returned false');
+      }
+    } catch (err) {
+      console.error('[NotificationDrawer] Unarchive error:', err);
+    }
+  }, [hookUnarchive, toast, t]);
 
   const handleDelete = useCallback(async (notificationId, e) => {
     e?.stopPropagation();
     if (!confirm(t('notifications.delete_confirmation'))) return;
     try {
-      await hookRemove(notificationId);
-    } catch {}
-  }, [t, hookRemove]);
+      const result = await hookRemove(notificationId);
+      if (result) {
+        toast.success(t('notification_deleted'));
+      } else {
+        console.error('[NotificationDrawer] Delete failed - server returned false');
+      }
+    } catch (err) {
+      console.error('[NotificationDrawer] Delete error:', err);
+    }
+  }, [t, hookRemove, toast]);
 
   const handleMarkAllAsRead = useCallback(async () => {
     if (unreadCount === 0) return;
     try {
-      await hookMarkAllAsRead();
+      const success = await hookMarkAllAsRead();
+      if (success) toast.success(t('notifications_all_read'));
     } catch {}
-  }, [unreadCount, hookMarkAllAsRead]);
+  }, [unreadCount, hookMarkAllAsRead, toast, t]);
 
   const gotoFromNotification = useCallback(async (n) => {
     try {
@@ -427,8 +505,9 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
     } catch (logError) {
       warn('Failed to log notification clicked activity:', logError);
     }
-    await gotoFromNotificationUtil(n, navigate, handleMarkAsRead);
-  }, [navigate, handleMarkAsRead]);
+    await gotoFromNotificationUtil(n, navigate, hookMarkAsRead);
+    onClose?.();
+  }, [navigate, hookMarkAsRead, onClose]);
 
   if (!isOpen || !user) return null;
 
@@ -501,30 +580,15 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
         }}>
           {/* Title Row */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: isDark ? '#fff' : '#111' }}>
-                {t('notifications.title')}
-              </h2>
-              {unreadCount > 0 && (
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minWidth: '24px',
-                  height: '24px',
-                  borderRadius: '50%',
-                  background: 'var(--color-primary, #800020)',
-                  color: '#fff',
-                  fontSize: 'var(--font-size-xs)',
-                  fontWeight: 700,
-                  padding: '0 6px',
-                  boxSizing: 'border-box',
-                  boxShadow: '0 0 0 2px rgba(255,255,255,0.9), 0 2px 6px rgba(128,0,32,0.4)',
-                  animation: 'notif-pulse 2s ease-in-out infinite',
-                }}>
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </div>
-              )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Input
+                type="text"
+                placeholder={t('search_notifications')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                fullWidth
+                style={inputStyle}
+              />
             </div>
             <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
               
@@ -582,23 +646,12 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
             </div>
           </div>
 
-          {/* Search */}
-          <div data-tour="notif-drawer-search" style={{ marginBottom: '0.6rem' }}>
-            <Input
-              type="text"
-              placeholder={t('search_notifications')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={inputStyle}
-            />
-          </div>
-
           {/* Status Filter Icons + Academic Filter Toggle */}
           <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '0.5rem', alignItems: 'center' }}>
             {[
               { value: 'all', icon: 'inbox', label: t('all') || 'All' },
               { value: NOTIFICATION_STATUS.UNREAD, icon: 'circle', label: t('unread') || 'Unread', count: unreadCount },
-              { value: NOTIFICATION_STATUS.READ, icon: 'check_circle', label: t('read') || 'Read' },
+              { value: NOTIFICATION_STATUS.READ, icon: 'check_circle', label: t('read') || 'Read', count: readCount },
               { value: NOTIFICATION_STATUS.ARCHIVED, icon: 'archive', label: t('archived') || 'Archived', count: archivedCount },
             ].map(opt => (
               <button
@@ -661,7 +714,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
           </div>
 
           {/* Workflow status legend chips */}
-          {Object.keys(workflowStatusCounts).length > 0 && (
+          {Object.values(workflowStatusCounts).some((c) => c > 0) && (
             <div style={{
               display: 'flex',
               gap: '0.35rem',
@@ -683,14 +736,14 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
                   fontWeight: filterWorkflowStatus === 'all' ? 700 : 500,
                 }}
               >
-                {t('notifications_all_statuses') || 'All statuses'}
+                {t('notifications_all_statuses') || 'All'}
               </button>
               {WORKFLOW_NOTIFICATION_STATUS_FILTERS.filter((chip) => {
-                if (workflowStatusCounts[chip.id] === 0) return false;
                 if (chip.hideForHR && isHR && !isAdmin && !isSuperAdmin) return false;
                 return true;
               }).map((chip) => {
                 const active = filterWorkflowStatus === chip.id;
+                const count = workflowStatusCounts[chip.id] || 0;
                 return (
                   <button
                     key={chip.id}
@@ -718,7 +771,23 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
                       flexShrink: 0,
                     }} />
                     {t(chip.labelKey) || chip.id}
-                    <span style={{ opacity: 0.85 }}>({workflowStatusCounts[chip.id]})</span>
+                    <span style={{
+                      minWidth: 18,
+                      height: 18,
+                      borderRadius: '50%',
+                      background: chip.color,
+                      color: '#fff',
+                      fontSize: '0.62rem',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 4px',
+                      flexShrink: 0,
+                      opacity: count > 0 ? 1 : 0.55,
+                    }}>
+                      {count}
+                    </span>
                   </button>
                 );
               })}
@@ -894,15 +963,16 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
                       )}
                       {sub.items.map((notification, idx) => (
                         <NotificationCard key={notification.id} notification={notification} idx={idx}
-                          isDark={isDark} isRTL={isRTL} theme={theme} t={t} formatTime={formatTime}
+                          isDark={isDark} isRTL={isRTL} theme={theme} t={t} lang={lang} formatTime={formatTime}
                           hoveredCard={hoveredCard} setHoveredCard={setHoveredCard}
                           gotoFromNotification={gotoFromNotification}
                           handleMarkAsRead={handleMarkAsRead} handleMarkAsUnread={handleMarkAsUnread}
-                          handleArchive={handleArchive} handleDelete={handleDelete}
+                          handleArchive={handleArchive} handleUnarchive={handleUnarchive} handleDelete={handleDelete}
                           iconBtnStyle={iconBtnStyle}
                           getNotificationIcon={getNotificationIcon} getCategoryColor={getCategoryColor} getNotificationBorderColor={getNotificationBorderColor}
                           PortalTooltip={PortalTooltip} getThemedIcon={getThemedIcon}
                           motion={motion} AnimatePresence={AnimatePresence}
+                          programs={programs} classes={classes}
                         />
                       ))}
                     </div>
@@ -910,15 +980,16 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
                 ) : (
                   group.items.map((notification, idx) => (
                     <NotificationCard key={notification.id} notification={notification} idx={idx}
-                      isDark={isDark} isRTL={isRTL} theme={theme} t={t} formatTime={formatTime}
+                      isDark={isDark} isRTL={isRTL} theme={theme} t={t} lang={lang} formatTime={formatTime}
                       hoveredCard={hoveredCard} setHoveredCard={setHoveredCard}
                       gotoFromNotification={gotoFromNotification}
                       handleMarkAsRead={handleMarkAsRead} handleMarkAsUnread={handleMarkAsUnread}
-                      handleArchive={handleArchive} handleDelete={handleDelete}
+                      handleArchive={handleArchive} handleUnarchive={handleUnarchive} handleDelete={handleDelete}
                       iconBtnStyle={iconBtnStyle}
                       getNotificationIcon={getNotificationIcon} getCategoryColor={getCategoryColor} getNotificationBorderColor={getNotificationBorderColor}
                       PortalTooltip={PortalTooltip} getThemedIcon={getThemedIcon}
                       motion={motion} AnimatePresence={AnimatePresence}
+                      programs={programs} classes={classes}
                     />
                   ))
                 )}

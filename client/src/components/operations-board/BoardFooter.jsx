@@ -167,7 +167,7 @@ export default function BoardFooter({
     alignItems: 'center',
     gap: '0.25rem',
     width: '100%',
-    padding: '4px 12px',
+    padding: '4px 2px',
     borderTop: 'none',
   };
 
@@ -189,91 +189,33 @@ export default function BoardFooter({
     />
   );
 
-  if (isCalendarTab && showLegend) {
-    const isInstructor = roleContext?.isInstructor;
-    return (
-      <div
-        className="operations-board-footer-stack"
-        data-testid="operations-board-footer-stack"
-        style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.125rem' }}
-      >
-        <div
-          className={`${gridStyles.statusLegend} operations-board-footer-legends`}
-          style={legendRowStyle}
-          data-testid="operations-board-calendar-extras-legend"
-        >
-          <BoardLegend
-            bare
-            showAttendance
-            showWorkflow={false}
-            showYourClassOnly={isInstructor}
-            hideDivider
-            roleContext={roleContext}
-            style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.25rem', width: '100%' }}
-          />
-        </div>
-        <div
-          className={`${gridStyles.statusLegend} operations-board-footer-legends`}
-          style={legendRowStyle}
-          data-testid="operations-board-calendar-lane-legend"
-        >
-          <BoardLegend
-            bare
-            showAttendance={false}
-            showWorkflow
-            includeNotTaken
-            roleContext={roleContext}
-            style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.25rem', flex: 1 }}
-            data-tour="operations-board-legend"
-          />
-        </div>
-      </div>
-    );
-  }
+  const showWorkflowLegend = isCalendarTab || lane === 'status';
 
   return (
     <div
-      className="operations-board-footer-stack"
+      className={`${gridStyles.statusLegend} ${gridStyles.statusLegendBottom} operations-board-footer-stack`}
       data-testid="operations-board-footer-stack"
-      style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.125rem' }}
+      style={{ marginTop: 'auto', width: '100%' }}
     >
       {showLegend && (
         <>
-          <div
-            className={`${gridStyles.statusLegend} operations-board-footer-legends`}
-            style={legendRowStyle}
-            data-testid="operations-board-attendance-legend"
-          >
-            <BoardLegend
-              bare
-              showAttendance
-              showWorkflow={false}
-              roleContext={roleContext}
-              style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.25rem', width: '100%' }}
-            />
+          <BoardLegend
+            bare
+            showAttendance
+            showWorkflow={showWorkflowLegend}
+            includeNotTaken={isCalendarTab}
+            showScheduleExtras={isCalendarTab && isInstructor}
+            showYourClassOnly={isCalendarTab && isInstructor}
+            roleContext={roleContext}
+            style={{ flex: 1, minWidth: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.35rem' }}
+            data-tour="operations-board-legend"
+          />
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', flexShrink: 0, padding: '0 8px' }}>
+            {controls}
           </div>
-          {lane === 'status' && (
-            <div
-              className={`${gridStyles.statusLegend} operations-board-footer-legends`}
-              style={legendRowStyle}
-              data-testid="operations-board-workflow-legend"
-            >
-              <BoardLegend
-                bare
-                showAttendance={false}
-                showWorkflow
-                roleContext={roleContext}
-                style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.25rem', flex: 1 }}
-                data-tour="operations-board-legend"
-              />
-              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', flexShrink: 0, padding: '0 8px' }}>
-                {controls}
-              </div>
-            </div>
-          )}
         </>
       )}
-      {lane !== 'status' && controls}
+      {!showLegend && controls}
     </div>
   );
 }

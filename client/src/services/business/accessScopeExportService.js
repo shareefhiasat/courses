@@ -98,6 +98,7 @@ export async function exportWeeklyScheduleForScope({
   t,
   user,
   format = EXPORT_FORMAT.PDF,
+  skipDownload = false,
 }) {
   const resolvedClass = await resolveClassForExport(cls);
   const { year: termYear, term: termCode } = academicTerm
@@ -125,7 +126,7 @@ export async function exportWeeklyScheduleForScope({
     timeSlots: sources.timeSlots,
   });
   const filename = `${reportData.serial}_weekly_schedule_${sanitize(meta.programName || meta.className)}`;
-  const blob = await exportWeeklyScheduleReport(reportData, { format, filename });
+  const blob = await exportWeeklyScheduleReport(reportData, { format, filename, download: !skipDownload });
   await persistAndLogExport({
     blob,
     filename,
@@ -135,7 +136,7 @@ export async function exportWeeklyScheduleForScope({
     programId: meta.programId,
     classId: meta.classId,
   }).catch(() => {});
-  return { filename, dataSource: reportData.dataSource };
+  return { filename, blob, dataSource: reportData.dataSource };
 }
 
 export async function exportWeeklyScheduleForProgram({
@@ -147,6 +148,7 @@ export async function exportWeeklyScheduleForProgram({
   t,
   user,
   format = EXPORT_FORMAT.PDF,
+  skipDownload = false,
 }) {
   const programName = program
     ? (lang === 'ar' ? program.nameAr || program.nameEn : program.nameEn || program.nameAr)
@@ -188,16 +190,18 @@ export async function exportWeeklyScheduleForProgram({
   });
 
   const filename = `${reportData.serial}_weekly_schedule_${sanitize(programName)}`;
-  const blob = await exportWeeklyScheduleReport(reportData, { format, filename });
-  await persistAndLogExport({
-    blob,
-    filename,
-    mimeType: mimeTypeForFormat(format),
-    format,
-    exportType: 'weekly_class_schedule',
-    programId: program?.id,
-  }).catch(() => {});
-  return { filename, dataSource: reportData.dataSource };
+  const blob = await exportWeeklyScheduleReport(reportData, { format, filename, download: !skipDownload });
+  if (!skipDownload) {
+    await persistAndLogExport({
+      blob,
+      filename,
+      mimeType: mimeTypeForFormat(format),
+      format,
+      exportType: 'weekly_class_schedule',
+      programId: program?.id,
+    }).catch(() => {});
+  }
+  return { filename, blob, dataSource: reportData.dataSource };
 }
 
 export async function exportDailyOfficialTemplate({
@@ -209,6 +213,8 @@ export async function exportDailyOfficialTemplate({
   user,
   format = EXPORT_FORMAT.PDF,
   instructorName,
+  skipDownload = false,
+  skipPersist = false,
 }) {
   const resolvedClass = await resolveClassForExport(cls, { instructorName });
   const meta = buildClassMetadata(resolvedClass, program, subject, lang, { instructorName, academicTerm });
@@ -225,8 +231,18 @@ export async function exportDailyOfficialTemplate({
     },
   });
   const filename = `${reportData.serial}_daily_template_${sanitize(meta.className)}`;
-  const blob = await exportDailyOfficialReport(reportData, { format, filename });
-  return { filename };
+  const blob = await exportDailyOfficialReport(reportData, { format, filename, download: !skipDownload });
+  const driveResult = skipPersist ? null : await persistAndLogExport({
+    blob,
+    filename,
+    mimeType: mimeTypeForFormat(format),
+    format,
+    exportType: 'attendance_daily_template',
+    classId: meta.classId,
+    subjectId: meta.subjectId,
+    programId: meta.programId,
+  }).catch(() => null);
+  return { filename, blob, fileId: driveResult?.fileId || null };
 }
 
 export async function exportDailyOfficialForDate({

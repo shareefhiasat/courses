@@ -5,14 +5,16 @@
  * Integrates with the notification socket singleton and API service.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
 import notificationService from '@services/business/notificationService';
 import { getNotificationSocket, initializeNotificationSocket } from '@services/realtime/notificationSocket';
 
 export const useNotificationsFeed = (options = {}) => {
   const { user } = useAuth();
-  const { limit = 50, unreadOnly = false, category = null, archived = false } = options;
+  const { lang } = useLang();
+  const { limit = 50, unreadOnly = false, category = null, archived } = options;
   
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -20,6 +22,10 @@ export const useNotificationsFeed = (options = {}) => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [socketConnected, setSocketConnected] = useState(false);
+  
+  // Track recently deleted/archived notification IDs to prevent socket from re-adding them
+  const deletedNotificationIds = useRef(new Set());
+  const archivedNotificationIds = useRef(new Set());
 
   // Load notifications from API
   const loadNotifications = useCallback(async (isRefresh = false) => {
@@ -31,16 +37,16 @@ export const useNotificationsFeed = (options = {}) => {
       }
       setError(null);
       
-      const result = await notificationService.getNotifications({
-        limit,
-        unreadOnly,
-        category,
-        archived
-      });
+      const params = { limit, unreadOnly, category, lang };
+      if (archived != null) params.archived = archived;
+      const result = await notificationService.getNotifications(params);
       
       if (result.success) {
-        setNotifications(result.notifications || []);
-        setUnreadCount(result.unreadCount || 0);
+        const loadedNotifications = result.notifications || [];
+        setNotifications(loadedNotifications);
+        // Calculate unread count locally from loaded notifications
+        const calculatedUnread = loadedNotifications.filter(n => !n.isRead && !n.isArchived).length;
+        setUnreadCount(calculatedUnread);
       } else {
         setError(result.error || 'Failed to load notifications');
       }
@@ -50,7 +56,7 @@ export const useNotificationsFeed = (options = {}) => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [limit, unreadOnly, category, archived]);
+  }, [limit, unreadOnly, category, archived, lang]);
 
   // Refresh notifications
   const refresh = useCallback(() => {
@@ -62,15 +68,15 @@ export const useNotificationsFeed = (options = {}) => {
     try {
       const result = await notificationService.markNotificationRead(notificationId);
       if (result.success) {
-        // Update local state
-        setNotifications(prev => 
-          prev.map(n => 
-            n.id === notificationId 
-              ? { ...n, isRead: true, readAt: new Date().toISOString() }
-              : n
-          )
+        let wasUnread = false;
+        setNotifications(prev =>
+          prev.map(n => {
+            if (n.id !== notificationId) return n;
+            wasUnread = !n.isRead && !n.isArchived;
+            return { ...n, isRead: true, readAt: new Date().toISOString() };
+          })
         );
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        setUnreadCount(prev => Math.max(0, prev - (wasUnread ? 1 : 0)));
         return true;
       }
       return false;
@@ -104,17 +110,24 @@ export const useNotificationsFeed = (options = {}) => {
     try {
       const result = await notificationService.archiveNotification(notificationId);
       if (result.success) {
-        // Update local state
-        setNotifications(prev => 
-          prev.map(n => 
-            n.id === notificationId 
-              ? { ...n, isArchived: true, archivedAt: new Date().toISOString() }
-              : n
-          )
+        // Track this ID to prevent socket from re-adding it
+        archivedNotificationIds.current.add(notificationId);
+
+        // Clean up after 30 seconds
+        setTimeout(() => {
+          archivedNotificationIds.current.delete(notificationId);
+        }, 30000);
+
+        // Update local state - mark as archived (and read) so it appears in the archive filter
+        let wasUnread = false;
+        setNotifications(prev =>
+          prev.map(n => {
+            if (n.id !== notificationId) return n;
+            wasUnread = !n.isRead && !n.isArchived;
+            return { ...n, isArchived: true, isRead: true, readAt: new Date().toISOString() };
+          })
         );
-        if (archived) {
-          setUnreadCount(prev => Math.max(0, prev - 1));
-        }
+        setUnreadCount(prev => Math.max(0, prev - (wasUnread ? 1 : 0)));
         return true;
       }
       return false;
@@ -122,16 +135,41 @@ export const useNotificationsFeed = (options = {}) => {
       console.error('Failed to archive notification:', err);
       return false;
     }
-  }, [archived]);
+  }, []);
+
+  // Unarchive notification
+  const unarchive = useCallback(async (notificationId) => {
+    try {
+      const result = await notificationService.unarchiveNotification(notificationId);
+      if (result.success) {
+        let wasUnread = false;
+        setNotifications(prev =>
+          prev.map(n => {
+            if (n.id !== notificationId) return n;
+            wasUnread = !n.isRead;
+            return { ...n, isArchived: false, archivedAt: null };
+          })
+        );
+        if (wasUnread) {
+          setUnreadCount(prev => prev + 1);
+        }
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to unarchive notification:', err);
+      return false;
+    }
+  }, []);
 
   // Archive all read
   const archiveAllRead = useCallback(async () => {
     try {
       const result = await notificationService.archiveAllRead();
       if (result.success) {
-        // Update local state
-        setNotifications(prev => 
-          prev.filter(n => !n.isRead || n.isArchived)
+        // Update local state - archive all read items so they move to the archive filter
+        setNotifications(prev =>
+          prev.map(n => (n.isRead && !n.isArchived ? { ...n, isArchived: true } : n))
         );
         return true;
       }
@@ -147,6 +185,14 @@ export const useNotificationsFeed = (options = {}) => {
     try {
       const result = await notificationService.deleteNotification(notificationId);
       if (result.success) {
+        // Track this ID to prevent socket from re-adding it
+        deletedNotificationIds.current.add(notificationId);
+        
+        // Clean up after 30 seconds
+        setTimeout(() => {
+          deletedNotificationIds.current.delete(notificationId);
+        }, 30000);
+        
         // Update local state
         setNotifications(prev => {
           const notif = prev.find(n => n.id === notificationId);
@@ -169,14 +215,15 @@ export const useNotificationsFeed = (options = {}) => {
     try {
       const result = await notificationService.markNotificationUnread(notificationId);
       if (result.success) {
+        let wasRead = false;
         setNotifications(prev =>
-          prev.map(n =>
-            n.id === notificationId
-              ? { ...n, isRead: false, readAt: null }
-              : n
-          )
+          prev.map(n => {
+            if (n.id !== notificationId) return n;
+            wasRead = n.isRead && !n.isArchived;
+            return { ...n, isRead: false, readAt: null };
+          })
         );
-        setUnreadCount(prev => prev + 1);
+        setUnreadCount(prev => prev + (wasRead ? 1 : 0));
         return true;
       }
       return false;
@@ -196,7 +243,22 @@ export const useNotificationsFeed = (options = {}) => {
         const handleNotification = (data) => {
           // New notification received via WebSocket (already mapped by backend)
           const mapped = data || {};
-          setNotifications(prev => [mapped, ...prev]);
+          
+          // Don't add if this notification was recently deleted or archived
+          if (deletedNotificationIds.current.has(mapped.id)) {
+            return;
+          }
+          if (archivedNotificationIds.current.has(mapped.id)) {
+            return;
+          }
+          
+          setNotifications(prev => {
+            // Deduplicate: skip if notification with same ID already exists
+            if (prev.some(n => n.id === mapped.id)) {
+              return prev;
+            }
+            return [mapped, ...prev];
+          });
           if (!mapped.isRead && !mapped.isArchived) {
             setUnreadCount(prev => prev + 1);
           }
@@ -258,6 +320,7 @@ export const useNotificationsFeed = (options = {}) => {
     markAsUnread,
     markAllAsRead,
     archive,
+    unarchive,
     archiveAllRead,
     remove
   };

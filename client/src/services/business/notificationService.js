@@ -16,6 +16,7 @@ const API_BASE = '/notifications';
  * @param {boolean} options.unreadOnly - Only unread notifications
  * @param {string} options.category - Filter by category
  * @param {boolean} options.archived - Include archived notifications
+ * @param {string} options.lang - Language code ('en' or 'ar')
  * @returns {Promise<Object>} Notifications and unread count
  */
 export const getNotifications = async (options = {}) => {
@@ -186,7 +187,7 @@ export const getById = async (id) => {
 
 export const unarchiveNotification = async (notificationId) => {
   try {
-    const response = await apiService.patch(`${API_BASE}/${notificationId}/archive`);
+    const response = await apiService.patch(`${API_BASE}/${notificationId}/unarchive`);
     return response;
   } catch (error) {
     console.error('Failed to unarchive notification:', error);

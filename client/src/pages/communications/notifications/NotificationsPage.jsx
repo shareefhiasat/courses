@@ -47,7 +47,7 @@ const NotificationsPage = () => {
     markAllAsRead,
     archive,
     remove
-  } = useNotificationsFeed({ limit: 100, archived: false });
+  } = useNotificationsFeed({ limit: 100 });
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all'); // all, unread, read, archived

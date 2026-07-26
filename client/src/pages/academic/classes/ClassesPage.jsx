@@ -247,7 +247,7 @@ const ClassesPage = () => {
           // Method 2: Check roleAssignments directly
           const method2 = u.roleAssignments && Array.isArray(u.roleAssignments) &&
             u.roleAssignments.some(ra =>
-              ra.role && (ra.role.code === 'instructor' || ra.role.code === 'super_admin')
+              ra.role && (ra.role.code === ROLE_STRINGS.INSTRUCTOR || ra.role.code === ROLE_STRINGS.SUPER_ADMIN)
             );
 
           // Method 3: Check for instructor-like email or display name patterns

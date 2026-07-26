@@ -4,8 +4,9 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { SpeedDial, SpeedDialAction, SpeedDialIcon } from '@mui/material';
+import { CheckCircle2, ExternalLink } from 'lucide-react';
 import { getThemedIcon } from '@constants/iconTypes';
-import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
+import { EXPORT_FORMAT, downloadBlob } from '@services/export/official-reports/index.jsx';
 import {
   exportWeeklyScheduleForScope,
   exportDailyOfficialForDate,
@@ -17,6 +18,7 @@ import { getStatusCodeFromRecord } from '@constants/attendanceTypes';
 import useQRPermissions from '@hooks/useQRPermissions';
 import PdfPreviewDialog from '@components/workspace/PdfPreviewDialog.jsx';
 import { findExistingAttendanceWorkflow } from '@services/business/workflowInitiationService.js';
+import { isHROnlyViewer } from '@components/operations-board/hrAttendancePrivacy.js';
 
 function ScheduleSpeedDial({
   session,
@@ -28,6 +30,7 @@ function ScheduleSpeedDial({
   onOpenHistory,
   onOpenNotifications,
   pdfOnly = false,
+  onExportSuccess,
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -46,6 +49,14 @@ function ScheduleSpeedDial({
   const dateStr = selectedDate
     ? selectedDate.toISOString().split('T')[0]
     : new Date().toISOString().split('T')[0];
+
+  const roleContext = {
+    isAdmin: user?.isAdmin,
+    isHR: user?.isHR,
+    isInstructor: user?.isInstructor,
+    isSuperAdmin: user?.isSuperAdmin,
+  };
+  const isHROnly = isHROnlyViewer(roleContext);
 
   useEffect(() => {
     if (!cls?.id || !dateStr) {
@@ -181,34 +192,77 @@ function ScheduleSpeedDial({
     }
   }, [cls, lang]);
 
+  const buildExportBanner = useCallback((label, format, blob, filename, blobUrl) => ({
+    pillColor: '#059669',
+    icon: <CheckCircle2 size={16} className="shrink-0" />,
+    message: (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0px', fontSize: '0.75rem' }}>
+        {`${label} — ${t('export_success') || 'Export successful'}`}
+        <button
+          type="button"
+          className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
+          onClick={() =>
+            format === EXPORT_FORMAT.EXCEL
+              ? downloadBlob(blob, `${filename}.xlsx`)
+              : window.open(blobUrl, '_blank')
+          }
+          style={{ marginLeft: '8px' }}
+          aria-label={
+            format === EXPORT_FORMAT.EXCEL
+              ? (t('download_file') || 'Download file')
+              : (t('open_in_new_tab') || 'Open in new tab')
+          }
+        >
+          <ExternalLink size={14} />
+        </button>
+      </span>
+    ),
+  }), [t]);
+
   const actions = useMemo(() => {
     const items = [];
 
     if (canExport && cls) {
-      items.push({
-        id: 'export-daily-pdf',
-        name: `${t('daily_official')} PDF`,
-        icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
-        disabled: exporting === 'export-daily-pdf',
-        onClick: () => setDailyPreviewOpen(true),
-      });
-      if (!pdfOnly) {
+      // Hide daily export options for HR-only users
+      if (!isHROnly) {
         items.push({
-          id: 'export-daily-excel',
-          name: `${t('daily_official')} Excel`,
-          icon: getThemedIcon('ui', 'file_text', 18, 'currentColor'),
-          disabled: exporting === 'export-daily-excel',
-          onClick: () => runExport('export-daily-excel', () =>
-            exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.EXCEL })),
+          id: 'export-daily-pdf',
+          name: `${t('daily_official')} PDF`,
+          icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
+          disabled: exporting === 'export-daily-pdf',
+          onClick: () => runExport('export-daily-pdf', async () => {
+            const result = await exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.PDF, skipDownload: true });
+            const blobUrl = URL.createObjectURL(result.blob);
+            onExportSuccess?.(buildExportBanner(`${t('daily_official')} PDF`, EXPORT_FORMAT.PDF, result.blob, result.filename, blobUrl));
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+          }),
         });
+        if (!pdfOnly) {
+          items.push({
+            id: 'export-daily-excel',
+            name: `${t('daily_official')} Excel`,
+            icon: getThemedIcon('ui', 'file_text', 18, 'currentColor'),
+            disabled: exporting === 'export-daily-excel',
+            onClick: () => runExport('export-daily-excel', async () => {
+              const result = await exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.EXCEL, skipDownload: true });
+              const blobUrl = URL.createObjectURL(result.blob);
+              onExportSuccess?.(buildExportBanner(`${t('daily_official')} Excel`, EXPORT_FORMAT.EXCEL, result.blob, result.filename, blobUrl));
+              setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+            }),
+          });
+        }
       }
       items.push({
         id: 'export-weekly-pdf',
         name: `${t('weekly_schedule')} PDF`,
         icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
         disabled: exporting === 'export-weekly-pdf',
-        onClick: () => runExport('export-weekly-pdf', () =>
-          exportWeeklyScheduleForScope({ cls, program, subject, academicTerm, lang, t, user, format: EXPORT_FORMAT.PDF })),
+        onClick: () => runExport('export-weekly-pdf', async () => {
+          const result = await exportWeeklyScheduleForScope({ cls, program, subject, academicTerm, lang, t, user, format: EXPORT_FORMAT.PDF, skipDownload: true });
+          const blobUrl = URL.createObjectURL(result.blob);
+          onExportSuccess?.(buildExportBanner(`${t('weekly_schedule')} PDF`, EXPORT_FORMAT.PDF, result.blob, result.filename, blobUrl));
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        }),
       });
       if (!pdfOnly) {
         items.push({
@@ -216,8 +270,12 @@ function ScheduleSpeedDial({
           name: `${t('weekly_schedule')} Excel`,
           icon: getThemedIcon('ui', 'file_text', 18, 'currentColor'),
           disabled: exporting === 'export-weekly-excel',
-          onClick: () => runExport('export-weekly-excel', () =>
-            exportWeeklyScheduleForScope({ cls, program, subject, academicTerm, lang, t, user, format: EXPORT_FORMAT.EXCEL })),
+          onClick: () => runExport('export-weekly-excel', async () => {
+            const result = await exportWeeklyScheduleForScope({ cls, program, subject, academicTerm, lang, t, user, format: EXPORT_FORMAT.EXCEL, skipDownload: true });
+            const blobUrl = URL.createObjectURL(result.blob);
+            onExportSuccess?.(buildExportBanner(`${t('weekly_schedule')} Excel`, EXPORT_FORMAT.EXCEL, result.blob, result.filename, blobUrl));
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+          }),
         });
       }
       if (!pdfOnly) {

@@ -63,14 +63,28 @@
   padding: 0.625rem 2.75rem 0.625rem 1rem;
 }
 
+[dir="rtl"] .dateInputLtr .input {
+  padding: 0.625rem 1rem 0.625rem 2.75rem;
+}
+
 .dateInputLtr .iconWrapper {
   right: 0.875rem;
   left: auto;
 }
 
+[dir="rtl"] .dateInputLtr .iconWrapper {
+  right: auto;
+  left: 0.875rem;
+}
+
 .dateInputLtr .hiddenDateInput {
   right: 0;
   left: auto;
+}
+
+[dir="rtl"] .dateInputLtr .hiddenDateInput {
+  right: auto;
+  left: 0;
 }
 
 .icon {
@@ -201,7 +215,7 @@
 /* Compact inline variant (welcome tab bar) */
 .compact .input {
   min-height: 30px;
-  padding: 0.2rem 1.75rem 0.2rem 0.5rem;
+  padding: 0.2rem 1.75rem 0.2rem 0.5rem !important;
   font-size: 0.8125rem;
   line-height: 1.2;
   border-radius: 6px;
@@ -209,8 +223,12 @@
 }
 
 .compact.dateInputLtr .input {
-  padding: 0.2rem 1.75rem 0.2rem 0.5rem;
+  padding: 0.2rem 1.75rem 0.2rem 0.5rem !important;
   text-align: center;
+}
+
+[dir="rtl"] .compact.dateInputLtr .input {
+  padding: 0.2rem 0.5rem 0.2rem 1.75rem !important;
 }
 
 .compact .iconWrapper {
@@ -221,4 +239,9 @@
 
 .compact.dateInputLtr .iconWrapper {
   right: 0.35rem;
+}
+
+[dir="rtl"] .compact.dateInputLtr .iconWrapper {
+  right: auto;
+  left: 0.35rem;
 }

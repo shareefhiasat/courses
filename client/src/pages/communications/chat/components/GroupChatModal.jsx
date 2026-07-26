@@ -73,7 +73,12 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
       setLoading(true);
       const response = await apiService.get('/chat/users');
       if (response?.data) {
-        setAvailableUsers(response.data);
+        // Filter out students - only show admin, HR, and instructor
+        const filtered = response.data.filter(user => {
+          const role = resolveUserRole(user);
+          return role !== 'student';
+        });
+        setAvailableUsers(filtered);
       }
     } catch (error) {
       console.error('Failed to load users:', error);
@@ -245,7 +250,6 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
           {/* Role Filter Chips */}
           <div data-tour="group-role-filter" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: '0.75rem' }}>
             {[{ key: 'all', label: t('chat_all'), icon: null, color: null },
-              { key: 'student', label: t('chat_filter_students'), icon: 'student', color: getUserRoleColor('student') },
               { key: 'instructor', label: t('chat_filter_instructors'), icon: 'instructor', color: getUserRoleColor('instructor') },
               { key: 'admin', label: t('chat_filter_admins'), icon: 'admin', color: getUserRoleColor('admin') },
               { key: 'hr', label: t('chat_filter_hr'), icon: 'hr', color: getUserRoleColor('hr') },

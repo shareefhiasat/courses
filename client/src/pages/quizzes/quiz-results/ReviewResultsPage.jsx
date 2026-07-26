@@ -23,6 +23,7 @@ import { formatDateTime } from '@utils/date';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { UnifiedFilterSection } from '@/components/filters';
 import './ReviewResultsPage.css';
+import { ROLE_STRINGS } from '@utils/userUtils';
 
 const ReviewResultsPage = () => {
   const { user, isAdmin, isInstructor, isSuperAdmin, loading: authLoading } = useAuth();
@@ -164,7 +165,7 @@ const ReviewResultsPage = () => {
       setSubjects(subjectsData);
       setClasses(classesData);
       setActivities(activitiesData);
-      setStudents(usersData.filter(u => u.role === 'student'));
+      setStudents(usersData.filter(u => u.role === ROLE_STRINGS.STUDENT));
       setCategories(categoriesRes.success ? (categoriesRes.data || []) : []);
 
       debug('[ReviewResults] loadData counts:', {
@@ -173,7 +174,7 @@ const ReviewResultsPage = () => {
         classes: classesData.length,
         activities: activitiesData.length,
         users: usersData.length,
-        students: usersData.filter(u => u.role === 'student').length,
+        students: usersData.filter(u => u.role === ROLE_STRINGS.STUDENT).length,
         sampleUser: usersData[0],
         sampleClass: classesData[0],
         sampleSubject: subjectsData[0],
@@ -181,7 +182,7 @@ const ReviewResultsPage = () => {
       });
 
       // Set role-specific data
-      if (user?.role === 'student') {
+      if (user?.role === ROLE_STRINGS.STUDENT) {
         // Get student's enrolled classes
         const studentEnrollments = usersData.find(u => u.uid === user.uid);
         setEnrolledClasses(studentEnrollments?.enrolledClasses || []);
@@ -194,7 +195,7 @@ const ReviewResultsPage = () => {
         
         // Get students in instructor's classes
         const instructorStudentIds = usersData
-          .filter(u => u.role === 'student')
+          .filter(u => u.role === ROLE_STRINGS.STUDENT)
           .filter(student => 
             student.enrolledClasses?.some(classId => instructorClassIds.includes(classId))
           )
@@ -312,7 +313,7 @@ const ReviewResultsPage = () => {
       let filtered = [...activities];
 
       // Apply role-based filtering for activities
-      if (user?.role === 'student') {
+      if (user?.role === ROLE_STRINGS.STUDENT) {
         filtered = filtered.filter(a => 
           !a.classId || enrolledClasses.includes(a.classId)
         );
@@ -392,7 +393,7 @@ const ReviewResultsPage = () => {
     let filtered = [...submissions];
 
     // Role-based filtering for submissions
-    if (user?.role === 'student') {
+    if (user?.role === ROLE_STRINGS.STUDENT) {
       // Students see only their own submissions
       filtered = filtered.filter(sub => sub.studentId === user.uid);
     } else if (isInstructor && !isSuperAdmin) {
@@ -527,7 +528,7 @@ const ReviewResultsPage = () => {
     let filtered = [...activities];
 
     // Apply role-based filtering
-    if (user?.role === 'student') {
+    if (user?.role === ROLE_STRINGS.STUDENT) {
       filtered = filtered.filter(a => 
         !a.classId || enrolledClasses.includes(a.classId)
       );

@@ -9,6 +9,13 @@
  * Frontend Components → Business Services → Database Services → PostgreSQL
  */
 
+const ROLE_STRINGS = {
+  ADMIN: 'admin',
+  SUPER_ADMIN: 'super_admin',
+  HR: 'hr',
+  INSTRUCTOR: 'instructor',
+  STUDENT: 'student',
+};
 const { dbService } = require('../other/dbService.js');
 const { info, error, warn, debug } = require('../utils/logger.js');
 
@@ -175,11 +182,11 @@ const getUserByEmail = async (email) => {
 };
 
 // Role checking functions
-const isAdmin = (user) => user?.isAdmin || user?.role === 'admin';
-const isSuperAdmin = (user) => user?.isSuperAdmin || user?.role === 'super_admin';
-const isHR = (user) => user?.isHR || user?.role === 'hr';
-const isInstructor = (user) => user?.isInstructor || user?.role === 'instructor';
-const isStudent = (user) => user?.isStudent || user?.role === 'student';
+const isAdmin = (user) => user?.isAdmin || user?.role === ROLE_STRINGS.ADMIN;
+const isSuperAdmin = (user) => user?.isSuperAdmin || user?.role === ROLE_STRINGS.SUPER_ADMIN;
+const isHR = (user) => user?.isHR || user?.role === ROLE_STRINGS.HR;
+const isInstructor = (user) => user?.isInstructor || user?.role === ROLE_STRINGS.INSTRUCTOR;
+const isStudent = (user) => user?.isStudent || user?.role === ROLE_STRINGS.STUDENT;
 
 module.exports = {
   getAllUsers,

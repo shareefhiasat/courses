@@ -247,6 +247,36 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
     return config?.icon || 'workflow';
   };
 
+  const renderWorkflowUser = (user, fallback = '\u2014') => {
+    if (!user) return <span>{fallback}</span>;
+    const role = getUserRoleFromObject(user);
+    const roleIcon = role ? getUserRoleIcon(role) : null;
+    const roleColor = role ? getUserRoleColor(role) : null;
+    return (
+      <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+        <DriveUserAvatar user={user} size="xs" showRoleBadge={false} />
+        {roleIcon && (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 14,
+              height: 14,
+              borderRadius: 4,
+              background: `${roleColor}22`,
+              color: roleColor,
+            }}
+            title={t(`roles.${role}`, role)}
+          >
+            {React.cloneElement(roleIcon, { color: roleColor, size: 10 })}
+          </span>
+        )}
+        <span>{getLocalizedUserName(user, lang, fallback)}</span>
+      </span>
+    );
+  };
+
   const getStatusDescription = (status) => {
     return t(`workflow.status.${status?.toLowerCase()}`, status);
   };
@@ -1058,13 +1088,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', flexWrap: 'wrap' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                            {workflow.submitter && <DriveUserAvatar user={workflow.submitter} size="xs" showRole lang={lang} />}
-                            {getLocalizedUserName(workflow.submitter, lang, '\u2014')}
-                            {(() => { const role = getUserRoleFromObject(workflow.submitter); return role && (
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginInlineStart: '0.25rem' }} title={t(`roles.${role}`, role)}>
-                                {(() => { const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? React.cloneElement(icon, { color, size: 12 }) : null; })()}
-                              </span>
-                            ); })()}
+                            {renderWorkflowUser(workflow.submitter, '\u2014')}
                           </span>
                           {/* Context: program · subject · class · date */}
                           {(() => {
@@ -1439,13 +1463,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 {/* Third row: Initiator + Context + Timestamp + Version */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', flexWrap: 'wrap' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                    {workflow.submitter && <DriveUserAvatar user={workflow.submitter} size="xs" showRole lang={lang} />}
-                    {getLocalizedUserName(workflow.submitter, lang, '\u2014')}
-                    {(() => { const role = getUserRoleFromObject(workflow.submitter); return role && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginInlineStart: '0.25rem' }} title={t(`roles.${role}`, role)}>
-                        {(() => { const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? React.cloneElement(icon, { color, size: 12 }) : null; })()}
-                      </span>
-                    ); })()}
+                    {renderWorkflowUser(workflow.submitter, '\u2014')}
                   </span>
                   {/* Context: program · subject · class */}
                   {(() => {

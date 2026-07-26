@@ -1043,14 +1043,20 @@ export async function streamFile({ fileId, req, res, actorUserId, versionId = nu
   const bucketReal = resolveBucket(bucketName || file.bucket);
   console.log('[streamFile] Bucket mapping:', { bucketName, bucketReal });
 
+  // Remove logical bucket prefix from s3Key if present (MinIO structure: actual-bucket/logical-bucket/...)
+  if (s3Key && s3Key.startsWith(`${file.bucket}/`)) {
+    s3Key = s3Key.substring(`${file.bucket}/`.length);
+    console.log('[streamFile] Removed logical bucket prefix from s3Key, new s3Key:', s3Key);
+  }
+
   // Check if s3Key is placeholder or missing - if so, try to find actual object
   if (!s3Key || s3Key === 'placeholder' || s3Key.endsWith('/placeholder')) {
     console.log('[streamFile] s3Key is placeholder or missing, attempting to find actual object');
     const { minioClient } = await import('./minioService.js');
     try {
-      // Try with file owner ID first
+      // Try with file owner ID first - MinIO structure is: actual-bucket/logical-bucket/ownerId/fileId/
       const prefix = `${file.bucket}/${file.ownerId}/${file.id}/`;
-      console.log('[streamFile] Listing objects with prefix:', prefix);
+      console.log('[streamFile] Listing objects with prefix:', prefix, 'in bucket:', bucketReal);
       const objectsStream = minioClient.listObjects(bucketReal, prefix, true);
       const objects = [];
       for await (const obj of objectsStream) {
@@ -1150,8 +1156,21 @@ export async function streamFile({ fileId, req, res, actorUserId, versionId = nu
         console.error('[streamFile] Failed to list objects:', listError);
       }
     }
+    if (isNotFoundError(error)) {
+      return res.status(404).json(err('FILE_NOT_FOUND', 'File not found in storage'));
+    }
     throw error;
   }
+}
+
+// ============================================================================
+// Helper to determine if an error indicates a missing object
+// ============================================================================
+function isNotFoundError(error) {
+  return error.code === 'NotFound' || 
+         error.message?.includes('Not Found') ||
+         error.message?.includes('NoSuchKey') ||
+         error.code === 'NoSuchKey';
 }
 
 // ============================================================================

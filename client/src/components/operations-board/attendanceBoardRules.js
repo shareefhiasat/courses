@@ -1,13 +1,15 @@
-import { ATTENDANCE_COLUMNS } from '@services/business/operationsBoardService.js';
+import { ATTENDANCE_COLUMNS, ATTENDANCE_BOARD_LANES } from '@services/business/operationsBoardService.js';
 import { isHROnlyViewer } from './hrAttendancePrivacy.js';
 
-const INSTRUCTOR_LANE_IDS = new Set(['NOT_TAKEN', 'PRESENT', 'LATE']);
-const INSTRUCTOR_MOVE_TARGETS = new Set(['NOT_TAKEN', 'PRESENT', 'LATE']);
+const { NOT_TAKEN, PRESENT, LATE, ABSENT, EXCUSED, HUMAN_CASE } = ATTENDANCE_BOARD_LANES;
+
+const INSTRUCTOR_LANE_IDS = new Set([NOT_TAKEN, PRESENT, LATE]);
+const INSTRUCTOR_MOVE_TARGETS = new Set([NOT_TAKEN, PRESENT, LATE]);
 /** Admin sees instructor-marked Present/Late plus review lanes; Late was missing so Late cards vanished. */
-const ADMIN_LANE_IDS = new Set(['NOT_TAKEN', 'PRESENT', 'LATE', 'ABSENT', 'HUMAN_CASE', 'EXCUSED']);
-const ADMIN_MOVE_TARGETS = new Set(['NOT_TAKEN', 'PRESENT', 'LATE', 'ABSENT', 'HUMAN_CASE', 'EXCUSED']);
+const ADMIN_LANE_IDS = new Set([NOT_TAKEN, PRESENT, LATE, ABSENT, HUMAN_CASE, EXCUSED]);
+const ADMIN_MOVE_TARGETS = new Set([NOT_TAKEN, PRESENT, LATE, ABSENT, HUMAN_CASE, EXCUSED]);
 /** HR sees full attendance picture including Late (no Late→Present masking). */
-const HR_LANE_IDS = new Set(['NOT_TAKEN', 'PRESENT', 'LATE', 'ABSENT', 'EXCUSED', 'HUMAN_CASE']);
+const HR_LANE_IDS = new Set([NOT_TAKEN, PRESENT, LATE, ABSENT, EXCUSED, HUMAN_CASE]);
 // HR is a read-only viewer for daily attendance; only Admin/Instructor/Super-Admin may edit
 const HR_MOVE_TARGETS = new Set([]);
 
@@ -40,7 +42,7 @@ export function canMoveAttendanceToColumn(targetColumn, roleContext = {}) {
   if (isHROnlyViewer(roleContext)) {
     return HR_MOVE_TARGETS.has(targetColumn);
   }
-  return ['NOT_TAKEN', 'PRESENT', 'LATE', 'ABSENT', 'EXCUSED', 'HUMAN_CASE'].includes(targetColumn);
+  return Object.values(ATTENDANCE_BOARD_LANES).includes(targetColumn);
 }
 
 export function getAllowedAttendanceActions(roleContext = {}) {

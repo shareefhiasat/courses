@@ -86,10 +86,12 @@ export const send = async (notification, recipient, rendered) => {
     });
     
     // Emit WebSocket event if emitter is available
+    // Use recipient's preferred language for the WebSocket payload
     if (wsEmitter) {
       try {
-        wsEmitter(recipient.userId, 'notification:new', mapNotification(createdNotification));
-        log.info('WS event emitted', { userId: recipient.userId, notificationId: createdNotification.id });
+        const recipientLang = recipient.preferredLang || 'en';
+        wsEmitter(recipient.userId, 'notification:new', mapNotification(createdNotification, recipientLang));
+        log.info('WS event emitted', { userId: recipient.userId, notificationId: createdNotification.id, lang: recipientLang });
       } catch (wsError) {
         log.warn('Failed to emit WS event', { userId: recipient.userId, error: wsError.message });
       }

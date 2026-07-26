@@ -51,6 +51,7 @@ import { LoadingSpinner } from '@ui';
 import { Modal } from '@ui';
 import { FileUpload } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
+import { ROLE_STRINGS } from '@utils/userUtils';
 
 const WorkflowDetailPage = () => {
   const { t, lang } = useLang();
@@ -140,7 +141,7 @@ const WorkflowDetailPage = () => {
           if (normalized === 'superadmin') aliases.add('super_admin');
           if (normalized === 'humanresources') aliases.add('human_resources');
           if (normalized === 'teacher') aliases.add('instructor');
-          if (normalized === 'admin' || normalized === 'super_admin') aliases.add('admin_group');
+          if (normalized === ROLE_STRINGS.ADMIN || normalized === ROLE_STRINGS.SUPER_ADMIN) aliases.add('admin_group');
           return Array.from(aliases);
         };
 
@@ -192,15 +193,15 @@ const WorkflowDetailPage = () => {
     return recipientOptions.filter((option) => {
       const roleCodes = (option.roleCodes || []).map((role) => String(role).toLowerCase());
       if (recipientRoleFilter === 'admin_group') {
-        return roleCodes.includes('admin_group') || roleCodes.includes('admin') || roleCodes.includes('super_admin');
+        return roleCodes.includes('admin_group') || roleCodes.includes(ROLE_STRINGS.ADMIN) || roleCodes.includes(ROLE_STRINGS.SUPER_ADMIN);
       }
 
-      if (recipientRoleFilter === 'hr') {
-        return roleCodes.includes('hr') || roleCodes.includes('human_resources');
+      if (recipientRoleFilter === ROLE_STRINGS.HR) {
+        return roleCodes.includes(ROLE_STRINGS.HR) || roleCodes.includes('human_resources');
       }
 
-      if (recipientRoleFilter === 'instructor') {
-        return roleCodes.includes('instructor') || roleCodes.includes('teacher');
+      if (recipientRoleFilter === ROLE_STRINGS.INSTRUCTOR) {
+        return roleCodes.includes(ROLE_STRINGS.INSTRUCTOR) || roleCodes.includes('teacher');
       }
 
       return roleCodes.includes(recipientRoleFilter);

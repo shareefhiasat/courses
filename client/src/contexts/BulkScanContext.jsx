@@ -584,9 +584,19 @@ export const BulkScanProvider = ({
         return;
       }
 
-      const allStudents = studentsResponse.data;
+      // Deduplicate by userId to avoid repeated entries when a student has
+      // multiple enrollments in the same program/class.
+      const seenUserIds = new Set();
+      const allStudents = studentsResponse.data.filter((enrollment) => {
+        const userId = enrollment.userId ?? enrollment.user?.id;
+        const key = userId != null ? String(userId) : null;
+        if (!key || seenUserIds.has(key)) return false;
+        seenUserIds.add(key);
+        return true;
+      });
       info("[BulkScanContext] Fetched students:", {
-        totalFetched: allStudents.length,
+        totalFetched: studentsResponse.data.length,
+        dedupedCount: allStudents.length,
         classId: currentClassId,
         attendanceMode: currentAttendanceMode,
       });

@@ -302,9 +302,9 @@ const CalendarCompliancePage = () => {
                   value={filters.workflowType}
                   onChange={(e) => setFilters({ ...filters, workflowType: e.target.value })}
                 >
-                  <option value="">All Types</option>
-                  <option value="ATTENDANCE_DAILY">Daily Attendance</option>
-                  <option value="ATTENDANCE_WEEKLY">Weekly Summary</option>
+                  <option value="">{t('all_types') || 'All Types'}</option>
+                  <option value="ATTENDANCE_DAILY">{t('operations_board_daily_attendance') || 'Daily Attendance'}</option>
+                  <option value="ATTENDANCE_WEEKLY">{t('weekly_summary') || 'Weekly Summary'}</option>
                 </select>
               </div>
             </div>

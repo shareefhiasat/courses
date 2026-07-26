@@ -5,15 +5,36 @@
 
 const UNKNOWN_USER = 'Unknown User';
 
+const ARABIC_BLOCK_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+(?:\s+[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+)*/g;
+const LATIN_NAME_RE = /[A-Za-z]+(?:['-]?[A-Za-z]+)*/g;
+
+function extractLatin(text) {
+  if (!text) return '';
+  const matches = String(text).match(LATIN_NAME_RE);
+  return matches ? matches.join(' ').trim() : '';
+}
+
+function extractArabic(text) {
+  if (!text) return '';
+  const matches = String(text).match(ARABIC_BLOCK_RE);
+  return matches ? matches.join(' ').trim() : '';
+}
+
 export function getEnglishUserName(user, fallback = UNKNOWN_USER) {
   if (!user) return fallback;
 
-  if (user.displayName?.trim()) return user.displayName.trim();
-  if (user.realName?.trim()) return user.realName.trim();
-  if (user.name?.trim()) return user.name.trim();
-  if (user.firstName && user.lastName) return `${user.firstName} ${user.lastName}`.trim();
-  if (user.firstName?.trim()) return user.firstName.trim();
-  if (user.email) return user.email;
+  // Prefer explicit Latin-script display/real/name fields; if mixed, extract the Latin part
+  const latinDisplayName = extractLatin(user.displayName);
+  if (latinDisplayName) return latinDisplayName;
+  const latinRealName = extractLatin(user.realName);
+  if (latinRealName) return latinRealName;
+  const latinName = extractLatin(user.name);
+  if (latinName) return latinName;
+
+  // Combine Latin first/last names individually so a missing or Arabic field does not hide the other
+  const latinFirst = extractLatin(user.firstName);
+  const latinLast = extractLatin(user.lastName);
+  if (latinFirst || latinLast) return `${latinFirst} ${latinLast}`.trim();
 
   return fallback;
 }
@@ -27,6 +48,18 @@ export function getArabicUserName(user, fallback = null) {
     return `${user.firstNameAr} ${user.lastNameAr}`.trim();
   }
   if (user.firstNameAr?.trim()) return user.firstNameAr.trim();
+
+  // Fallback: extract Arabic parts from bilingual/mixed generic fields
+  const arDisplayName = extractArabic(user.displayName);
+  if (arDisplayName) return arDisplayName;
+  const arRealName = extractArabic(user.realName);
+  if (arRealName) return arRealName;
+  const arName = extractArabic(user.name);
+  if (arName) return arName;
+
+  const arFirst = extractArabic(user.firstName);
+  const arLast = extractArabic(user.lastName);
+  if (arFirst || arLast) return `${arFirst} ${arLast}`.trim();
 
   return fallback;
 }

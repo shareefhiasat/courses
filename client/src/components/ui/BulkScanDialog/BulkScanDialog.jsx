@@ -688,7 +688,7 @@ const BulkScanDialog = ({
               </div>
               <div className={styles.notFoundList}>
                 {validatedStudents.notFound.slice(0, 10).join(', ')}
-                {validatedStudents.notFound.length > 10 && ` ...and ${validatedStudents.notFound.length - 10} more`}
+                {validatedStudents.notFound.length > 10 && ` ...and ${validatedStudents.notFound.length - 10} ${t('more')}`}
               </div>
             </div>
           )}

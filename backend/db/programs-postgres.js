@@ -269,9 +269,12 @@ const create = async (programData, user = null) => {
         
         const newAdmin = await prisma.user.create({
           data: {
-            displayName: 'System Administrator',
-            firstName: 'System',
-            lastName: 'Administrator',
+            displayName: 'Hamad Saleh Nabet',
+            firstName: 'Hamad',
+            lastName: 'Nabet',
+            displayNameAr: 'حمد صالح نابت',
+            firstNameAr: 'حمد',
+            lastNameAr: 'نابت',
             email: 'admin@milmanylms.com',
             roleId: adminRole.id
           }

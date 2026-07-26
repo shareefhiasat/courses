@@ -77,10 +77,17 @@ export default function WorkflowPdfPreviewPanel({
         if (data.success && data.payload?.url) {
           setPreviewUrl(data.payload.url);
         } else {
-          setError(data.error?.message || data.error || (t('operations_board_preview_failed') || 'Preview unavailable'));
+          const errorMsg = data.error?.message || data.error || (t('operations_board_preview_failed') || 'Preview unavailable');
+          setError(errorMsg);
         }
       } catch (err) {
-        if (!cancelled) setError(err.message || (t('operations_board_preview_failed') || 'Preview unavailable'));
+        if (!cancelled) {
+          const isServerError = err.message?.includes('500') || err.message?.includes('Internal Server Error');
+          const errorMsg = isServerError 
+            ? (t('operations_board_preview_server_error') || 'File not accessible. Please move the document to HR again to regenerate the file.')
+            : (err.message || (t('operations_board_preview_failed') || 'Preview unavailable'));
+          setError(errorMsg);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }

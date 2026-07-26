@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { getAuthToken } from '@utils/authHelpers';
+import { ROLE_STRINGS } from '@utils/userUtils';
 import {
   expandWithDependencies,
   SUPER_ADMIN_ONLY_OPERATION_KEYS,
@@ -159,7 +160,7 @@ const PermissionMatrixPage = () => {
 
   const handleTogglePermission = (screenId, operationId, role, currentAllowed, operationKey) => {
     if (!editMode) return;
-    if (role !== 'super_admin' && SUPER_ADMIN_ONLY_OPERATION_KEYS.has(operationKey) && !currentAllowed) {
+    if (role !== ROLE_STRINGS.SUPER_ADMIN && SUPER_ADMIN_ONLY_OPERATION_KEYS.has(operationKey) && !currentAllowed) {
       return;
     }
 
@@ -472,7 +473,7 @@ const PermissionMatrixPage = () => {
             }}
           >
             {roleDisplayNames[role]}
-            {role === 'super_admin' && (
+            {role === ROLE_STRINGS.SUPER_ADMIN && (
               <span style={{ marginLeft: '0.35rem', fontSize: '0.65rem', opacity: 0.85 }} title="Bypasses matrix at runtime">
                 (System)
               </span>
@@ -627,7 +628,7 @@ const PermissionMatrixPage = () => {
                               const perm = operation.permissions.find(p => p.role === role);
                               const allowed = perm ? perm.allowed : false;
                               const isSuperAdminOnly = SUPER_ADMIN_ONLY_OPERATION_KEYS.has(operation.operationKey);
-                              const checkboxDisabled = !editMode || (isSuperAdminOnly && role !== 'super_admin');
+                              const checkboxDisabled = !editMode || (isSuperAdminOnly && role !== ROLE_STRINGS.SUPER_ADMIN);
                               const hasPendingUpdate = pendingUpdates.some(
                                 u => u.role === role && u.screenId === screen.id && u.operationId === operation.id
                               );
@@ -643,7 +644,7 @@ const PermissionMatrixPage = () => {
                                     backgroundColor: hasPendingUpdate ? 'var(--accent-light)' : 'transparent',
                                     borderRadius: '4px',
                                     transition: 'background-color 0.15s',
-                                    opacity: checkboxDisabled && isSuperAdminOnly && role !== 'super_admin' ? 0.45 : 1,
+                                    opacity: checkboxDisabled && isSuperAdminOnly && role !== ROLE_STRINGS.SUPER_ADMIN ? 0.45 : 1,
                                   }}
                                 >
                                   <input

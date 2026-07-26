@@ -8,16 +8,19 @@ import {
 } from '@/components/kibo/ui/dialog';
 import { Button } from '@/components/kibo/ui/button';
 import { Badge } from '@/components/kibo/ui/badge';
-import { Status, StatusIndicator, StatusLabel } from '@/components/kibo-ui/status';
 import { ScrollArea } from '@/components/kibo/ui/scroll-area';
 import { Input } from '@/components/kibo/ui/input';
 import { Box, Tab, Tabs, TextField } from '@mui/material';
+import { Shield, User, Briefcase, GraduationCap } from 'lucide-react';
 import {
   fetchWorkflowHistory,
   fetchAttendanceHistory,
   addWorkflowBoardComment,
   moveAttendanceCard,
   ATTENDANCE_COLUMNS,
+  WORKFLOW_COLUMNS,
+  ATTENDANCE_BOARD_LANES,
+  normalizeAttendanceStatus,
 } from '@services/business/operationsBoardService.js';
 import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
@@ -28,41 +31,72 @@ import {
   resolveBoardStudentName,
 } from './operationsBoardDisplayUtils.js';
 import { formatDateTime } from '@utils/date-formatter.js';
-import { ATTENDANCE_BOARD_COLORS } from '@constants/workspaceStatusColors.js';
+import { getLocalizedAttendanceLabel, ATTENDANCE_STATUS } from '@constants/attendanceTypes.js';
 
-const ATTENDANCE_STATUS_CLASS = {
-  PRESENT: 'online',
-  LATE: 'degraded',
-  ABSENT: 'offline',
-  EXCUSED: 'maintenance',
-  HUMAN_CASE: 'degraded',
-  NOT_TAKEN: 'pending',
-};
-
-const STATUS_COLOR_MAP = {
-  'PRESENT': ATTENDANCE_BOARD_COLORS.PRESENT,
-  'ATTENDANCE_PRESENT': ATTENDANCE_BOARD_COLORS.PRESENT,
-  'LATE': ATTENDANCE_BOARD_COLORS.LATE,
-  'ATTENDANCE_LATE': ATTENDANCE_BOARD_COLORS.LATE,
-  'ABSENT': ATTENDANCE_BOARD_COLORS.ABSENT,
-  'ATTENDANCE_ABSENT': ATTENDANCE_BOARD_COLORS.ABSENT,
-  'EXCUSED': ATTENDANCE_BOARD_COLORS.EXCUSED,
-  'ATTENDANCE_LEAVE': ATTENDANCE_BOARD_COLORS.EXCUSED,
-  'HUMAN_CASE': ATTENDANCE_BOARD_COLORS.HUMAN_CASE,
-  'ATTENDANCE_HUMAN_CASE': ATTENDANCE_BOARD_COLORS.HUMAN_CASE,
-  'NOT_TAKEN': ATTENDANCE_BOARD_COLORS.NOT_TAKEN,
-};
+const { NOT_TAKEN, PRESENT, LATE, ABSENT, EXCUSED, HUMAN_CASE } = ATTENDANCE_BOARD_LANES;
 
 function statusColor(value) {
   if (!value) return null;
-  const key = typeof value === 'object' ? (value.code || value.nameEn || '') : String(value);
-  return STATUS_COLOR_MAP[String(key).toUpperCase().trim()] || null;
+  const raw = typeof value === 'object' ? (value.code || value.nameEn || '') : String(value);
+  const key = String(raw).toUpperCase().trim().replace(/\s+/g, '_');
+  const allColumns = [...ATTENDANCE_COLUMNS, ...WORKFLOW_COLUMNS];
+  const directMatch = allColumns.find(
+    (col) => col.id === key || col.name.toLowerCase() === raw.toLowerCase()
+  );
+  if (directMatch) return directMatch.color;
+  const normalized = normalizeAttendanceStatus(value);
+  const normalizedMatch = ATTENDANCE_COLUMNS.find((col) => col.id === normalized);
+  return normalizedMatch?.color || null;
 }
 
-function shortStatus(value) {
+function shortStatus(value, lang = 'en') {
   if (!value) return '—';
-  if (typeof value === 'object') return value.nameEn || value.code || '—';
-  return String(value).replace(/^ATTENDANCE_/, '');
+  if (typeof value === 'object') {
+    const code = value.code || value.nameEn || '—';
+    const normalizedCode = normalizeStatusCode(code);
+    const localized = getLocalizedAttendanceLabel(normalizedCode, lang);
+    if (localized) return localized;
+    return value.nameEn || value.code || '—';
+  }
+  const code = String(value);
+  const normalizedCode = normalizeStatusCode(code);
+  const localized = getLocalizedAttendanceLabel(normalizedCode, lang);
+  if (localized) return localized;
+  // Fallback to removing prefix
+  return code.replace(/^ATTENDANCE_/, '').replace(/^ATTENDANCE\s+/, '');
+}
+
+function normalizeStatusCode(code) {
+  if (!code) return code;
+  const str = String(code).toUpperCase().trim();
+  // Map common variations to canonical codes
+  const statusMap = {
+    [PRESENT]: ATTENDANCE_STATUS.PRESENT,
+    [ABSENT]: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
+    [LATE]: ATTENDANCE_STATUS.LATE,
+    [EXCUSED]: ATTENDANCE_STATUS.EXCUSED_LEAVE,
+    [EXCUSED_LEAVE]: ATTENDANCE_STATUS.EXCUSED_LEAVE,
+    [HUMAN_CASE]: ATTENDANCE_STATUS.HUMAN_CASE,
+    LEAVE: ATTENDANCE_STATUS.EXCUSED_LEAVE,
+  };
+  // Handle ATTENDANCE_ABSENT and ATTENDANCE ABSENT formats
+  const withPrefix = str.replace(/ATTENDANCE\s+/g, 'ATTENDANCE_');
+  return statusMap[withPrefix] || statusMap[str] || withPrefix;
+}
+
+function getRoleIcon(actorName) {
+  if (!actorName) return null;
+  const upperName = actorName.toUpperCase();
+  if (upperName.includes('ADMIN') || upperName.includes('SUPER ADMIN') || upperName.includes('GLOBAL ADMIN')) {
+    return Shield;
+  }
+  if (upperName.includes('INSTRUCTOR')) {
+    return GraduationCap;
+  }
+  if (upperName.includes('HR')) {
+    return Briefcase;
+  }
+  return User;
 }
 
 export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRefresh }) {
@@ -165,12 +199,36 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
       const fromRaw = h.fromStatus || h.fromStatus?.nameEn || h.oldStatus;
       const toRaw = h.toStatus || h.toStatus?.nameEn || h.newStatus;
       const actorName = h.actor?.displayName || h.changedByUser?.displayName;
+
+      // Debug: log status values
+      console.log('[BoardDetailDrawer] History entry:', {
+        fromRaw,
+        toRaw,
+        fromType: typeof fromRaw,
+        toType: typeof toRaw,
+        lang
+      });
+
+      // Translate role names for Arabic
+      let translatedActorName = actorName;
+      if (lang === 'ar' && actorName) {
+        if (actorName === 'Global Admin' || actorName === 'Super Admin') {
+          translatedActorName = t('roles.super_admin') || 'مدير عام';
+        } else if (actorName === 'Admin') {
+          translatedActorName = t('roles.admin') || 'مدير';
+        } else if (actorName === 'Instructor') {
+          translatedActorName = t('roles.instructor') || 'مدرب';
+        } else if (actorName === 'HR') {
+          translatedActorName = t('roles.hr') || 'موارد بشرية';
+        }
+      }
+
       return {
         type: 'status',
-        actor: actorName || t('operations_board_system_actor'),
+        actor: translatedActorName || t('operations_board_system_actor'),
         isSystem: !actorName,
-        from: shortStatus(fromRaw),
-        to: shortStatus(toRaw),
+        from: shortStatus(fromRaw, lang),
+        to: shortStatus(toRaw, lang),
         fromColor: statusColor(fromRaw),
         toColor: statusColor(toRaw),
         at: h.createdAt || h.changedAt,
@@ -178,14 +236,32 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
         profileImageUrl: h.actor?.profileImageUrl || h.changedByUser?.profileImageUrl,
       };
     }),
-    ...comments.map((c) => ({
-      type: 'comment',
-      actor: c.author?.displayName || c.authorName || t('operations_board_unknown_user'),
-      isSystem: false,
-      text: c.comment || c.text,
-      at: c.createdAt,
-      profileImageUrl: c.author?.profileImageUrl,
-    })),
+    ...comments.map((c) => {
+      const commentActorName = c.author?.displayName || c.authorName || t('operations_board_unknown_user');
+
+      // Translate role names for Arabic in comments
+      let translatedCommentActor = commentActorName;
+      if (lang === 'ar' && commentActorName) {
+        if (commentActorName === 'Global Admin' || commentActorName === 'Super Admin') {
+          translatedCommentActor = t('roles.super_admin') || 'مدير عام';
+        } else if (commentActorName === 'Admin') {
+          translatedCommentActor = t('roles.admin') || 'مدير';
+        } else if (commentActorName === 'Instructor') {
+          translatedCommentActor = t('roles.instructor') || 'مدرب';
+        } else if (commentActorName === 'HR') {
+          translatedCommentActor = t('roles.hr') || 'موارد بشرية';
+        }
+      }
+
+      return {
+        type: 'comment',
+        actor: translatedCommentActor,
+        isSystem: false,
+        text: c.comment || c.text,
+        at: c.createdAt,
+        profileImageUrl: c.author?.profileImageUrl,
+      };
+    }),
   ].sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
 
   // Prefer formatDateTime for consistent DD/MM/YYYY, hh:mm a formatting
@@ -212,32 +288,32 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
                 >
                   {statusLabel}
                 </Badge>
-                {card.type === 'attendance' && statusColumn ? (
-                  <Status status={ATTENDANCE_STATUS_CLASS[card.column] || 'offline'} className="w-fit">
-                    <StatusIndicator />
-                    <StatusLabel>{statusLabel}</StatusLabel>
-                  </Status>
-                ) : (
-                  <Badge
-                    variant="outline"
-                    style={statusColumn ? { borderColor: statusColumn.color, color: statusColumn.color } : undefined}
-                    className="hidden sm:inline-flex"
-                  >
-                    {statusLabel}
-                  </Badge>
-                )}
+                <Badge
+                  variant="outline"
+                  style={statusColumn ? { borderColor: statusColumn.color, color: statusColumn.color } : undefined}
+                  className="w-fit inline-flex"
+                >
+                  {card.type === 'attendance' && statusColumn && (
+                    <span
+                      className="inline-block h-2 w-2 rounded-full shrink-0 mr-1"
+                      style={{ backgroundColor: statusColumn.color }}
+                      aria-hidden
+                    />
+                  )}
+                  {statusLabel}
+                </Badge>
               </DialogTitle>
               <DialogDescription className="mt-1">
-                {card.type === 'workflow' ? t('operations_board_workflow') : t('operations_board_attendance')}
-                {className ? ` · ${className}` : ''}
-                {card.date ? ` · ${formatBoardDate(card.date, lang)}` : ''}
+                {card.date ? `${formatBoardDate(card.date, lang)}` : ''}
+                {card.date && className ? ' · ' : ''}
+                {className ? `${className}` : ''}
               </DialogDescription>
             </div>
           </div>
 
           {card.type === 'attendance' && (
             <div className="flex flex-wrap gap-2" data-testid="operations-board-attendance-actions">
-              {ATTENDANCE_COLUMNS.filter((col) => col.id !== 'NOT_TAKEN').map((col) => (
+              {ATTENDANCE_COLUMNS.filter((col) => col.id !== NOT_TAKEN).map((col) => (
                 <Button
                   key={col.id}
                   size="sm"
@@ -296,7 +372,18 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
             value={tab}
             onChange={(_, value) => setTab(value)}
             variant="fullWidth"
-            sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
+            sx={{ 
+              mb: 2, 
+              borderBottom: 1, 
+              borderColor: 'divider',
+              minHeight: 24,
+              '& .MuiTab-root': {
+                minHeight: 24,
+                fontSize: '0.65rem',
+                fontWeight: 600,
+                py: 0.25,
+              }
+            }}
           >
             <Tab value="activity" label={t('operations_board_tab_activity')} data-testid="operations-board-drawer-tab-activity" />
             <Tab value="notes" label={t('operations_board_tab_notes')} data-testid="operations-board-drawer-tab-notes" />
@@ -309,37 +396,60 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
             <ScrollArea className="max-h-[45vh] pr-2">
               <div data-testid="operations-board-activity-feed">
                 {loading ? (
-                  <p className="text-sm text-muted-foreground">{t('operations_board_loading')}</p>
+                  <p className="text-xs text-muted-foreground">{t('operations_board_loading')}</p>
                 ) : activityEntries.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">{t('operations_board_no_activity')}</p>
+                  <p className="text-xs text-muted-foreground">{t('operations_board_no_activity')}</p>
                 ) : (
                   activityEntries.map((entry, idx) => (
-                    <div key={idx} className="mb-3 flex gap-3">
+                    <div key={idx} className="mb-2 flex gap-2">
                       <BoardStudentAvatar
                         name={entry.actor}
                         profileImageUrl={entry.profileImageUrl}
-                        size="md"
+                        size="sm"
                       />
-                      <div className="flex-1 rounded-lg border border-border bg-muted/20 p-2.5 text-sm">
-                        <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex-1 rounded-lg border border-border bg-muted/20 p-2 text-xs">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           {entry.type === 'status' && (
-                            <span className="inline-flex items-center gap-1 shrink-0">
+                            <span className="inline-flex items-center gap-0.75 shrink-0">
                               <span style={{ color: entry.fromColor || undefined, fontWeight: 600 }}>{entry.from || '—'}</span>
-                              <span className="text-muted-foreground">→</span>
+                              <span
+                                className="inline-block h-2 w-2 rounded-full shrink-0"
+                                style={{ backgroundColor: entry.toColor || '#94a3b8' }}
+                                aria-hidden
+                              />
                               <span style={{ color: entry.toColor || undefined, fontWeight: 600 }}>{entry.to || '—'}</span>
                             </span>
                           )}
-                          <span className="font-medium" style={entry.isSystem ? { color: 'var(--text-muted, #64748b)' } : undefined}>
-                            {entry.actor}
+                          <span className="font-medium text-xs flex items-center gap-1" style={entry.isSystem ? { color: 'var(--text-muted, #64748b)' } : undefined}>
+                            {(() => {
+                              const RoleIcon = getRoleIcon(entry.actor);
+                              const isRole = ['ADMIN', 'SUPER ADMIN', 'GLOBAL ADMIN', 'INSTRUCTOR', 'HR'].some(role =>
+                                entry.actor?.toUpperCase()?.includes(role)
+                              );
+                              return isRole && RoleIcon ? (
+                                <>
+                                  <RoleIcon size={12} className="text-muted-foreground" />
+                                  {entry.actor}
+                                </>
+                              ) : (
+                                entry.actor
+                              );
+                            })()}
                           </span>
                           {entry.at && (
-                            <span className="text-xs text-muted-foreground ml-auto">
+                            <span className="text-[0.65rem] text-muted-foreground ml-auto">
                               {formatDateTime(entry.at, lang)}
                             </span>
                           )}
                         </div>
-                        {entry.text && <p className="mt-1">{entry.text}</p>}
-                        {entry.reason && <p className="mt-0.5 text-xs text-muted-foreground">{entry.reason}</p>}
+                        {entry.text && <p className="mt-0.5 text-xs">{entry.text}</p>}
+                        {entry.reason && (
+                          <p className="mt-0.25 text-[0.65rem] text-muted-foreground">
+                            {entry.reason === 'Initial document submission' || entry.reason === 'operations board initial document submission'
+                              ? t('operations_board_initial_document_submission')
+                              : entry.reason}
+                          </p>
+                        )}
                       </div>
                     </div>
                   ))
@@ -357,36 +467,54 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder={t('operations_board_card_notes')}
-                inputProps={{ 'data-testid': 'operations-board-notes-input' }}
+                inputProps={{ 'data-testid': 'operations-board-notes-input', style: { fontSize: '0.75rem' } }}
               />
               {card.type === 'attendance' && card.rawId && (
-                <Button size="sm" className="mt-3" onClick={handleSaveNotes}>
+                <Button size="sm" className="mt-2" onClick={handleSaveNotes}>
                   {t('operations_board_note_save')}
                 </Button>
               )}
               {card.type === 'attendance' && history.length > 0 && (
-                <div className="mt-4" data-testid="operations-board-notes-history">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                <div className="mt-3" data-testid="operations-board-notes-history">
+                  <p className="text-[0.65rem] font-medium text-muted-foreground mb-1.5">
                     {t('operations_board_notes_history') || 'Notes History'}
                   </p>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1.5">
                     {history
                       .filter((h) => h.notes || h.reason || h.comment)
-                      .map((h, idx) => (
-                        <div key={idx} className="rounded-lg border border-border bg-muted/20 p-3 text-sm">
-                          <div className="flex justify-between gap-2 mb-1">
-                            <span className="text-xs text-muted-foreground">
-                              {h.actor?.displayName || h.changedByUser?.displayName || t('operations_board_system_actor')}
-                            </span>
+                      .map((h, idx) => {
+                        const notesActorName = h.actor?.displayName || h.changedByUser?.displayName || t('operations_board_system_actor');
+
+                        // Translate role names for Arabic in notes history
+                        let translatedNotesActor = notesActorName;
+                        if (lang === 'ar' && notesActorName) {
+                          if (notesActorName === 'Global Admin' || notesActorName === 'Super Admin') {
+                            translatedNotesActor = t('roles.super_admin') || 'مدير عام';
+                          } else if (notesActorName === 'Admin') {
+                            translatedNotesActor = t('roles.admin') || 'مدير';
+                          } else if (notesActorName === 'Instructor') {
+                            translatedNotesActor = t('roles.instructor') || 'مدرب';
+                          } else if (notesActorName === 'HR') {
+                            translatedNotesActor = t('roles.hr') || 'موارد بشرية';
+                          }
+                        }
+
+                        return (
+                          <div key={idx} className="rounded-lg border border-border bg-muted/20 p-2 text-xs">
+                            <div className="flex justify-between gap-1.5 mb-0.5">
+                              <span className="text-[0.65rem] text-muted-foreground">
+                                {translatedNotesActor}
+                              </span>
                             {(h.createdAt || h.changedAt) && (
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-[0.65rem] text-muted-foreground">
                                 {formatDateTime(h.createdAt || h.changedAt, lang)}
                               </span>
                             )}
                           </div>
-                          <p>{h.notes || h.reason || h.comment}</p>
+                          <p className="text-xs">{h.notes || h.reason || h.comment}</p>
                         </div>
-                      ))}
+                        );
+                      })}
                   </div>
                 </div>
               )}
@@ -395,22 +523,41 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
 
           {tab === 'comments' && card.type === 'workflow' && (
             <div>
-              <div className="mb-3 flex flex-col gap-2">
-                {comments.map((c, idx) => (
-                  <div key={idx} className="rounded-lg border border-border bg-muted/20 p-3 text-sm">
-                    <p>{c.comment || c.text}</p>
-                    <span className="text-xs text-muted-foreground">
-                      — {c.author?.displayName || c.authorName}
-                    </span>
-                  </div>
-                ))}
+              <div className="mb-2 flex flex-col gap-1.5">
+                {comments.map((c, idx) => {
+                  const commentAuthorName = c.author?.displayName || c.authorName;
+
+                  // Translate role names for Arabic in comments tab
+                  let translatedCommentAuthor = commentAuthorName;
+                  if (lang === 'ar' && commentAuthorName) {
+                    if (commentAuthorName === 'Global Admin' || commentAuthorName === 'Super Admin') {
+                      translatedCommentAuthor = t('roles.super_admin') || 'مدير عام';
+                    } else if (commentAuthorName === 'Admin') {
+                      translatedCommentAuthor = t('roles.admin') || 'مدير';
+                    } else if (commentAuthorName === 'Instructor') {
+                      translatedCommentAuthor = t('roles.instructor') || 'مدرب';
+                    } else if (commentAuthorName === 'HR') {
+                      translatedCommentAuthor = t('roles.hr') || 'موارد بشرية';
+                    }
+                  }
+
+                  return (
+                    <div key={idx} className="rounded-lg border border-border bg-muted/20 p-2 text-xs">
+                      <p className="text-xs">{c.comment || c.text}</p>
+                      <span className="text-[0.65rem] text-muted-foreground">
+                        — {translatedCommentAuthor}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 <Input
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder={t('operations_board_card_add_comment')}
                   data-testid="operations-board-comment-input"
+                  style={{ fontSize: '0.75rem' }}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
                 />
                 <Button size="sm" onClick={handleAddComment}>{t('operations_board_note_save')}</Button>

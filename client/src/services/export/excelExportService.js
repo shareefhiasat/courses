@@ -304,11 +304,14 @@ export const exportDailyReport = async (data, options = {}) => {
     'Notes'
   ];
   
-  const absenceColumns = options.absenceColumns || [5]; // Status column index (1-based)
+  const absenceColumns = options.absenceColumns || [5]; // Status column index (1-based);
+  
+  const lang = options.lang || 'en';
+  const sheetName = options.sheetName || (lang === 'ar' ? 'حضور يومي' : 'Daily Attendance');
   
   return exportToExcel(data, headers, {
     ...options,
-    sheetName: options.sheetName || 'Daily Attendance',
+    sheetName,
     absenceColumns
   });
 };

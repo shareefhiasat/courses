@@ -51,7 +51,11 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
       if (response?.data) {
         // Filter out users who are already participants (use current state)
         const participantIds = new Set(participants.map(p => p.userId));
-        const available = response.data.filter(user => !participantIds.has(user.id));
+        // Also filter out students - only show admin, HR, and instructor
+        const available = response.data.filter(user => {
+          const role = resolveUserRole(user);
+          return !participantIds.has(user.id) && role !== 'student';
+        });
         setAvailableUsers(available);
       }
     } catch (error) {
@@ -196,7 +200,6 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
 
   const ROLE_CHIPS = [
     { key: 'all', label: t('chat_all'), icon: null, color: null },
-    { key: 'student', label: t('chat_filter_students'), icon: 'student', color: getUserRoleColor('student') },
     { key: 'instructor', label: t('chat_filter_instructors'), icon: 'instructor', color: getUserRoleColor('instructor') },
     { key: 'admin', label: t('chat_filter_admins'), icon: 'admin', color: getUserRoleColor('admin') },
     { key: 'hr', label: t('chat_filter_hr'), icon: 'hr', color: getUserRoleColor('hr') },

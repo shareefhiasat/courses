@@ -11,8 +11,8 @@ function metaDisplayValue(value, lang) {
 }
 
 const STATUS_LABELS = {
-  ar: { present: 'متواجد', absent: 'غائب', humanCase: 'حالة إنسانية', late: 'متأخر' },
-  en: { present: 'Present', absent: 'Absent', humanCase: 'Human case', late: 'Late' },
+  ar: { present: 'متواجد', absent: 'غائب', humanCase: 'حالة إنسانية', excusedLeave: 'إجازة معذورة' },
+  en: { present: 'Present', absent: 'Absent', humanCase: 'Human case', excusedLeave: 'Excused Leave' },
 };
 
 const COLUMN_LABELS = {

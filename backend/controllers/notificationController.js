@@ -9,10 +9,21 @@ import { mapNotifications } from '../services/notifications/mapper.js';
 import { getRequestScope, isRecordInScope } from '../utils/scopeAccess.js';
 
 
+/**
+ * Get language from request (Accept-Language header or query param)
+ */
+const getRequestLanguage = (req) => {
+  const headerLang = req.headers['accept-language']?.split(',')[0]?.split('-')[0];
+  const queryLang = req.query.lang;
+  const lang = queryLang || headerLang || 'en';
+  return ['en', 'ar'].includes(lang) ? lang : 'en';
+};
+
 export async function getNotifications(req, res) {
   try {
     const { limit, unreadOnly, category, archived } = req.query;
     const userId = req.user?.dbId;
+    const lang = getRequestLanguage(req);
     
     const where = { userId };
     if (unreadOnly === 'true') where.isRead = false;
@@ -38,11 +49,10 @@ export async function getNotifications(req, res) {
           return isRecordInScope(scope, { classId, programId, subjectId });
         });
     
-    const unreadCount = await prisma.notification.count({
-      where: { userId, isRead: false, isArchived: false },
-    });
+    const mappedNotifications = mapNotifications(filtered, lang);
+    const unreadCount = mappedNotifications.filter(n => !n.isRead && !n.isArchived).length;
     
-    return res.json({ success: true, notifications: mapNotifications(filtered), unreadCount });
+    return res.json({ success: true, notifications: mappedNotifications, unreadCount });
   } catch (error) {
     console.error('[notificationController.getNotifications]', error);
     return res.status(500).json({ success: false, error: "Internal server error" });
@@ -112,6 +122,23 @@ export async function archiveNotification(req, res) {
     return res.json({ success: true });
   } catch (error) {
     console.error('[notificationController.archiveNotification]', error);
+    return res.status(500).json({ success: false, error: "Internal server error" });
+  }
+}
+
+export async function unarchiveNotification(req, res) {
+  try {
+    const { notificationId } = req.params;
+    const userId = req.user?.dbId;
+
+    await prisma.notification.updateMany({
+      where: { id: notificationId, userId },
+      data: { isArchived: false, archivedAt: null },
+    });
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('[notificationController.unarchiveNotification]', error);
     return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
@@ -236,6 +263,7 @@ export default {
   markNotificationUnread,
   markAllRead,
   archiveNotification,
+  unarchiveNotification,
   archiveAllRead,
   deleteNotification,
   getPreferences,

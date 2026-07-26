@@ -30,17 +30,21 @@ export const submitAttendanceReport = async (attendanceData, metadata) => {
       program,
       subject,
       instructorId,
-      comments
+      comments,
+      lang = 'en'
     } = metadata;
 
     // Generate Excel report
     const excelFile = await generateAttendanceExcelReport(attendanceData, metadata);
     
+    const dailyAttendanceReportLabel = lang === 'ar' ? 'تقرير الحضور اليومي' : 'Daily Attendance Report';
+    const descriptionPrefix = lang === 'ar' ? 'تقرير الحضور لـ' : 'Attendance report for';
+    
     // Create workflow document
     const result = await createWorkflowDocument({
       workflowType: 'ATTENDANCE_DAILY',
-      title: `Daily Attendance Report - ${date}`,
-      description: comments || `Attendance report for ${className} on ${date}`,
+      title: `${dailyAttendanceReportLabel} - ${date}`,
+      description: comments || `${descriptionPrefix} ${className} on ${date}`,
       classId,
       date,
       program,

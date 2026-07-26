@@ -6,6 +6,7 @@ import { getThemedIcon, getColoredFolderIcon } from '@constants/iconTypes';
 import { DEFAULT_STORAGE_LIMIT } from '@constants/driveConstants';
 import { getLocalizedFolderName } from '@utils/localizedFolderName';
 import DriveTreeView from './DriveTreeView';
+import { ROLE_STRINGS } from '@utils/userUtils';
 
 /**
  * DriveSpacesSidebar - Left-rail navigation for SmartDrive.
@@ -29,7 +30,7 @@ export default function DriveSpacesSidebar({
   const { theme } = useTheme();
   const { user } = useAuth();
 
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const isSuperAdmin = user?.role?.toLowerCase?.() === ROLE_STRINGS.SUPER_ADMIN;
   const storagePercentage = isSuperAdmin ? 0 : Math.min((storageUsage / storageLimit) * 100, 100);
   const fmt = (bytes) => {
     if (!bytes) return '0 B';

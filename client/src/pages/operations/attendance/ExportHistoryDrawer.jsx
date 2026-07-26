@@ -6,13 +6,13 @@ import { useLang } from '@contexts/LangContext';
 import useResizableDrawer from '@hooks/useResizableDrawer';
 import { formatDate, formatTime as fmtTime, formatDateTime } from '@utils/date-formatter.js';
 import { getExportHistory, openExportFile } from '@services/db/exportHistoryService.js';
-import { resolveUserRole, getUserRoleFromObject } from '@utils/userUtils';
+import { ROLE_STRINGS, getUserRoleFromObject, resolveUserRole } from '@utils/userUtils';
 import { getUserRoleColor, getUserRoleIcon, getThemedIcon } from '@constants/iconTypes';
 import RoleBadge from '@pages/communications/chat/components/RoleBadge.jsx';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { buildSmartDriveHighlightUrl } from '@utils/exportSuccessUrls';
 import { format, parseISO } from 'date-fns';
-import { FileText, Table, FileType2, Download, SlidersHorizontal } from 'lucide-react';
+import { FileText, Table, FileType2, Download, SlidersHorizontal, Trash2 } from 'lucide-react';
 
 const EXPORT_TYPE_COLORS = {
   attendance_daily: '#3b82f6',
@@ -234,9 +234,11 @@ function ExportEntryRow({
             <FormatIcon size={11} strokeWidth={2.2} />
             {entry.format?.toUpperCase()}
           </span>
-          <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)' }}>
-            {t('export_created_at') || 'Created'}: {formatDateTime(entry.createdAt, lang)}
-          </span>
+          <ColoredTooltip title={t('export_created_at_help') || 'When this export file was generated'} color="#64748b" placement="top">
+            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)' }}>
+              {t('export_created_at') || 'Created'}: {formatDateTime(entry.createdAt, lang)}
+            </span>
+          </ColoredTooltip>
           {entry.user && (
             <span
               style={{
@@ -246,39 +248,72 @@ function ExportEntryRow({
                 alignItems: 'center',
                 gap: 4,
               }}
-              title={entry.user?.displayName || entry.user?.email}
             >
-              {entry.user?.profileImageUrl ? (
-                <img
-                  src={entry.user.profileImageUrl}
-                  alt=""
-                  style={{ width: 14, height: 14, borderRadius: '50%', objectFit: 'cover' }}
-                />
-              ) : (
-                <span
-                  style={{
-                    width: 14,
-                    height: 14,
-                    borderRadius: '50%',
-                    background: getUserRoleColor(resolveUserRole(entry.user)),
-                    color: '#fff',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 8,
-                    fontWeight: 700,
-                  }}
-                >
-                  {getInitials(entry.user?.displayName || entry.user?.email)}
+              <ColoredTooltip
+                title={entry.user?.displayName || entry.user?.email}
+                color="#64748b"
+                placement="top"
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  {entry.user?.profileImageUrl ? (
+                    <img
+                      src={entry.user.profileImageUrl}
+                      alt=""
+                      style={{ width: 14, height: 14, borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <span
+                      style={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: '50%',
+                        background: getUserRoleColor(resolveUserRole(entry.user)),
+                        color: '#fff',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 8,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {getInitials(entry.user?.displayName || entry.user?.email)}
+                    </span>
+                  )}
+                  {entry.user?.displayName || entry.user?.email}
                 </span>
-              )}
-              {entry.user?.displayName || entry.user?.email}
+              </ColoredTooltip>
+              {(() => {
+                const userRole = resolveUserRole(entry.user);
+                if (!userRole) return null;
+                const roleIcon = getUserRoleIcon(userRole);
+                const roleColor = getUserRoleColor(userRole);
+                return (
+                  <ColoredTooltip title={userRole} color={roleColor} placement="top">
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 14,
+                        height: 14,
+                        borderRadius: '50%',
+                        background: `${roleColor}22`,
+                        color: roleColor,
+                      }}
+                    >
+                      {React.cloneElement(roleIcon, { size: 9, color: roleColor })}
+                    </span>
+                  </ColoredTooltip>
+                );
+              })()}
             </span>
           )}
           {entry.reportDate && (
-            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)' }}>
-              {t('export_report_date') || 'Report date'}: {formatDate(entry.reportDate, lang)}
-            </span>
+            <ColoredTooltip title={t('export_report_date_help') || 'The class/session date this export report covers'} color="#64748b" placement="top">
+              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)' }}>
+                {t('export_report_date') || 'Report date'}: {formatDate(entry.reportDate, lang)}
+              </span>
+            </ColoredTooltip>
           )}
           {!hasFile && (
             <span
@@ -376,6 +411,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
 
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [formatFilter, setFormatFilter] = useState('all');
@@ -403,6 +439,32 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
       setLoading(false);
     }
   }, [typeFilter, formatFilter, search]);
+
+  const handleClearHistory = useCallback(async () => {
+    if (!confirm(t('confirm_clear_export_history') || 'Are you sure you want to clear all export history?')) return;
+    
+    setClearing(true);
+    try {
+      const params = {};
+      if (typeFilter !== 'all') params.exportType = typeFilter;
+      if (formatFilter !== 'all') params.format = formatFilter;
+      if (classId) params.classId = classId;
+
+      const result = await clearExportHistory(params);
+      if (result.success) {
+        setHistory([]);
+        alert(t('export_history_cleared') || 'Export history cleared successfully');
+      } else {
+        console.error('Failed to clear export history:', result.error);
+        alert(result.error || t('failed_to_clear_export_history') || 'Failed to clear export history');
+      }
+    } catch (err) {
+      console.error('Export history clear error:', err);
+      alert(t('failed_to_clear_export_history') || 'Failed to clear export history');
+    } finally {
+      setClearing(false);
+    }
+  }, [typeFilter, formatFilter, classId, t]);
 
   useEffect(() => {
     if (isOpen) {
@@ -507,6 +569,27 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
             {t('export_history')}
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              type="button"
+              onClick={handleClearHistory}
+              disabled={clearing || history.length === 0}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                padding: '4px 10px',
+                fontSize: 'var(--font-size-xs)',
+                cursor: clearing || history.length === 0 ? 'not-allowed' : 'pointer',
+                color: clearing || history.length === 0 ? 'var(--muted)' : '#ef4444',
+                opacity: clearing || history.length === 0 ? 0.5 : 1,
+              }}
+            >
+              <Trash2 size={14} />
+              {t('clear_history') || 'Clear History'}
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -860,7 +943,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
                         </div>
                         <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)' }}>
                           {formatCount('exports_count', group.entries.length, t)}
-                          {role === 'instructor' && group.user?.instructorClasses && (
+                          {role === ROLE_STRINGS.INSTRUCTOR && group.user?.instructorClasses && (
                             <>
                               {' · '}
                               {formatCount('classes_count', group.user.instructorClasses.length, t)}

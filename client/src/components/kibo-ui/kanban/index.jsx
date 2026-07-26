@@ -52,6 +52,7 @@ export const KanbanBoard = ({
       style={{
         ...style,
         ...(isOver && laneColor ? { '--tw-ring-color': laneColor } : {}),
+        ...(isOpsLane && laneColor ? { '--tw-divide-color': `${laneColor}40` } : {}),
       }}
       ref={setNodeRef}
       {...props}>
@@ -105,7 +106,7 @@ export const KanbanCard = (
       <div style={style} {...listeners} {...attributes} ref={setNodeRef}>
         <Card
           className={cn(
-            "cursor-grab gap-4 rounded-md p-3 shadow-sm transition-shadow transition-[box-shadow,border-color]",
+            "cursor-grab gap-4 rounded-md p-1 shadow-sm transition-shadow transition-[box-shadow,border-color]",
             isDragging && "pointer-events-none cursor-grabbing opacity-30",
             className
           )}
@@ -118,7 +119,7 @@ export const KanbanCard = (
         <t.In>
           <Card
             className={cn(
-              "cursor-grab gap-4 rounded-md p-3 shadow-sm animate-pulse",
+              "cursor-grab gap-4 rounded-md p-1 shadow-sm animate-pulse",
               isDragging && "cursor-grabbing",
               className
             )}

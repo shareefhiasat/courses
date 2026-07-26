@@ -33,9 +33,20 @@ import {
   getWeeklySnapshotController,
 } from '../controllers/workflowDocuments.js';
 import { screenOps } from '../middleware/requirePermission.js';
+import { isSuperAdmin, getEffectiveRoles, hasRole } from '../utils/roleUtils.js';
+import { LMS_ROLES } from '../services/keycloakAdminService.js';
 
 const router = Router();
 const wfOps = screenOps('workflow');
+
+function adminCanDeleteWorkflow(req, res, next) {
+  if (!req.user) return res.status(401).json({ success: false, error: 'Authentication required' });
+  const roles = getEffectiveRoles(req.user.roles || []);
+  if (isSuperAdmin(roles) || hasRole(roles, LMS_ROLES.ADMIN)) {
+    return next();
+  }
+  return wfOps.delete(req, res, next);
+}
 
 /**
  * @swagger
@@ -313,7 +324,7 @@ router.get('/:id', wfOps.view, getWorkflowDocumentController);
  *       500:
  *         description: Internal server error
  */
-router.delete('/:id', wfOps.delete, deleteWorkflowDocumentController);
+router.delete('/:id', adminCanDeleteWorkflow, deleteWorkflowDocumentController);
 
 /**
  * @swagger

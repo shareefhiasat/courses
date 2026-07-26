@@ -4,6 +4,11 @@ export const NAVBAR_SCROLL_OFFSET = 80;
 /** Above app modals (panel z-index 10000) — overlay, spotlight, and tooltip stack together. */
 export const MODAL_TOUR_Z_INDEX = 10200;
 
+/** Check if onboarding tour is globally disabled via environment variable */
+export function isOnboardingTourEnabled() {
+  return import.meta.env.VITE_ENABLE_ONBOARDING_TOUR !== 'false';
+}
+
 export function getTourFloaterProps(padding = NAVBAR_SCROLL_OFFSET) {
   return {
     offset: 12,
@@ -63,6 +68,9 @@ export function getTourLocale(t) {
 
 /** Props spread onto every <Joyride /> instance. */
 export function getJoyrideBaseProps({ theme, t } = {}) {
+  if (!isOnboardingTourEnabled()) {
+    return { run: false, steps: [] };
+  }
   return {
     continuous: true,
     disableScrolling: false,
@@ -86,6 +94,9 @@ export function getJoyrideBaseProps({ theme, t } = {}) {
  * Spotlight stays visible (cutout + ring); z-index stack clears the modal panel.
  */
 export function getModalJoyrideProps({ theme, t } = {}) {
+  if (!isOnboardingTourEnabled()) {
+    return { run: false, steps: [] };
+  }
   return {
     continuous: true,
     disableScrolling: true,

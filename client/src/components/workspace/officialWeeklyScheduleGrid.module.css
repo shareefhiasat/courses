@@ -145,7 +145,7 @@
 .legendLine {
   width: 20px;
   height: 0;
-  border-top: 1.5px dashed rgba(14, 165, 233, 0.6);
+  border-top: 1.5px dashed rgba(139, 92, 246, 0.6);
   position: relative;
 }
 
@@ -157,7 +157,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: rgb(14, 165, 233);
+  background: #8b5cf6;
 }
 
 .legendDot_inProgress {
@@ -207,6 +207,8 @@
 
 .inlineDateInput {
   flex-shrink: 0;
+  min-width: 150px;
+  width: auto;
   padding: 0.35em 0.6em;
   border-radius: 8px;
   border: 1px solid var(--border, #e2e8f0);
@@ -272,6 +274,16 @@
 
 .wrapFillWidth :global(.legendItem) {
   font-size: inherit;
+}
+
+.wrapFill :global(.officialTable),
+.wrapFillWidth :global(.officialTable) {
+  height: 100%;
+}
+
+.wrapFill :global(.officialTable) tbody tr,
+.wrapFillWidth :global(.officialTable) tbody tr {
+  height: calc((100% - 52px) / var(--schedule-data-rows, 1));
 }
 
 .tableFill {
@@ -696,8 +708,8 @@
 }
 
 @keyframes tooltipPulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.08); opacity: 0.92; }
+  0%, 100% { transform: translateX(-50%) scale(1); opacity: 1; }
+  50% { transform: translateX(-50%) scale(1.08); opacity: 0.92; }
 }
 
 .wrapDark .statusDot {
@@ -826,10 +838,12 @@
 
 .todayRow td {
   background: rgba(34, 197, 94, 0.12) !important;
+  border: 2px solid #22c55e !important;
 }
 
 .wrapDark .todayRow td {
   background: rgba(34, 197, 94, 0.08) !important;
+  border: 2px solid #4ade80 !important;
 }
 
 .wrapFillWidth :global(.statusLegend) {
@@ -933,7 +947,7 @@
   left: 0;
   width: 100%;
   height: 0;
-  border-top: 1.5px dashed rgba(14, 165, 233, 0.4);
+  border-top: 1.5px dashed rgba(139, 92, 246, 0.45);
 }
 
 .timeLineDot {
@@ -943,8 +957,8 @@
   height: 8px;
   margin-left: -4px;
   border-radius: 50%;
-  background: rgb(14, 165, 233);
-  box-shadow: 0 0 6px rgba(14, 165, 233, 0.45);
+  background: #8b5cf6;
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.45);
   z-index: 2;
   pointer-events: auto;
   cursor: pointer;
@@ -962,7 +976,7 @@
 
 .timeLineTooltip {
   position: absolute;
-  bottom: 24px;
+  bottom: 10px;
   transform: translateX(-50%);
   font-size: 11px;
   font-weight: 600;
@@ -1012,13 +1026,13 @@
 }
 
 .wrapDark .timeLineDash {
-  border-top-color: rgba(248, 113, 113, 0.9);
-  box-shadow: 0 0 12px rgba(248, 113, 113, 0.3);
+  border-top-color: rgba(167, 139, 250, 0.9);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.3);
 }
 
 .wrapDark .timeLineDot {
-  background: rgba(248, 113, 113, 0.95);
-  box-shadow: 0 0 6px rgba(248, 113, 113, 0.55);
+  background: #a78bfa;
+  box-shadow: 0 0 6px rgba(167, 139, 250, 0.55);
 }
 
 .wrapDark .selectedCell::after {
@@ -1049,4 +1063,16 @@
 
 .wrapDark .dayInfoCompactText {
   color: #60a5fa;
+}
+
+/* Dark mode schedule header cells */
+.wrapDark :global(.officialTable) th,
+.wrapDark :global(.scheduleCornerCell),
+.wrapDark :global(.scheduleLectureHeader),
+.wrapDark :global(.scheduleBreakHeader),
+.wrapDark :global(.scheduleDayCell),
+.wrapDark :global(.scheduleRowLabelCell) {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155;
 }

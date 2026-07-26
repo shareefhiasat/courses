@@ -1,9 +1,9 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/kibo/ui/card';
 import { Badge } from '@/components/kibo/ui/badge';
-import { Status, StatusIndicator, StatusLabel } from '@/components/kibo-ui/status';
 import { cn } from '@/lib/utils';
 import { User, Calendar } from 'lucide-react';
+import { ATTENDANCE_COLUMNS } from '@services/business/operationsBoardService.js';
 
 const STATUS_COLORS = {
   DRAFT: 'bg-gray-500/15 text-gray-700 dark:text-gray-300 border-gray-500/30',
@@ -12,25 +12,18 @@ const STATUS_COLORS = {
   UNDER_ADMIN_REVIEW: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30',
   APPROVED: 'bg-green-700/15 text-green-800 dark:text-green-300 border-green-700/30',
   REJECTED: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30',
-  NOT_TAKEN: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30',
+  NOT_TAKEN: 'bg-gray-500/15 text-gray-700 dark:text-gray-300 border-gray-500/30',
   PRESENT: 'bg-green-500/15 text-green-700 dark:text-green-300 border-green-500/30',
   LATE: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30',
   ABSENT: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30',
-  EXCUSED: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30',
-  HUMAN_CASE: 'bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/30',
-};
-
-const ATTENDANCE_STATUS_CLASS = {
-  PRESENT: 'online',
-  LATE: 'degraded',
-  ABSENT: 'offline',
-  EXCUSED: 'maintenance',
-  HUMAN_CASE: 'degraded',
-  NOT_TAKEN: 'pending',
+  EXCUSED: 'bg-pink-500/15 text-pink-700 dark:text-pink-300 border-pink-500/30',
+  HUMAN_CASE: 'bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/30',
 };
 
 export default function BoardCard({ item, onClick, t }) {
   const statusColor = STATUS_COLORS[item.column] || 'bg-muted text-muted-foreground border-border';
+  const attendanceColumn = item.type === 'attendance' ? ATTENDANCE_COLUMNS.find((c) => c.id === item.column) : null;
+  const statusLabel = attendanceColumn ? (t(attendanceColumn.i18nKey) || attendanceColumn.name) : item.column;
 
   return (
     <Card
@@ -79,19 +72,19 @@ export default function BoardCard({ item, onClick, t }) {
             )}
           </div>
           
-          {item.type === 'attendance' ? (
-            <Status status={ATTENDANCE_STATUS_CLASS[item.column] || 'offline'} className="w-fit shrink-0">
-              <StatusIndicator />
-              <StatusLabel>{item.column}</StatusLabel>
-            </Status>
-          ) : (
-            <Badge 
-              variant="outline" 
-              className={cn('text-xs font-medium whitespace-nowrap', statusColor)}
-            >
-              {item.column}
-            </Badge>
-          )}
+          <Badge
+            variant="outline"
+            className={cn('text-xs font-medium whitespace-nowrap', statusColor)}
+          >
+            {item.type === 'attendance' && attendanceColumn && (
+              <span
+                className="inline-block h-2 w-2 rounded-full shrink-0"
+                style={{ backgroundColor: attendanceColumn.color }}
+                aria-hidden
+              />
+            )}
+            {statusLabel}
+          </Badge>
         </div>
       </CardContent>
     </Card>

@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Drawer, Button, SimpleLoading } from '@ui';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { useTheme } from '@contexts/ThemeContext';
 import { getAuthToken } from '@utils/authHelpers';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getClassOptionLabel, getProgramOptionLabel, getSubjectOptionLabel } from '@utils/academicSelectOptions';
 import { getAcademicTermOptions, getAcademicTermLabel } from '@constants/academicTerms';
+import { getLocalizedName } from '@utils/languageHelpers';
+import useDrawerTheme from '@hooks/useDrawerTheme';
+import { UI_THEMES } from '@constants/uiTheme';
 import DatePicker from '@components/ui/DatePicker/DatePicker';
 import AttendanceViolationsModal from '@components/qr-scanner/AttendanceViolationsModal';
 import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
@@ -18,13 +20,6 @@ import {
   exportAttendanceOfficialForScope,
 } from '@services/business/accessScopeExportService.js';
 import { formatQatarDateOnly, getQatarNow } from '@utils/qatarDate.js';
-
-function labelFor(item, lang, fallback = '—') {
-  if (!item) return fallback;
-  return lang === 'ar'
-    ? item.nameAr || item.nameEn || item.code || fallback
-    : item.nameEn || item.nameAr || item.code || fallback;
-}
 
 function ClassExportActions({
   cls,
@@ -115,7 +110,7 @@ function ClassExportActions({
           </Button>
         )}
       </div>
-      {error && <div style={{ fontSize: '0.72rem', color: '#dc2626' }}>{error}</div>}
+      {error && <div style={{ fontSize: '0.72rem', color: UI_THEMES[theme]?.colors.error[600] || '#dc2626' }}>{error}</div>}
     </div>
   );
 }
@@ -123,7 +118,8 @@ function ClassExportActions({
 export default function MyDataScopeDrawer({ isOpen, onClose }) {
   const { user, isSuperAdmin, isAdmin, isInstructor, isHR } = useAuth();
   const { t, lang } = useLang();
-  const { theme } = useTheme();
+  const { isDarkMode, borderColor, textColor, mutedColor, cardBg, bgColor } = useDrawerTheme();
+  const theme = isDarkMode ? 'dark' : 'light';
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [details, setDetails] = useState(null);
@@ -131,6 +127,8 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
   const [searchText, setSearchText] = useState('');
   const [yearFilter, setYearFilter] = useState('');
   const [termFilter, setTermFilter] = useState('');
+  const [programFilter, setProgramFilter] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('');
   const [ownershipFilter, setOwnershipFilter] = useState('all');
 
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
@@ -202,6 +200,12 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
     } else if (ownershipFilter === 'others') {
       items = items.filter((c) => !c.isInstructor);
     }
+    if (programFilter) {
+      items = items.filter((c) => Number(c.programId || c.program?.id) === Number(programFilter));
+    }
+    if (subjectFilter) {
+      items = items.filter((c) => Number(c.subjectId || c.subject?.id) === Number(subjectFilter));
+    }
     if (yearFilter) items = items.filter((c) => String(c.year) === String(yearFilter));
     if (termFilter) {
       items = items.filter((c) => String(c.term || '').toLowerCase() === termFilter.toLowerCase());
@@ -210,8 +214,9 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
     if (q) {
       items = items.filter((c) => {
         const classLabel = getClassOptionLabel(c, lang).toLowerCase();
-        const subj = labelFor(c.subject || subjectMap.get(Number(c.subjectId)), lang).toLowerCase();
-        const prog = labelFor(programMap.get(Number(c.programId)), lang).toLowerCase();
+        const subj = getLocalizedName(c.subject || subjectMap.get(Number(c.subjectId)), lang).toLowerCase();
+        const program = programMap.get(Number(c.programId)) || c.program || null;
+        const prog = getLocalizedName(program, lang).toLowerCase();
         return (
           classLabel.includes(q)
           || subj.includes(q)
@@ -221,33 +226,38 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
       });
     }
     return items;
-  }, [details, ownershipFilter, yearFilter, termFilter, searchText, lang, programMap, subjectMap]);
+  }, [details, ownershipFilter, programFilter, subjectFilter, yearFilter, termFilter, searchText, lang, programMap, subjectMap]);
 
   const filteredSubjects = useMemo(() => {
     let items = details?.subjects || [];
+    if (programFilter) {
+      items = items.filter((s) => Number(s.programId || s.program?.id) === Number(programFilter));
+    }
+    if (subjectFilter) {
+      items = items.filter((s) => Number(s.id) === Number(subjectFilter));
+    }
     if (yearFilter || termFilter) {
       const classSubjectIds = new Set(
         filteredClasses.map((c) => Number(c.subjectId)).filter(Boolean),
       );
-      if (yearFilter || termFilter) {
-        items = items.filter((s) => classSubjectIds.has(Number(s.id)));
-      }
+      items = items.filter((s) => classSubjectIds.has(Number(s.id)));
     }
     const q = searchText.trim().toLowerCase();
     if (q) {
       items = items.filter((s) => {
-        const label = `${s.code} ${labelFor(s, lang)}`.toLowerCase();
-        const prog = labelFor(programMap.get(Number(s.programId)), lang).toLowerCase();
+        const label = `${s.code} ${getLocalizedName(s, lang)}`.toLowerCase();
+        const program = programMap.get(Number(s.programId)) || s.program || null;
+        const prog = getLocalizedName(program, lang).toLowerCase();
         return label.includes(q) || prog.includes(q);
       });
     }
     return items;
-  }, [details, filteredClasses, yearFilter, termFilter, searchText, lang, programMap]);
+  }, [details, programFilter, subjectFilter, filteredClasses, yearFilter, termFilter, searchText, lang, programMap]);
 
   const groupedClasses = useMemo(() => {
     const groups = new Map();
     filteredClasses.forEach((cls) => {
-      const programId = Number(cls.programId);
+      const programId = Number(cls.programId || cls.program?.id);
       const key = programId || 0;
       if (!groups.has(key)) {
         groups.set(key, {
@@ -258,9 +268,26 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
       groups.get(key).classes.push(cls);
     });
     return [...groups.values()].sort((a, b) =>
-      labelFor(a.program, lang).localeCompare(labelFor(b.program, lang), lang === 'ar' ? 'ar' : 'en'),
+      getLocalizedName(a.program, lang).localeCompare(getLocalizedName(b.program, lang), lang === 'ar' ? 'ar' : 'en'),
     );
   }, [filteredClasses, programMap, lang]);
+
+  const programOptions = useMemo(() => {
+    const items = details?.programs || [];
+    return [...items].sort((a, b) =>
+      getProgramOptionLabel(a, lang).localeCompare(getProgramOptionLabel(b, lang), lang === 'ar' ? 'ar' : 'en'),
+    );
+  }, [details, lang]);
+
+  const subjectOptions = useMemo(() => {
+    let items = details?.subjects || [];
+    if (programFilter) {
+      items = items.filter((s) => Number(s.programId || s.program?.id) === Number(programFilter));
+    }
+    return [...items].sort((a, b) =>
+      getSubjectOptionLabel(a, lang).localeCompare(getSubjectOptionLabel(b, lang), lang === 'ar' ? 'ar' : 'en'),
+    );
+  }, [details, programFilter, lang]);
 
   const openAttendanceOfficial = useCallback(({ cls, program, subject }) => {
     const subjectId = cls.subjectId || subject?.id;
@@ -314,18 +341,21 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
     navigate(`/attendance-workspace?${params}`);
   }, [navigate, onClose]);
 
-  const muted = theme === 'dark' ? '#9ca3af' : '#6b7280';
-  const border = theme === 'dark' ? '#374151' : '#e5e7eb';
-  const panelBg = theme === 'dark' ? '#111827' : '#f9fafb';
-  const inputBg = theme === 'dark' ? '#1f2937' : '#fff';
+  const muted = mutedColor;
+  const border = borderColor;
+  const panelBg = cardBg;
+  const palette = UI_THEMES[theme].colors;
+  const successColors = palette.success;
+  const grayColors = palette.gray;
+  const errorColor = palette.error[600];
 
   const selectStyle = {
     padding: '6px 10px',
     borderRadius: 6,
     border: `1px solid ${border}`,
-    background: inputBg,
+    background: bgColor,
     fontSize: '0.8rem',
-    color: theme === 'dark' ? '#f3f4f6' : '#111827',
+    color: textColor,
   };
 
   const instructorBadge = (isMine) => (
@@ -336,9 +366,9 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
         borderRadius: 999,
         fontSize: '0.68rem',
         fontWeight: 600,
-        background: isMine ? '#dcfce7' : '#f3f4f6',
-        color: isMine ? '#166534' : muted,
-        border: `1px solid ${isMine ? '#86efac' : border}`,
+        background: isMine ? successColors[100] : grayColors[100],
+        color: isMine ? successColors[800] : muted,
+        border: `1px solid ${isMine ? successColors[300] : border}`,
       }}
     >
       {isMine ? t('my_access_instructor') : t('my_access_not_instructor')}
@@ -365,6 +395,30 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
                 placeholder={t('my_access_search_placeholder')}
                 style={{ ...selectStyle, width: '100%' }}
               />
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <select
+                  value={programFilter}
+                  onChange={(e) => { setProgramFilter(e.target.value); setSubjectFilter(''); }}
+                  style={{ ...selectStyle, flex: 1, minWidth: 120 }}
+                >
+                  <option value="">{t('all_programs')}</option>
+                  {programOptions.map((p) => (
+                    <option key={p.id} value={p.id}>{getProgramOptionLabel(p, lang)}</option>
+                  ))}
+                </select>
+                <select
+                  value={subjectFilter}
+                  onChange={(e) => setSubjectFilter(e.target.value)}
+                  style={{ ...selectStyle, flex: 1, minWidth: 120 }}
+                >
+                  <option value="">{t('all_subjects')}</option>
+                  {subjectOptions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.code ? `${s.code} — ` : ''}{getSubjectOptionLabel(s, lang)}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <select
                   value={ownershipFilter}
@@ -402,7 +456,7 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
           {loading && <SimpleLoading message={t('loading')} />}
 
           {!loading && error && (
-            <div style={{ color: '#dc2626', fontSize: '0.875rem' }}>{error}</div>
+            <div style={{ color: errorColor, fontSize: '0.875rem' }}>{error}</div>
           )}
 
           {!loading && !error && details && (
@@ -430,7 +484,7 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
                       borderRadius: 999,
                       fontSize: '0.75rem',
                       fontWeight: 600,
-                      background: theme === 'dark' ? '#1f2937' : '#fff',
+                      background: isDarkMode ? grayColors[100] : bgColor,
                       border: `1px solid ${border}`,
                     }}
                   >
@@ -439,13 +493,42 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
                 ))}
               </div>
 
-              {filteredClasses.length === 0 && filteredSubjects.length === 0 && (
-                <div style={{ padding: '0.75rem 1rem', borderRadius: 8, border: `1px dashed ${border}`, color: muted, fontSize: '0.875rem' }}>
-                  {details.programs?.length === 0 && details.classes?.length === 0
-                    ? t('my_access_empty')
-                    : t('my_access_no_filter_results')}
-                </div>
-              )}
+              {(() => {
+                const hasNoFilters = !searchText.trim() && !programFilter && !subjectFilter && !yearFilter && !termFilter && ownershipFilter === 'all';
+                const totalPrograms = details.programs?.length || 0;
+                const totalSubjects = details.subjects?.length || 0;
+                const totalClasses = details.classes?.length || 0;
+                const noDataAtAll = totalPrograms === 0 && totalSubjects === 0 && totalClasses === 0;
+                const noClassesButHasPrograms = totalClasses === 0 && totalPrograms > 0 && hasNoFilters;
+
+                if (noDataAtAll && hasNoFilters) {
+                  return (
+                    <div style={{ padding: '0.75rem 1rem', borderRadius: 8, border: `1px dashed ${border}`, color: muted, fontSize: '0.875rem' }}>
+                      {details.unrestricted
+                        ? t('my_access_no_data_unrestricted')
+                        : t('my_access_empty')}
+                    </div>
+                  );
+                }
+
+                if (noClassesButHasPrograms && filteredSubjects.length === 0) {
+                  return (
+                    <div style={{ padding: '0.75rem 1rem', borderRadius: 8, border: `1px dashed ${border}`, color: muted, fontSize: '0.875rem' }}>
+                      {t('my_access_no_classes_yet')}
+                    </div>
+                  );
+                }
+
+                if (filteredClasses.length === 0 && filteredSubjects.length === 0 && !hasNoFilters) {
+                  return (
+                    <div style={{ padding: '0.75rem 1rem', borderRadius: 8, border: `1px dashed ${border}`, color: muted, fontSize: '0.875rem' }}>
+                      {t('my_access_no_filter_results')}
+                    </div>
+                  );
+                }
+
+                return null;
+              })()}
 
               {groupedClasses.map((group) => (
                 <div key={group.program?.id || 'unknown'} style={{ border: `1px solid ${border}`, borderRadius: 8, overflow: 'hidden' }}>
@@ -479,25 +562,19 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
                             {instructorBadge(!!cls.isInstructor)}
                           </div>
                           <div style={{ fontSize: '0.72rem', color: muted, marginTop: 4 }}>
-                            {t('my_access_open_workspace')}
+                            {[
+                              getProgramOptionLabel(group.program, lang) || t('unknown_program'),
+                              subject ? getSubjectOptionLabel(subject, lang) : null,
+                              cls.year || cls.term
+                                ? `${cls.year || ''}${cls.term ? ` / ${getAcademicTermLabel(cls.term, lang)}` : ''}`
+                                : null,
+                              cls.instructor && !cls.isInstructor
+                                ? `${t('instructor')}: ${lang === 'ar'
+                                  ? cls.instructor.displayNameAr || cls.instructor.displayName
+                                  : cls.instructor.displayName}`
+                                : null,
+                            ].filter(Boolean).join(' · ')}
                           </div>
-                          {subject && (
-                            <div style={{ color: muted, fontSize: '0.78rem', marginTop: 2 }}>
-                              {t('subject')}: {getSubjectOptionLabel(subject, lang)}
-                            </div>
-                          )}
-                          {(cls.year || cls.term) && (
-                            <div style={{ color: muted, fontSize: '0.78rem', marginTop: 2 }}>
-                              {cls.year}{cls.term ? ` / ${getAcademicTermLabel(cls.term, lang)}` : ''}
-                            </div>
-                          )}
-                          {cls.instructor && !cls.isInstructor && (
-                            <div style={{ color: muted, fontSize: '0.78rem', marginTop: 2 }}>
-                              {t('instructor')}: {lang === 'ar'
-                                ? cls.instructor.displayNameAr || cls.instructor.displayName
-                                : cls.instructor.displayName}
-                            </div>
-                          )}
                           <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                             <ClassExportActions
                               cls={cls}
@@ -521,18 +598,69 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
                 </div>
               ))}
 
+              {(() => {
+                const programIdsWithClasses = new Set(
+                  groupedClasses.map((g) => Number(g.program?.id)).filter(Boolean)
+                );
+                const programsWithoutClasses = (details.programs || []).filter(
+                  (p) => !programIdsWithClasses.has(Number(p.id))
+                );
+                const filteredProgramsWithoutClasses = programsWithoutClasses.filter((p) => {
+                  if (programFilter && Number(p.id) !== Number(programFilter)) return false;
+                  const q = searchText.trim().toLowerCase();
+                  if (q) {
+                    const label = getProgramOptionLabel(p, lang).toLowerCase();
+                    const code = (p.code || '').toLowerCase();
+                    if (!label.includes(q) && !code.includes(q)) return false;
+                  }
+                  return true;
+                });
+                if (filteredProgramsWithoutClasses.length === 0) return null;
+                return (
+                  <div style={{ border: `1px solid ${border}`, borderRadius: 8, overflow: 'hidden' }}>
+                    <div style={{ padding: '0.6rem 0.85rem', background: panelBg, fontWeight: 600, fontSize: '0.9rem' }}>
+                      {t('programs_without_classes')}
+                    </div>
+                    <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                      {filteredProgramsWithoutClasses.map((p) => (
+                        <li key={p.id} style={{
+                          padding: '0.6rem 0.85rem',
+                          borderTop: `1px solid ${border}`,
+                          fontSize: '0.85rem',
+                        }}>
+                          <div style={{ fontWeight: 500 }}>
+                            {getProgramOptionLabel(p, lang)}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: muted, marginTop: 4 }}>
+                            {t('my_access_no_classes_in_program')}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })()}
+
               {filteredSubjects.length > 0 && (
                 <div style={{ border: `1px solid ${border}`, borderRadius: 8, overflow: 'hidden' }}>
                   <div style={{ padding: '0.6rem 0.85rem', background: panelBg, fontWeight: 600, fontSize: '0.9rem' }}>
                     {t('subjects')}
                   </div>
                   <ul style={{ listStyle: 'none', margin: 0, padding: '0.25rem 0' }}>
-                    {filteredSubjects.map((sub) => (
-                      <li key={sub.id} style={{ padding: '0.35rem 0.85rem', fontSize: '0.85rem' }}>
-                        <span>{sub.code} — {getSubjectOptionLabel(sub, lang)}</span>
-                        {instructorBadge(!!sub.isInstructor)}
-                      </li>
-                    ))}
+                    {filteredSubjects.map((sub) => {
+                      const program = programMap.get(Number(sub.programId || sub.program?.id)) || sub.program || null;
+                      return (
+                        <li key={sub.id} style={{ padding: '0.35rem 0.85rem', fontSize: '0.85rem' }}>
+                          <span>{sub.code} — {getSubjectOptionLabel(sub, lang)}</span>
+                          {instructorBadge(!!sub.isInstructor)}
+                          {program && (
+                            <div style={{ fontSize: '0.72rem', color: muted, marginTop: 2 }}>
+                              {getProgramOptionLabel(program, lang)}
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}

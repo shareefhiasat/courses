@@ -225,6 +225,10 @@ const QRScannerPage = () => {
     return ATTENDANCE_TYPE_CATEGORY.REGULAR;
   }); // 'regular' or 'standup'
 
+  // When opened from the schedule context menu with a ?mode=... parameter,
+  // lock the mode so the user cannot switch away from the chosen flow.
+  const [isModeLocked, setIsModeLocked] = useState(false);
+
   const [useOfficialReports, setUseOfficialReports] = useState(() => {
     try {
       return localStorage.getItem('qrScanner_useOfficialReports') !== 'false';
@@ -1031,6 +1035,10 @@ const QRScannerPage = () => {
 
     if (urlMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
       setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.STANDUP);
+      setIsModeLocked(true);
+    } else if (urlMode === ATTENDANCE_TYPE_CATEGORY.REGULAR) {
+      setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.REGULAR);
+      setIsModeLocked(true);
     } else if (urlManual === '1' || urlManual === 'true') {
       setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.REGULAR);
     }
@@ -3146,7 +3154,7 @@ const QRScannerPage = () => {
     }
   }, [selectedClassId, selectedDate, selectedProgramId, selectedSubjectId, programs, subjects, classes, lang, t, dailyExportFormat, dailyEmailRecipients, user, availableUsers, showError, showSuccess, attendanceMode, isExporting]);
 
-  const exportDailyOfficial = useCallback(async () => {
+  const exportDailyOfficial = useCallback(async (format = dailyOfficialExportFormat) => {
     if (isExporting) return;
     const isStandup = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP;
     if (isStandup) {
@@ -3160,6 +3168,7 @@ const QRScannerPage = () => {
     }
 
     try {
+      setDailyOfficialExportFormat(format);
       setIsExporting(true);
       const formattedDate = formatQatarDateOnly(selectedDate);
       let attendanceData = [];
@@ -3258,7 +3267,7 @@ const QRScannerPage = () => {
       const filename = `${reportData.serial}_daily_official_${sanitize(programName)}`;
 
       const blob = await exportDailyOfficialReport(reportData, {
-        format: dailyOfficialExportFormat,
+        format,
         filename,
       });
 
@@ -3266,9 +3275,9 @@ const QRScannerPage = () => {
       const persisted = await persistAndLogExport({
         blob,
         filename,
-        mimeType: mimeTypeForFormat(dailyOfficialExportFormat),
+        mimeType: mimeTypeForFormat(format),
         exportType: 'attendance_daily_official',
-        format: dailyOfficialExportFormat,
+        format,
         classId: selectedClassId,
         subjectId: selectedSubjectId,
         programId: selectedProgramId,
@@ -3279,7 +3288,7 @@ const QRScannerPage = () => {
         fileId: extractExportFileId(persisted),
         folderId: extractExportFolderId(persisted),
         blobUrl,
-        format: dailyOfficialExportFormat,
+        format,
       });
     } catch (err) {
       console.error('Daily official export failed:', err);
@@ -3298,6 +3307,7 @@ const QRScannerPage = () => {
     t,
     user,
     dailyOfficialExportFormat,
+    setDailyOfficialExportFormat,
     showError,
     showSuccess,
     classes,
@@ -5276,6 +5286,7 @@ const QRScannerPage = () => {
                 flex: '0 0 auto'
               }}>
                 <button
+                  disabled={isModeLocked}
                   onClick={() => {
                     info('🔍 [DEBUG] Regular mode clicked', {
                       currentMode: attendanceMode,
@@ -5290,7 +5301,8 @@ const QRScannerPage = () => {
                       color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : 'var(--text-muted, #6b7280)',
                       border: 'none',
                       borderRadius: '0.375rem',
-                      cursor: 'pointer',
+                      cursor: isModeLocked ? 'not-allowed' : 'pointer',
+                      opacity: isModeLocked ? 0.7 : 1,
                       transition: 'all 0.2s',
                       display: 'flex',
                       alignItems: 'center',
@@ -5307,6 +5319,7 @@ const QRScannerPage = () => {
                   </button>
                 {canSeeStandupMode && (
                   <button
+                    disabled={isModeLocked}
                     onClick={() => {
                       info('🔍 [DEBUG] Standup mode clicked', {
                         currentMode: attendanceMode,
@@ -5321,7 +5334,8 @@ const QRScannerPage = () => {
                       color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : 'var(--text-muted, #6b7280)',
                       border: 'none',
                       borderRadius: '0.375rem',
-                      cursor: 'pointer',
+                      cursor: isModeLocked ? 'not-allowed' : 'pointer',
+                      opacity: isModeLocked ? 0.7 : 1,
                       transition: 'all 0.2s',
                       display: 'flex',
                       alignItems: 'center',

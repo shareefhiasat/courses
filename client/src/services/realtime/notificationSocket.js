@@ -15,6 +15,7 @@ class NotificationSocket {
     this.reconnectDelay = 1000;
     this.listeners = new Map();
     this.isConnected = false;
+    this.connecting = false;
     this.userId = null;
   }
 
@@ -25,18 +26,21 @@ class NotificationSocket {
    */
   async connect(token) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      console.log('[NotificationSocket] Already connected');
+      return;
+    }
+    if (this.connecting) {
       return;
     }
 
+    this.connecting = true;
     const wsUrl = this.getWebSocketUrl(token);
     
     try {
       this.ws = new WebSocket(wsUrl);
       
       this.ws.onopen = () => {
-        console.log('[NotificationSocket] Connected');
         this.isConnected = true;
+        this.connecting = false;
         this.reconnectAttempts = 0;
         this.emit('connected', null);
       };
@@ -44,7 +48,6 @@ class NotificationSocket {
       this.ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          console.log('[NotificationSocket] Message received:', message);
           
           if (message.type === 'notification:new') {
             this.emit('notification', message.data);
@@ -60,8 +63,8 @@ class NotificationSocket {
       };
       
       this.ws.onclose = (event) => {
-        console.log('[NotificationSocket] Disconnected:', event.code, event.reason);
         this.isConnected = false;
+        this.connecting = false;
         this.emit('disconnected', null);
         
         // Attempt reconnection
@@ -81,7 +84,7 @@ class NotificationSocket {
         this.emit('error', error);
       };
     } catch (error) {
-      console.error('[NotificationSocket] Failed to connect:', error);
+      this.connecting = false;
       this.emit('error', error);
     }
   }
@@ -93,10 +96,10 @@ class NotificationSocket {
     if (this.ws) {
       this.ws.close();
       this.ws = null;
-      this.isConnected = false;
-      this.userId = null;
-      console.log('[NotificationSocket] Disconnected');
     }
+    this.isConnected = false;
+    this.connecting = false;
+    this.userId = null;
   }
 
   /**

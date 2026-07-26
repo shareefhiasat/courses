@@ -199,9 +199,7 @@ const ClassActionMenu = ({
       classCode: cls.code || '',
       date: dateStr,
     });
-    if (mode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
-      params.set('mode', ATTENDANCE_TYPE_CATEGORY.STANDUP);
-    }
+    params.set('mode', mode);
     navigate(`/qr-scanner?${params.toString()}`);
     onClose();
   }, [cls, dateStr, navigate, onClose]);

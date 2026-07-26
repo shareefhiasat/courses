@@ -135,6 +135,7 @@ const DatePicker = ({
   };
 
   const openPicker = () => {
+    if (disabled) return;
     const el = hiddenDateRef.current;
     if (!el) return;
     el.focus();
@@ -208,7 +209,7 @@ const DatePicker = ({
           <div
             className={styles.iconWrapper}
             onClick={useTextInput ? openPicker : () => {
-              if (!inputRef.current) return;
+              if (disabled || !inputRef.current) return;
               inputRef.current.focus();
               try { inputRef.current.showPicker(); } catch (_) { /* native indicator handles it */ }
             }}

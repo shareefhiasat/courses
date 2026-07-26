@@ -11,7 +11,7 @@ import chatSocket from '@services/realtime/chatSocket.js';
 import { Announcement, AnnouncementTag, AnnouncementTitle } from '@/components/kibo-ui/announcement';
 import { Banner, BannerIcon, BannerTitle, BannerClose } from '@/components/kibo-ui/banner';
 import { toast } from 'sonner';
-import { Undo2, Info, AlertTriangle, CheckCircle2, X } from 'lucide-react';
+import { Undo2, Info, AlertTriangle, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import './OperationsBoardPage.css';
 import {
   fetchWorkflowBoardData,
@@ -20,6 +20,8 @@ import {
   moveAttendanceCard,
   WORKFLOW_COLUMNS,
   ATTENDANCE_COLUMNS,
+  ATTENDANCE_BOARD_LANES,
+  normalizeAttendanceStatus,
 } from '@services/business/operationsBoardService.js';
 import { getStatusCodeFromRecord, getAttendanceColor } from '../../constants/attendanceTypes.js';
 import { getWorkflowStatusColor } from '@constants/workspaceStatusColors.js';
@@ -47,11 +49,14 @@ import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
 const VIEWS = { KANBAN: 'kanban', LIST: 'list', TABLE: 'table' };
 const LANES = { STATUS: 'status', ATTENDANCE: 'attendance' };
 const SORT_MODES = { SYSTEM: 'system', ALPHA: 'alpha', MILITARY_ID: 'military_id' };
+const { NOT_TAKEN } = ATTENDANCE_BOARD_LANES;
 
 const DEFAULT_LANE_WIDTH = 240;
 const MIN_LANE_WIDTH = 140;
 const MAX_LANE_WIDTH = 560;
-const COLLAPSED_LANE_WIDTH = 56;
+const BASE_COLLAPSED_LANE_WIDTH = 72;
+const MIN_COLLAPSED_LANE_WIDTH = 48;
+const MAX_COLLAPSED_LANE_WIDTH = 96;
 const LANE_GAP = 16;
 const LANE_COLLAPSE_KEY = 'operations_board_collapsed_lanes';
 const LANE_COLLAPSE_VERSION = 2; // bump when default collapse logic changes to invalidate stale localStorage
@@ -100,16 +105,21 @@ function hasStoredCollapsed(boardKey) {
 }
 
 /** Equal-distribute expanded lanes across full container width (no max clamp). */
-function computeEqualLaneWidths(columnIds, containerWidth, collapsedSet = new Set()) {
+function computeEqualLaneWidths(
+  columnIds,
+  containerWidth,
+  collapsedSet = new Set(),
+  collapsedLaneWidth = BASE_COLLAPSED_LANE_WIDTH,
+) {
   if (!columnIds?.length) return {};
   const expandedIds = columnIds.filter((id) => !collapsedSet.has(id));
   const collapsedIds = columnIds.filter((id) => collapsedSet.has(id));
   const n = columnIds.length;
   const totalGap = LANE_GAP * Math.max(0, n - 1);
-  const collapsedTotal = collapsedIds.length * COLLAPSED_LANE_WIDTH;
+  const collapsedTotal = collapsedIds.length * collapsedLaneWidth;
   const available = Math.max(0, (containerWidth || 0) - totalGap - collapsedTotal);
   const result = {};
-  collapsedIds.forEach((id) => { result[id] = COLLAPSED_LANE_WIDTH; });
+  collapsedIds.forEach((id) => { result[id] = collapsedLaneWidth; });
   if (!expandedIds.length) return result;
   if (!available) {
     expandedIds.forEach((id) => { result[id] = DEFAULT_LANE_WIDTH; });
@@ -214,7 +224,15 @@ export default function OperationsBoardPage({
   const resizingLaneRef = useRef(null);
   const boardViewportRef = useRef(null);
   const [boardViewportWidth, setBoardViewportWidth] = useState(0);
+  const collapsedLaneWidth = useMemo(() => {
+    const raw = Math.round(BASE_COLLAPSED_LANE_WIDTH * (fontScale / 100));
+    return Math.max(MIN_COLLAPSED_LANE_WIDTH, Math.min(MAX_COLLAPSED_LANE_WIDTH, raw));
+  }, [fontScale]);
   const noWorkflowsToastShownRef = useRef(false);
+  const skipCollapseRedistributeRef = useRef(false);
+  const autoFitAppliedRef = useRef(false);
+  const prevViewportWidthRef = useRef(0);
+  const prevExpandedRef = useRef(expanded);
 
   const measureBoardViewport = useCallback(() => {
     return boardViewportRef.current?.clientWidth || boardViewportWidth || 0;
@@ -300,6 +318,23 @@ export default function OperationsBoardPage({
       return SORT_MODES.SYSTEM;
     }
   });
+
+  const [showAvatars, setShowAvatars] = useState(() => {
+    try {
+      if (isInstructorOnly) return true;
+      return localStorage.getItem('operations_board_show_avatars') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  const handleToggleShowAvatars = useCallback(() => {
+    setShowAvatars((prev) => {
+      const next = !prev;
+      try { localStorage.setItem('operations_board_show_avatars', String(next)); } catch {}
+      return next;
+    });
+  }, []);
 
   const clearActionBanner = useCallback(() => {
     if (actionBannerTimerRef.current) {
@@ -416,14 +451,40 @@ export default function OperationsBoardPage({
     });
   }, []);
 
+  const expandCollapsedLanesIfAllCollapsed = useCallback((boardKey, columnIds) => {
+    const key = boardKey || (lane === LANES.ATTENDANCE ? 'attendance' : 'workflow');
+    const current = collapsedSetForLane(key);
+    if (current.size !== columnIds.length) return current;
+    setCollapsedLanes((prev) => {
+      const next = { ...prev, [key]: [] };
+      try { localStorage.setItem(LANE_COLLAPSE_KEY, JSON.stringify({ ...next, _v: LANE_COLLAPSE_VERSION })); } catch {}
+      return next;
+    });
+    return new Set();
+  }, [collapsedSetForLane, lane]);
+
   const resetLaneWidths = useCallback((columnIds, boardKey) => {
     if (!columnIds?.length) return;
-    const width = boardViewportWidth || measureBoardViewport();
-    const collapsed = collapsedSetForLane(boardKey || (lane === LANES.ATTENDANCE ? 'attendance' : 'workflow'));
-    const defaults = computeEqualLaneWidths(columnIds, width, collapsed);
+    // Force remeasure viewport width to ensure it's current
+    const measuredWidth = measureBoardViewport();
+    const width = measuredWidth || boardViewportWidth || window.innerWidth;
+    const key = boardKey || (lane === LANES.ATTENDANCE ? 'attendance' : 'workflow');
+    const collapsed = expandCollapsedLanesIfAllCollapsed(key, columnIds);
+    const defaults = computeEqualLaneWidths(columnIds, width, collapsed, collapsedLaneWidth);
     setLaneWidths(defaults);
     try { localStorage.setItem('operations_board_lane_widths', JSON.stringify(defaults)); } catch {}
-  }, [boardViewportWidth, measureBoardViewport, collapsedSetForLane, lane]);
+    try { localStorage.setItem('operations_board_last_autofit_mode', 'reset'); } catch {}
+  }, [boardViewportWidth, measureBoardViewport, lane, expandCollapsedLanesIfAllCollapsed, collapsedLaneWidth]);
+
+  const attendanceColumns = useMemo(
+    () => getAttendanceColumnsForRole(roleContext),
+    [roleContext]
+  );
+  const workflowColumns = useMemo(
+    () => getWorkflowColumnsForRole(WORKFLOW_COLUMNS, roleContext, viewMode),
+    [roleContext, viewMode]
+  );
+  const columns = lane === LANES.ATTENDANCE ? attendanceColumns : workflowColumns;
 
   const updateParams = useCallback((updater) => {
     setSearchParams((prev) => {
@@ -687,27 +748,6 @@ export default function OperationsBoardPage({
     return () => { cancelled = true; };
   }, [lane, filters.classId, filters.date, filters.programId, lang]);
 
-  const dbCodeToBoardLane = useCallback((code) => {
-    if (!code) return 'NOT_TAKEN';
-    const upper = code.toUpperCase().trim();
-    const map = {
-      'ATTENDANCE_PRESENT': 'PRESENT',
-      'PRESENT': 'PRESENT',
-      'ATTENDANCE_LATE': 'LATE',
-      'LATE': 'LATE',
-      'ATTENDANCE_ABSENT': 'ABSENT',
-      'ABSENT_NO_EXCUSE': 'ABSENT',
-      'ABSENT': 'ABSENT',
-      'ATTENDANCE_LEAVE': 'EXCUSED',
-      'EXCUSED_LEAVE': 'EXCUSED',
-      'EXCUSED': 'EXCUSED',
-      'ABSENT_WITH_EXCUSE': 'EXCUSED',
-      'ATTENDANCE_HUMAN_CASE': 'HUMAN_CASE',
-      'HUMAN_CASE': 'HUMAN_CASE',
-    };
-    return map[upper] || 'NOT_TAKEN';
-  }, []);
-
   useEffect(() => {
     const handleAttendanceUpdate = (payload) => {
       if (lastLocalChangeRef.current &&
@@ -718,15 +758,15 @@ export default function OperationsBoardPage({
       const eventDate = payload.date ? new Date(payload.date).toISOString().slice(0, 10) : null;
       const currentDate = filters.date ? filters.date.slice(0, 10) : null;
       if (String(payload.classId) !== String(filters.classId) || eventDate !== currentDate) return;
-      const newColumn = dbCodeToBoardLane(payload.status?.code);
+      const newColumn = normalizeAttendanceStatus(payload.status?.code);
       setData((prev) => prev.map((item) => {
         if (item.type !== 'attendance') return item;
         if (String(item.userId) !== String(payload.userId)) return item;
-        if (newColumn === 'NOT_TAKEN') {
+        if (newColumn === NOT_TAKEN) {
           return {
             ...item,
-            column: 'NOT_TAKEN',
-            status: 'NOT_TAKEN',
+            column: NOT_TAKEN,
+            status: NOT_TAKEN,
             rawId: null,
             notes: null,
             id: `att-pending-${item.userId}`,
@@ -743,15 +783,42 @@ export default function OperationsBoardPage({
       }));
     };
 
+    // Track recently processed workflow updates to prevent duplicates
+    const processedWorkflowUpdates = new Map();
+
     const handleWorkflowUpdate = (payload) => {
+      const updateKey = `${payload.documentId}-${payload.status}`;
+      const now = Date.now();
+      
+      // Check if we've processed this exact update recently (within 1 second)
+      if (processedWorkflowUpdates.has(updateKey)) {
+        const lastProcessed = processedWorkflowUpdates.get(updateKey);
+        if (now - lastProcessed < 1000) {
+          console.log('[OperationsBoardPage] Ignoring duplicate workflow update:', updateKey);
+          return;
+        }
+      }
+      
+      processedWorkflowUpdates.set(updateKey, now);
+      
+      // Clean up old entries (older than 2 seconds)
+      for (const [key, time] of processedWorkflowUpdates.entries()) {
+        if (now - time > 2000) {
+          processedWorkflowUpdates.delete(key);
+        }
+      }
+
+      console.log('[OperationsBoardPage] Workflow update received:', payload);
       if (lastLocalChangeRef.current &&
           lastLocalChangeRef.current.id === payload.documentId &&
-          Date.now() - lastLocalChangeRef.current.time < 3000) {
+          Date.now() - lastLocalChangeRef.current.time < 2000) {
+        console.log('[OperationsBoardPage] Ignoring local change:', payload.documentId);
         return;
       }
       setData((prev) => prev.map((item) => {
         if (item.type !== 'workflow') return item;
         if (String(item.rawId) !== String(payload.documentId)) return item;
+        console.log('[OperationsBoardPage] Updating workflow item:', item.rawId, 'from', item.column, 'to', payload.status);
         return {
           ...item,
           column: payload.status || item.column,
@@ -771,7 +838,7 @@ export default function OperationsBoardPage({
       chatSocket.off('board:attendance_updated', handleAttendanceUpdate);
       chatSocket.off('board:workflow_updated', handleWorkflowUpdate);
     };
-  }, [filters.classId, filters.date, dbCodeToBoardLane]);
+  }, [filters.classId, filters.date]);
 
   const applyWorkflowMove = useCallback(async (activeId, fromColumn, toColumn, item, snapshotData = null) => {
     let filedFileId = null;
@@ -813,7 +880,11 @@ export default function OperationsBoardPage({
 
     const result = await moveWorkflowCard(item.rawId, fromColumn, toColumn, null, snapshotData, filedFileId);
     if (!result.success) {
-      setError(t('operations_board_drag_error'));
+      if (result.isPermissionError) {
+        setError(t('operations_board_permission_error') || result.error);
+      } else {
+        setError(t('operations_board_drag_error'));
+      }
       loadData();
       return false;
     }
@@ -831,9 +902,10 @@ export default function OperationsBoardPage({
       notifyMeta?.notifyKey
       || (notifyMeta?.roles?.length > 0 && !notifyMeta.adminOverride),
     );
+    const isRejection = toColumn === 'REJECTED';
     showActionBanner({
-      pillColor: '#059669',
-      icon: <CheckCircle2 size={16} className="shrink-0" />,
+      pillColor: isRejection ? '#dc2626' : '#059669',
+      icon: isRejection ? <AlertCircle size={16} className="shrink-0" /> : <CheckCircle2 size={16} className="shrink-0" />,
       message: shortLabel
         ? t('operations_board_workflow_action_banner', { label: shortLabel, status: statusLabel })
         : t('operations_board_action_banner', { name: item.className || 'Workflow', status: statusLabel }),
@@ -929,8 +1001,8 @@ export default function OperationsBoardPage({
         lastLocalChangeRef.current = { id: result.data?.id || item.rawId, time: Date.now() };
         setData((prev) => prev.map((d) => {
           if (d.id !== activeId) return d;
-          if (toColumn === 'NOT_TAKEN') {
-            return { ...d, column: 'NOT_TAKEN', status: 'NOT_TAKEN', rawId: null, notes: null, id: `att-pending-${d.userId}` };
+          if (toColumn === NOT_TAKEN) {
+            return { ...d, column: NOT_TAKEN, status: NOT_TAKEN, rawId: null, notes: null, id: `att-pending-${d.userId}` };
           }
           return { ...d, column: toColumn, status: toColumn, rawId: result.data?.id || d.rawId, id: result.data?.id ? `att-${result.data.id}` : d.id };
         }));
@@ -984,10 +1056,10 @@ export default function OperationsBoardPage({
             clearActionBanner();
             let undoId = result.data?.id || item.rawId;
             let undoCreate = null;
-            if (toColumn === 'NOT_TAKEN') {
+            if (toColumn === NOT_TAKEN) {
               undoId = null;
               undoCreate = { userId: item.userId, classId: item.classId, date: item.date };
-            } else if (fromColumn === 'NOT_TAKEN') {
+            } else if (fromColumn === NOT_TAKEN) {
               undoId = result.data?.id;
             }
             const undoResult = await moveAttendanceCard(undoId, fromColumn, null, undoCreate);
@@ -995,8 +1067,8 @@ export default function OperationsBoardPage({
               lastLocalChangeRef.current = { id: undoResult.data?.id || undoId, time: Date.now() };
               setData((prev) => prev.map((d) => {
                 if (d.userId !== item.userId) return d;
-                if (fromColumn === 'NOT_TAKEN') {
-                  return { ...d, column: 'NOT_TAKEN', status: 'NOT_TAKEN', rawId: null, notes: null, id: `att-pending-${d.userId}` };
+                if (fromColumn === NOT_TAKEN) {
+                  return { ...d, column: NOT_TAKEN, status: NOT_TAKEN, rawId: null, notes: null, id: `att-pending-${d.userId}` };
                 }
                 return {
                   ...d,
@@ -1064,8 +1136,8 @@ export default function OperationsBoardPage({
     setData((prev) => prev.map((d) => {
       if (!movedIds.includes(d.id)) return d;
       if (d.type === 'attendance') {
-        if (toColumn === 'NOT_TAKEN') {
-          return { ...d, column: 'NOT_TAKEN', status: 'NOT_TAKEN', rawId: null, notes: null, id: `att-pending-${d.userId}` };
+        if (toColumn === NOT_TAKEN) {
+          return { ...d, column: NOT_TAKEN, status: NOT_TAKEN, rawId: null, notes: null, id: `att-pending-${d.userId}` };
         }
         return { ...d, column: toColumn, status: toColumn, id: d.id };
       }
@@ -1120,7 +1192,7 @@ export default function OperationsBoardPage({
           </span>
         );
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 0, flexWrap: 'nowrap', fontSize: '0.75rem' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap', fontSize: '0.75rem' }}>
             {beforeFrom}
             {statusBadge(fromColor, fromLabel)}
             {beforeTo}
@@ -1249,15 +1321,6 @@ export default function OperationsBoardPage({
     setParticipationRefreshKey((k) => k + 1);
   }, []);
 
-  const attendanceColumns = useMemo(
-    () => getAttendanceColumnsForRole(roleContext),
-    [roleContext]
-  );
-  const workflowColumns = useMemo(
-    () => getWorkflowColumnsForRole(WORKFLOW_COLUMNS, roleContext, viewMode),
-    [roleContext, viewMode]
-  );
-  const columns = lane === LANES.ATTENDANCE ? attendanceColumns : workflowColumns;
   const boardCollapseKey = lane === LANES.ATTENDANCE ? 'attendance' : 'workflow';
   const baseCollapsedSet = useMemo(
     () => collapsedSetForLane(boardCollapseKey),
@@ -1272,19 +1335,26 @@ export default function OperationsBoardPage({
     if (!columnIds.length) return;
     const width = measureBoardViewport();
     if (!width) return;
+    if (skipCollapseRedistributeRef.current) {
+      skipCollapseRedistributeRef.current = false;
+      prevCollapsedSetRef.current = collapsedSet;
+      return;
+    }
     const collapseChanged = prevCollapsedSetRef.current !== collapsedSet;
+    const viewportChanged = prevViewportWidthRef.current !== width;
     prevCollapsedSetRef.current = collapsedSet;
+    prevViewportWidthRef.current = width;
     setLaneWidths((prev) => {
-      const equal = computeEqualLaneWidths(columnIds, width, collapsedSet);
+      const equal = computeEqualLaneWidths(columnIds, width, collapsedSet, collapsedLaneWidth);
       const next = { ...prev };
       let changed = false;
       columnIds.forEach((id) => {
         if (collapsedSet.has(id)) {
-          if (next[id] !== COLLAPSED_LANE_WIDTH) {
-            next[id] = COLLAPSED_LANE_WIDTH;
+          if (next[id] !== collapsedLaneWidth) {
+            next[id] = collapsedLaneWidth;
             changed = true;
           }
-        } else if (collapseChanged || prev[id] === COLLAPSED_LANE_WIDTH || !prev[id]) {
+        } else if (collapseChanged || viewportChanged || prev[id] === collapsedLaneWidth || !prev[id]) {
           if (next[id] !== equal[id]) {
             next[id] = equal[id];
             changed = true;
@@ -1295,7 +1365,7 @@ export default function OperationsBoardPage({
       try { localStorage.setItem('operations_board_lane_widths', JSON.stringify(next)); } catch {}
       return next;
     });
-  }, [collapsedSet, columns, measureBoardViewport]);
+  }, [collapsedSet, columns, measureBoardViewport, collapsedLaneWidth]);
 
   // On first mount, if no lane widths are stored, compute equal distribution from the
   // actual container width and persist it so equal widths are the default.
@@ -1304,26 +1374,26 @@ export default function OperationsBoardPage({
     if (!columnIds.length || Object.keys(laneWidths).length > 0) return;
     const width = measureBoardViewport();
     if (!width) return;
-    const defaults = computeEqualLaneWidths(columnIds, width, collapsedSet);
+    const defaults = computeEqualLaneWidths(columnIds, width, collapsedSet, collapsedLaneWidth);
     setLaneWidths(defaults);
     try { localStorage.setItem('operations_board_lane_widths', JSON.stringify(defaults)); } catch {}
-  }, [columns, laneWidths, measureBoardViewport, collapsedSet]);
+  }, [columns, laneWidths, measureBoardViewport, collapsedSet, collapsedLaneWidth]);
 
   const resolvedLaneWidths = useMemo(() => {
     const widths = { ...laneWidths };
     const columnIds = columns.map((c) => c.id);
     const hasMissing = columns.some((col) => !widths[col.id]);
     if (hasMissing) {
-      const equal = computeEqualLaneWidths(columnIds, measureBoardViewport(), collapsedSet);
+      const equal = computeEqualLaneWidths(columnIds, measureBoardViewport(), collapsedSet, collapsedLaneWidth);
       columns.forEach((col) => {
         if (!widths[col.id]) widths[col.id] = equal[col.id] || DEFAULT_LANE_WIDTH;
       });
     }
     columnIds.forEach((id) => {
-      if (collapsedSet.has(id)) widths[id] = COLLAPSED_LANE_WIDTH;
+      if (collapsedSet.has(id)) widths[id] = collapsedLaneWidth;
     });
     return widths;
-  }, [columns, laneWidths, measureBoardViewport, collapsedSet]);
+  }, [columns, laneWidths, measureBoardViewport, collapsedSet, collapsedLaneWidth]);
 
   const opsGridColumns = useMemo(
     () => columns.map((col) => `${resolvedLaneWidths[col.id]}px`).join(' '),
@@ -1344,6 +1414,152 @@ export default function OperationsBoardPage({
     [data, filters.search, lang, sortBy]
   );
   console.log('[OperationsBoardPage] displayData:', displayData.length, displayData.map((d) => ({ id: d.id, column: d.column })));
+
+  const handleAutoFitContent = useCallback(() => {
+    const columnIds = columns.map((c) => c.id);
+    if (!columnIds.length) return;
+    const boardKey = boardCollapseKey;
+    const existingCollapsed = collapsedSetForLane(boardKey);
+    const width = measureBoardViewport();
+    if (!width) return;
+    const counts = {};
+    columnIds.forEach((id) => {
+      counts[id] = displayData.filter((d) => d.column === id).length;
+    });
+    const nonEmptyIds = columnIds.filter((id) => counts[id] > 0);
+    // If nothing is shown, fall back to reset/equal widths instead of collapsing everything
+    if (nonEmptyIds.length === 0) {
+      const equal = computeEqualLaneWidths(columnIds, width, existingCollapsed, collapsedLaneWidth);
+      setLaneWidths(equal);
+      try { localStorage.setItem('operations_board_lane_widths', JSON.stringify(equal)); } catch {}
+      try { localStorage.setItem('operations_board_last_autofit_mode', 'content'); } catch {}
+      return;
+    }
+    // If every lane is currently collapsed, expand first so auto-fit can work on the data.
+    const allCollapsed = existingCollapsed.size === columnIds.length;
+    const collapsed = new Set(allCollapsed ? [] : [...existingCollapsed]);
+    columnIds.forEach((id) => {
+      if (counts[id] === 0) collapsed.add(id);
+    });
+
+    // Compute a desired width per lane based on the longest name and the number of cards,
+    // scaled by the current font size so the layout remains usable at larger sizes.
+    const charWidthPx = 8 * (fontScale / 100);
+    const basePaddingPx = Math.round(120 * (fontScale / 100));
+    const perCardPx = Math.round(10 * (fontScale / 100));
+    const scores = {};
+    let totalScore = 0;
+    columnIds.forEach((id) => {
+      if (collapsed.has(id)) {
+        scores[id] = 0;
+        return;
+      }
+      const cardsInColumn = displayData.filter((d) => d.column === id);
+      const maxNameLength = Math.max(...cardsInColumn.map((c) => (c.name || c.studentName || '').length), 8);
+      const nameWidth = maxNameLength * charWidthPx + basePaddingPx;
+      const contentScore = nameWidth + cardsInColumn.length * perCardPx;
+      scores[id] = Math.max(MIN_LANE_WIDTH, contentScore);
+      totalScore += scores[id];
+    });
+
+    const expandedCount = columnIds.length - collapsed.size;
+    const gaps = LANE_GAP * Math.max(0, columnIds.length - 1);
+    const collapsedTotal = collapsed.size * collapsedLaneWidth;
+    const available = Math.max(0, width - gaps - collapsedTotal);
+
+    // If all content fits inside the viewport, scale the widths up proportionally to fill it.
+    // Otherwise keep the natural widths and let the board scroll horizontally.
+    const shouldFill = totalScore > 0 && expandedCount > 0 && totalScore < available;
+    const contentWidths = {};
+    columnIds.forEach((id) => {
+      if (collapsed.has(id)) {
+        contentWidths[id] = collapsedLaneWidth;
+        return;
+      }
+      let desired = scores[id];
+      if (shouldFill) {
+        desired = (scores[id] / totalScore) * available;
+      }
+      contentWidths[id] = Math.max(MIN_LANE_WIDTH, Math.min(MAX_LANE_WIDTH, Math.round(desired)));
+    });
+
+    // Widths were computed by this action; tell the collapse watcher not to redistribute them.
+    skipCollapseRedistributeRef.current = true;
+    setCollapsedLanes((prev) => {
+      const next = { ...prev, [boardKey]: [...collapsed] };
+      try { localStorage.setItem(LANE_COLLAPSE_KEY, JSON.stringify({ ...next, _v: LANE_COLLAPSE_VERSION })); } catch {}
+      return next;
+    });
+    setLaneWidths(contentWidths);
+    try { localStorage.setItem('operations_board_lane_widths', JSON.stringify(contentWidths)); } catch {}
+    try { localStorage.setItem('operations_board_last_autofit_mode', 'content'); } catch {}
+  }, [columns, displayData, boardCollapseKey, collapsedSetForLane, collapsedLaneWidth, measureBoardViewport, fontScale]);
+
+  const handleAutoFitScreen = useCallback(() => {
+    const columnIds = columns.map((c) => c.id);
+    if (!columnIds.length) return;
+    const boardKey = boardCollapseKey;
+    const existingCollapsed = collapsedSetForLane(boardKey);
+    // Expand all lanes so the whole board can be fitted to the screen.
+    if (existingCollapsed.size > 0) {
+      skipCollapseRedistributeRef.current = true;
+      setCollapsedLanes((prev) => {
+        const next = { ...prev, [boardKey]: [] };
+        try { localStorage.setItem(LANE_COLLAPSE_KEY, JSON.stringify({ ...next, _v: LANE_COLLAPSE_VERSION })); } catch {}
+        return next;
+      });
+    }
+    const width = measureBoardViewport();
+    if (!width) return;
+    const gap = LANE_GAP * (columnIds.length - 1);
+    const availableWidth = width - gap;
+    const equalWidth = Math.floor(availableWidth / columnIds.length);
+    const screenFits = {};
+    columnIds.forEach((id) => {
+      screenFits[id] = equalWidth;
+    });
+    setLaneWidths(screenFits);
+    try { localStorage.setItem('operations_board_lane_widths', JSON.stringify(screenFits)); } catch {}
+    try { localStorage.setItem('operations_board_last_autofit_mode', 'screen'); } catch {}
+  }, [columns, measureBoardViewport, boardCollapseKey, collapsedSetForLane]);
+
+  // Auto-apply the last used auto-fit mode on mount after data is loaded
+  useEffect(() => {
+    if (autoFitAppliedRef.current) return;
+    const lastMode = (() => {
+      try {
+        return localStorage.getItem('operations_board_last_autofit_mode') || null;
+      } catch {
+        return null;
+      }
+    })();
+
+    if (!lastMode || !displayData.length || !columns.length) return;
+
+    autoFitAppliedRef.current = true;
+    if (lastMode === 'content') {
+      handleAutoFitContent();
+    } else if (lastMode === 'screen') {
+      handleAutoFitScreen();
+    }
+    // 'reset' doesn't need to be auto-applied since it's the default behavior
+  }, [displayData, columns, handleAutoFitContent, handleAutoFitScreen]);
+
+  // When the board is expanded to full screen, refit the swimlanes so they
+  // actually use the larger viewport instead of keeping the old embedded widths.
+  useEffect(() => {
+    const wasExpanded = prevExpandedRef.current;
+    prevExpandedRef.current = expanded;
+    if (!expanded || wasExpanded) return;
+    if (panelTab !== 'board' || view !== VIEWS.KANBAN) return;
+    if (!columns.length || !displayData.length) return;
+
+    // Wait a tick for the full-screen overlay to finish laying out.
+    const timer = setTimeout(() => {
+      handleAutoFitScreen();
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [expanded, panelTab, view, columns, displayData, handleAutoFitScreen]);
 
   useEffect(() => {
     if (!drawerOpen || !selectedCard?.id) return;
@@ -1392,11 +1608,8 @@ export default function OperationsBoardPage({
       { target: '[data-tour="operations-board-legend"]', content: t('tour.operations_board_legend'), disableBeacon: true, placement: 'top' },
       { target: '[data-tour="operations-board-view-mode"]', content: t('tour.operations_board_view_mode'), disableBeacon: true, placement: 'top' },
     );
-    if (showLaneReset && view === VIEWS.KANBAN) {
-      steps.push({ target: '[data-tour="operations-board-reset-lanes"]', content: t('tour.operations_board_reset_lanes'), disableBeacon: true, placement: 'bottom' });
-    }
     setTourSteps(steps);
-  }, [lang, t, panelTab, view, showLaneReset]);
+  }, [lang, t, panelTab, view]);
 
   useEffect(() => {
     const start = () => setRunTour(true);
@@ -1505,8 +1718,11 @@ export default function OperationsBoardPage({
               if (newLane === LANES.ATTENDANCE) next.delete('workflowId');
             });
           }}
-          onResetLaneWidths={() => resetLaneWidths(columns.map((c) => c.id), boardCollapseKey)}
+          onAutoFitContent={handleAutoFitContent}
+          onAutoFitScreen={handleAutoFitScreen}
           showLaneReset={panelTab === 'board' && view === VIEWS.KANBAN}
+          showAvatars={showAvatars}
+          onToggleShowAvatars={handleToggleShowAvatars}
         />
       </div>
 
@@ -1537,6 +1753,7 @@ export default function OperationsBoardPage({
             onBulkMove={handleBulkMove}
             participationRefreshKey={participationRefreshKey}
             fontScale={fontScale}
+            showAvatars={showAvatars}
           />
         ) : (
           <WorkflowBoard
@@ -1595,6 +1812,7 @@ export default function OperationsBoardPage({
         workflowType={pendingWorkflowMove?.item?.workflowType || ''}
         attendanceSubtype={pendingWorkflowMove?.item?.attendanceSubtype || ''}
         t={t}
+        lang={lang}
       />
 
       <ApprovalSuccessDialog

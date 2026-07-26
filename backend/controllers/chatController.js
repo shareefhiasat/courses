@@ -1361,6 +1361,182 @@ export const assignGroupAdmin = async (req, res) => {
   }
 };
 
+/**
+ * Get active users assigned to a given role code (e.g. 'hr')
+ * GET /api/v1/chat/users/by-role/:role
+ */
+export const getUsersByRole = async (req, res) => {
+  try {
+    const userId = resolveDbUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
+
+    const requester = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { roleAssignments: { include: { role: true } } }
+    });
+    const requesterRoles = (requester?.roleAssignments || []).map(ra => ra.role.code.toLowerCase());
+    const isStaffAdmin = requesterRoles.some(r => ['admin', 'super_admin', 'superadmin', 'hr'].includes(r));
+    if (!isStaffAdmin) {
+      return res.status(403).json({ success: false, error: 'Only admin/HR can view users by role' });
+    }
+
+    const { role } = req.params;
+    if (!role) {
+      return res.status(400).json({ success: false, error: 'Role is required' });
+    }
+
+    const assignments = await prisma.userRoleAssignment.findMany({
+      where: { role: { code: role.toLowerCase() } },
+      select: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            displayName: true,
+            email: true,
+            profileImageUrl: true,
+            keycloakId: true,
+            isActive: true,
+          }
+        }
+      }
+    });
+
+    const users = assignments
+      .map(a => a.user)
+      .filter(u => u && u.isActive && u.id !== userId)
+      .map(u => ({
+        ...u,
+        profileImageUrl: u.profileImageUrl && !u.profileImageUrl.startsWith('http') && !u.profileImageUrl.startsWith('/api/')
+          ? `/api/v1/user-images/proxy/${u.keycloakId}/profile`
+          : u.profileImageUrl
+      }));
+
+    res.json({ success: true, data: users });
+  } catch (error) {
+    console.error('[chatController] Error in getUsersByRole:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Get or create a dynamic group chat room for a given role (e.g. 'hr').
+ * Automatically syncs participants: adds newly-assigned role users, removes
+ * users who no longer hold the role or have been deactivated.
+ * POST /api/v1/chat/rooms/role-group
+ */
+export const getOrCreateRoleGroup = async (req, res) => {
+  try {
+    const userId = resolveDbUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
+
+    const requester = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { roleAssignments: { include: { role: true } } }
+    });
+    const requesterRoles = (requester?.roleAssignments || []).map(ra => ra.role.code.toLowerCase());
+    const isStaffAdmin = requesterRoles.some(r => ['admin', 'super_admin', 'superadmin', 'hr'].includes(r));
+    if (!isStaffAdmin) {
+      return res.status(403).json({ success: false, error: 'Only admin/HR can access role group chats' });
+    }
+
+    const { role } = req.body;
+    if (!role) {
+      return res.status(400).json({ success: false, error: 'Role is required' });
+    }
+    const roleCode = String(role).toLowerCase();
+    const marker = `__ROLE_GROUP_${roleCode}__`;
+
+    // Current active members of the role
+    const assignments = await prisma.userRoleAssignment.findMany({
+      where: { role: { code: roleCode } },
+      select: { user: { select: { id: true, isActive: true } } }
+    });
+    const roleUserIds = assignments
+      .map(a => a.user)
+      .filter(u => u && u.isActive)
+      .map(u => u.id);
+
+    // Ensure the requester is always a member so they can see/use the group
+    const desiredParticipantIds = new Set([...roleUserIds, userId]);
+
+    let room = await prisma.chatRoom.findFirst({
+      where: { type: 'group', name: marker },
+      include: { participants: true }
+    });
+
+    if (!room) {
+      room = await prisma.chatRoom.create({
+        data: {
+          type: 'group',
+          name: marker,
+          nameAr: marker,
+          createdBy: userId,
+          participants: {
+            create: [...desiredParticipantIds].map(id => ({ userId: id }))
+          }
+        },
+        include: { participants: true }
+      });
+    } else {
+      const currentIds = new Set(room.participants.map(p => p.userId));
+      const toAdd = [...desiredParticipantIds].filter(id => !currentIds.has(id));
+      const toRemove = [...currentIds].filter(id => !desiredParticipantIds.has(id));
+
+      if (toAdd.length > 0) {
+        await prisma.chatRoomParticipant.createMany({
+          data: toAdd.map(id => ({ roomId: room.id, userId: id })),
+          skipDuplicates: true
+        });
+      }
+      if (toRemove.length > 0) {
+        await prisma.chatRoomParticipant.deleteMany({
+          where: { roomId: room.id, userId: { in: toRemove } }
+        });
+      }
+    }
+
+    const fullRoom = await prisma.chatRoom.findUnique({
+      where: { id: room.id },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                displayName: true,
+                firstName: true,
+                lastName: true,
+                profileImageUrl: true,
+                keycloakId: true,
+              }
+            }
+          }
+        },
+        creator: {
+          select: { id: true, firstName: true, lastName: true, displayName: true }
+        }
+      }
+    });
+
+    // Friendly display name (not the internal marker) for the frontend
+    const displayName = `${roleCode.toUpperCase()} Team`;
+
+    res.json({
+      success: true,
+      data: { ...fullRoom, displayName, role: roleCode }
+    });
+  } catch (error) {
+    console.error('[chatController] Error in getOrCreateRoleGroup:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 export default {
   getRooms,
   getMessages,
@@ -1371,6 +1547,8 @@ export default {
   toggleReaction,
   votePoll,
   getAvailableUsers,
+  getUsersByRole,
+  getOrCreateRoleGroup,
   createGroupRoom,
   addParticipant,
   removeParticipant,

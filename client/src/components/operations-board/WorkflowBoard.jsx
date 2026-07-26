@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import Tooltip from '@mui/material/Tooltip';
 import { pointerWithin } from '@dnd-kit/core';
-import { useTheme } from '@contexts/ThemeContext';
 import {
   KanbanProvider,
   KanbanBoard,
@@ -127,7 +125,6 @@ function WorkflowAssigneeAvatar({ assignee, assigneeLabel, size = 'sm', fontScal
         <AvatarFallback
           className="font-semibold"
           style={{ fontSize: scalePx(10, fontScale) }}
-          title={assignee}
         >
           {initials}
         </AvatarFallback>
@@ -220,48 +217,6 @@ function WorkflowCardHoverTooltip({ item, column, summary, t }) {
         </div>
       )}
     </div>
-  );
-}
-
-const TOOLTIP_LABEL_COLOR = '#374151';
-
-function WorkflowHoverTooltip({ title, children }) {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-  const bg = isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.96)';
-
-  if (!title) return children;
-
-  return (
-    <Tooltip
-      title={title}
-      placement="top"
-      arrow
-      slotProps={{
-        tooltip: {
-          sx: {
-            bgcolor: bg,
-            color: TOOLTIP_LABEL_COLOR,
-            fontWeight: 500,
-            fontSize: '11px',
-            border: '1px solid rgba(148, 163, 184, 0.35)',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-            maxWidth: 280,
-            p: 1,
-          },
-        },
-        arrow: {
-          sx: {
-            color: bg,
-            '&::before': {
-              border: '1px solid rgba(148, 163, 184, 0.35)',
-            },
-          },
-        },
-      }}
-    >
-      {children}
-    </Tooltip>
   );
 }
 
@@ -446,25 +401,27 @@ export default function WorkflowBoard({
             key={column.id}
             data-testid={`operations-board-column-${column.id}`}
             className={`operations-board-lane ${laneClass}${collapsed ? ' operations-board-lane-collapsed' : ''}`}
+            style={{ '--lane-color': column.color || '#8b5cf6' }}
           >
             {!collapsed && onLaneResize && (
-              <div
-                className="operations-board-lane-resize-handle"
-                role="separator"
-                aria-orientation="vertical"
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onLaneResize(column.id, e);
-                }}
-                onDoubleClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onLaneWidthsReset?.();
-                }}
-                title={t('operations_board_resize_lane') || 'Drag to resize lane'}
-                data-testid={`operations-board-lane-resize-${column.id}`}
-              />
+              <ColoredTooltip title={t('operations_board_resize_lane') || 'Drag to resize lane'} placement="top" color={column.color || '#8b5cf6'}>
+                <div
+                  className="operations-board-lane-resize-handle"
+                  role="separator"
+                  aria-orientation="vertical"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onLaneResize(column.id, e);
+                  }}
+                  onDoubleClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onLaneWidthsReset?.();
+                  }}
+                  data-testid={`operations-board-lane-resize-${column.id}`}
+                />
+              </ColoredTooltip>
             )}
             <BoardLaneHeader
               column={column}
@@ -544,8 +501,9 @@ export default function WorkflowBoard({
                     className="operations-workflow-card p-2"
                     style={{ marginBottom: '-4px' }}
                   >
-                    <WorkflowHoverTooltip
+                    <ColoredTooltip
                       title={<WorkflowCardHoverTooltip item={item} column={column} summary={summary} t={t} />}
+                      color={column.color}
                     >
                     <div
                       className="flex flex-col gap-1 min-w-0"
@@ -586,31 +544,19 @@ export default function WorkflowBoard({
                             </div>
                           )}
                           {item.fileId && !item.snapshotFileId && (
-                            <ColoredTooltip
-                              title={t('operations_board_preview_pdf') || 'Preview PDF'}
-                              color="#6b7280"
-                              placement="top"
-                            >
-                              <FileText
-                                size={pdfIconSize}
-                                className="shrink-0 text-gray-400"
-                                data-testid={`workflow-card-pdf-${item.id}`}
-                              />
-                            </ColoredTooltip>
+                            <FileText
+                              size={pdfIconSize}
+                              className="shrink-0 text-gray-400"
+                              data-testid={`workflow-card-pdf-${item.id}`}
+                            />
                           )}
                           {item.snapshotFileId && (
-                            <ColoredTooltip
-                              title={t('operations_board_view_approved_snapshot') || 'View Approved Snapshot'}
-                              color="#16a34a"
-                              placement="top"
-                            >
-                              <ShieldCheck
-                                size={pdfIconSize}
-                                className="shrink-0"
-                                style={{ color: '#16a34a' }}
-                                data-testid={`workflow-card-snapshot-${item.id}`}
-                              />
-                            </ColoredTooltip>
+                            <ShieldCheck
+                              size={pdfIconSize}
+                              className="shrink-0"
+                              style={{ color: '#16a34a' }}
+                              data-testid={`workflow-card-snapshot-${item.id}`}
+                            />
                           )}
                         </div>
                         <WorkflowAssigneeAvatar
@@ -619,11 +565,11 @@ export default function WorkflowBoard({
                           fontScale={fontScale}
                         />
                       </div>
-                      <span className="truncate text-[0.7rem] font-semibold leading-tight">
+                      <span className="truncate font-semibold leading-tight" style={{ fontSize: scalePx(11, fontScale) }}>
                         {titleText}
                       </span>
                     </div>
-                    </WorkflowHoverTooltip>
+                    </ColoredTooltip>
                   </KanbanCard>
                 );
               }}

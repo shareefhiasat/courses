@@ -1582,14 +1582,14 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
                   padding: '0.5rem 1rem',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
+                  gap: '0.75rem',
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
                   color: '#111827'
                 }}
               >
-                <RotateCcw size={16} />
+                <RotateCcw size={16} style={{ flexShrink: 0 }} />
                 {t('workflow.refresh', 'Refresh')}
               </button>
               <button

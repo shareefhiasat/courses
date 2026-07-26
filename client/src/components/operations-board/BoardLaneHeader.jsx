@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { PanelLeftClose, PanelLeftOpen, ArrowRightLeft, Workflow as WorkflowIcon, Lock } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ArrowRightLeft, Workflow as WorkflowIcon, Lock } from 'lucide-react';
 import { KanbanHeader } from '@/components/kibo-ui/kanban';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
+import { useLang } from '@contexts/LangContext';
 
 /**
  * Shared swim-lane header for attendance + workflow boards.
@@ -22,7 +23,8 @@ export default function BoardLaneHeader({
   laneType = 'attendance',
   fontScale = 100,
 }) {
-  const icon = (base) => Math.max(10, Math.round(base * fontScale / 100 * 0.75));
+  const { lang } = useLang();
+  const icon = (base) => Math.max(12, Math.round(base * fontScale / 100 * 0.75));
   const text = (base) => `${Math.max(8, Math.round(base * 11 * fontScale / 100))}px`;
   const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
   const bulkMenuRef = useRef(null);
@@ -71,14 +73,14 @@ export default function BoardLaneHeader({
             ) : (
               <span
                 className={`operations-board-lane-collapsed-dot ${pulse ? gridStyles.legendDotPulse : ''}`}
-                style={{ backgroundColor: column.color, '--dot-color': column.color }}
+                style={{ width: icon(12), height: icon(12), backgroundColor: column.color, '--dot-color': column.color }}
                 aria-hidden
               />
             )}
-            <span className="operations-board-lane-collapsed-count" style={{ color: column.color }}>
+            <span className="operations-board-lane-collapsed-count" style={{ color: column.color, fontSize: text(0.75) }}>
               {count}
             </span>
-            <PanelLeftOpen size={icon(18)} className="operations-board-lane-collapse-icon" aria-hidden />
+            {lang === 'ar' ? <PanelRightOpen size={icon(18)} className="operations-board-lane-collapse-icon" style={{ color: column.color }} aria-hidden /> : <PanelLeftOpen size={icon(18)} className="operations-board-lane-collapse-icon" style={{ color: column.color }} aria-hidden />}
           </button>
         </ColoredTooltip>
       </KanbanHeader>
@@ -106,11 +108,28 @@ export default function BoardLaneHeader({
                   aria-label={t('operations_board_bulk_move') || 'Move all to…'}
                   data-testid={`operations-board-lane-bulk-${column.id}`}
                 >
-                  <ArrowRightLeft size={icon(18)} />
+                  <ArrowRightLeft size={icon(18)} style={{ color: column.color }} />
                 </button>
               </ColoredTooltip>
               {bulkMenuOpen && (
-                <div className="operations-board-bulk-menu" data-testid={`operations-board-bulk-menu-${column.id}`}>
+                <div
+                  className="operations-board-bulk-menu"
+                  data-testid={`operations-board-bulk-menu-${column.id}`}
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    ...(lang === 'ar' ? { right: 'auto', left: 0 } : { right: 0, left: 'auto' }),
+                    zIndex: 1000,
+                    minWidth: '150px',
+                    background: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    padding: '4px',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                  }}
+                >
                   {moveTargets.map((target) => (
                     <button
                       key={target.id}
@@ -125,10 +144,25 @@ export default function BoardLaneHeader({
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = `${target.color}1a`;
                         e.currentTarget.style.color = target.color;
+                        e.currentTarget.style.boxShadow = `0 2px 8px ${target.color}40`;
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = '';
                         e.currentTarget.style.color = '';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '8px 2px',
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        borderRadius: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '0.875rem',
+                        transition: 'all 0.15s ease',
                       }}
                       data-testid={`operations-board-bulk-move-${column.id}-to-${target.id}`}
                     >
@@ -179,8 +213,17 @@ export default function BoardLaneHeader({
           )}
           {laneType !== 'workflow' && (
             <span
-              className="text-xs font-semibold tabular-nums shrink-0"
-              style={{ color: column.color, fontSize: text(0.75) }}
+              className="text-xs font-semibold tabular-nums shrink-0 flex items-center justify-center"
+              style={{
+                color: column.color,
+                minWidth: 20,
+                height: 20,
+                borderRadius: '50%',
+                background: `${column.color}22`,
+                boxShadow: `0 1px 3px ${column.color}40`,
+                padding: '0 4px',
+                fontSize: text(0.75),
+              }}
             >
               {count}
             </span>
@@ -200,7 +243,7 @@ export default function BoardLaneHeader({
               aria-label={collapseLabel}
               data-testid={`operations-board-lane-collapse-${column.id}`}
             >
-              <PanelLeftClose size={icon(18)} />
+              {lang === 'ar' ? <PanelRightClose size={icon(18)} style={{ color: column.color }} /> : <PanelLeftClose size={icon(18)} style={{ color: column.color }} />}
             </button>
           </ColoredTooltip>
         </div>

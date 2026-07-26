@@ -141,6 +141,9 @@ export const getAllAttendance = async (params = {}) => {
           },
           creator: {
             select: USER_NAME_SELECT_WITH_ID
+          },
+          updater: {
+            select: USER_NAME_SELECT_WITH_ID
           }
         },
         orderBy: {

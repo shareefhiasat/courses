@@ -39,6 +39,7 @@ export default function WelcomeContextSwitcher({
   const { isInstructor, isAdmin, isSuperAdmin } = useAuth();
   const muiTheme = useTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
+  const isRTL = lang === 'ar';
 
   const [programs, setPrograms] = useState([]);
   const [terms, setTerms] = useState([]);
@@ -115,8 +116,8 @@ export default function WelcomeContextSwitcher({
         paper: {
           sx: {
             top: 'var(--navbar-height, 60px)',
-            left: { xs: 0, md: '64px' },
-            right: { xs: 0, md: 'auto' },
+            left: { xs: 0, md: isRTL ? 'auto' : '64px' },
+            right: { xs: 0, md: isRTL ? '64px' : 'auto' },
             transform: 'none',
             width: { xs: '100%', md: 'min(600px, calc(100vw - 96px))' },
             maxHeight: 'min(60vh, 400px)',
@@ -130,13 +131,14 @@ export default function WelcomeContextSwitcher({
         },
       }}
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 200 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 200 }} dir={isRTL ? 'rtl' : 'ltr'}>
         <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
           {showPrograms && (
             <Box
               sx={{
                 width: { xs: '100%', md: '42%' },
-                borderRight: { md: 1 },
+                borderRight: { md: isRTL ? 0 : 1 },
+                borderLeft: { md: isRTL ? 1 : 0 },
                 borderColor: 'divider',
                 display: 'flex',
                 flexDirection: 'column',
@@ -163,8 +165,8 @@ export default function WelcomeContextSwitcher({
                         <ListItemText
                           primary={labelFor(program, lang)}
                           secondary={program.code}
-                          primaryTypographyProps={{ fontWeight: selected ? 700 : 500, fontSize: '0.85rem' }}
-                          secondaryTypographyProps={{ fontSize: '0.75rem' }}
+                          primaryTypographyProps={{ fontWeight: selected ? 700 : 500, fontSize: '0.85rem', textAlign: isRTL ? 'right' : 'left' }}
+                          secondaryTypographyProps={{ fontSize: '0.75rem', textAlign: isRTL ? 'right' : 'left' }}
                         />
                         {isCurrent && (
                           <Chip size="small" label={t('current') || 'Current'} color="primary" variant="outlined" sx={{ fontSize: '0.7rem', height: 20 }} />
@@ -187,15 +189,15 @@ export default function WelcomeContextSwitcher({
                     sx={{ mb: 0.25 }}
                     aria-label={t('workspace_back')}
                   >
-                    {getThemedIcon('ui', 'arrow_left', 16, 'currentColor')}
+                    {getThemedIcon('ui', isRTL ? 'arrow_right' : 'arrow_left', 16, 'currentColor')}
                   </IconButton>
-                  <Typography variant="caption" color="text.secondary" fontSize="0.8rem">
+                  <Typography variant="caption" color="text.secondary" fontSize="0.8rem" sx={{ textAlign: isRTL ? 'right' : 'left' }}>
                     {labelFor(activeProgram, lang)}
                   </Typography>
                 </Box>
               )}
               {!activeProgramId ? (
-                <Box sx={{ p: 2, color: 'text.secondary', fontSize: 13 }}>
+                <Box sx={{ p: 2, color: 'text.secondary', fontSize: 13, textAlign: isRTL ? 'right' : 'left' }}>
                   {t('welcome_switch_pick_program') || 'Select a program to see terms.'}
                 </Box>
               ) : termsLoading ? (
@@ -214,8 +216,8 @@ export default function WelcomeContextSwitcher({
                         onClick={() => handleTermPick(term)}
                         data-testid={`context-term-${term.id}`}
                         sx={{
-                          borderLeft: isCurrent ? '3px solid' : '3px solid transparent',
-                          borderColor: isCurrent ? 'primary.main' : 'transparent',
+                          borderRight: isRTL ? (isCurrent ? `3px solid ${muiTheme.palette.primary.main}` : '3px solid transparent') : '3px solid transparent',
+                          borderLeft: !isRTL ? (isCurrent ? `3px solid ${muiTheme.palette.primary.main}` : '3px solid transparent') : '3px solid transparent',
                           py: 0.5,
                         }}
                       >
@@ -226,8 +228,8 @@ export default function WelcomeContextSwitcher({
                               .filter(Boolean)
                               .join(' · ')
                           }
-                          primaryTypographyProps={{ fontWeight: isCurrent ? 700 : 500, fontSize: '0.85rem' }}
-                          secondaryTypographyProps={{ fontSize: '0.75rem' }}
+                          primaryTypographyProps={{ fontWeight: isCurrent ? 700 : 500, fontSize: '0.85rem', textAlign: isRTL ? 'right' : 'left' }}
+                          secondaryTypographyProps={{ fontSize: '0.75rem', textAlign: isRTL ? 'right' : 'left' }}
                         />
                         {isCurrent && (
                           <Chip size="small" label={t('current') || 'Current'} color="primary" sx={{ fontSize: '0.7rem', height: 20 }} />
@@ -236,7 +238,7 @@ export default function WelcomeContextSwitcher({
                     );
                   })}
                   {terms.length === 0 && (
-                    <Box sx={{ p: 1.5, color: 'text.secondary', fontSize: 13 }}>
+                    <Box sx={{ p: 1.5, color: 'text.secondary', fontSize: 13, textAlign: isRTL ? 'right' : 'left' }}>
                       {t('workspace_no_terms')}
                     </Box>
                   )}
@@ -250,7 +252,7 @@ export default function WelcomeContextSwitcher({
           <>
             <Divider />
             <Box sx={{ px: 1.5, py: 0.75, bgcolor: 'action.hover' }}>
-              <Typography variant="caption" color="text.secondary" fontSize="0.75rem">
+              <Typography variant="caption" color="text.secondary" fontSize="0.75rem" sx={{ textAlign: isRTL ? 'right' : 'left', width: '100%', display: 'block' }}>
                 {t('welcome_switch_current') || 'Current:'}{' '}
                 <strong>
                   {labelFor(selection.program, lang)}

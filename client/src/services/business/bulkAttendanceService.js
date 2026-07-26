@@ -258,14 +258,20 @@ export const bulkValidateStudents = async ({ studentNumbers, classId, programId,
       }
     });
 
+    // Remove any duplicate students (e.g., same user reached through multiple
+    // student numbers or enrollment records) before returning.
+    const uniqueFound = [...new Map(
+      found.map((s) => [String(s.studentId ?? s.userId ?? s.id ?? ''), s])
+    ).values()];
+
     debug(`${serviceName}:bulkValidateStudents:success`, {
       total: studentNumbers.length,
-      found: found.length,
+      found: uniqueFound.length,
       notFound: notFound.length,
       notFoundSample: notFound.slice(0, 5),
     });
 
-    return { success: true, found, notFound };
+    return { success: true, found: uniqueFound, notFound };
   } catch (err) {
     error(`${serviceName}:bulkValidateStudents:error`, {
       error: err.message,

@@ -34,6 +34,7 @@ export const getLectureLog = async ({ classId, date }) => {
         },
         include: {
           status: { select: { id: true, code: true, nameEn: true, nameAr: true } },
+          user: { select: { id: true, displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true, profileImageUrl: true, keycloakId: true, email: true } },
           creator: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, keycloakId: true, email: true } },
         },
         orderBy: { createdAt: 'asc' },
@@ -46,7 +47,11 @@ export const getLectureLog = async ({ classId, date }) => {
           },
         },
         include: {
-          attendance: { select: { userId: true } },
+          attendance: {
+            include: {
+              user: { select: { id: true, displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true, profileImageUrl: true, keycloakId: true, email: true } },
+            },
+          },
           fromStatus: { select: { id: true, code: true, nameEn: true, nameAr: true } },
           toStatus: { select: { id: true, code: true, nameEn: true, nameAr: true } },
           changedByUser: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, keycloakId: true, email: true } },
@@ -66,6 +71,7 @@ export const getLectureLog = async ({ classId, date }) => {
         timestamp: att.createdAt,
         actor: att.creator?.displayName || 'System',
         user: norm(att.creator) || null,
+        student: norm(att.user) || null,
         status: att.status?.nameEn || 'Unknown',
         statusAr: att.status?.nameAr || att.status?.nameEn || 'Unknown',
         details: `Attendance marked for ${att.userId}`,
@@ -79,6 +85,7 @@ export const getLectureLog = async ({ classId, date }) => {
         actor: change.changedByUser?.displayName || 'System',
         user: norm(change.changedByUser) || null,
         userId: change.attendance?.userId,
+        student: norm(change.attendance?.user) || null,
         fromStatus: change.fromStatus?.nameEn || 'Unknown',
         fromStatusAr: change.fromStatus?.nameAr || change.fromStatus?.nameEn || 'Unknown',
         toStatus: change.toStatus?.nameEn || 'Unknown',
@@ -122,6 +129,11 @@ export const getRecordHistory = async (attendanceId) => {
     const changes = await prisma.attendanceChangeLog.findMany({
       where: { attendanceId: parseInt(attendanceId) },
       include: {
+        attendance: {
+          include: {
+            user: { select: { id: true, displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true, profileImageUrl: true, keycloakId: true, email: true } },
+          },
+        },
         fromStatus: { select: { id: true, code: true, nameEn: true, nameAr: true } },
         toStatus: { select: { id: true, code: true, nameEn: true, nameAr: true } },
         changedByUser: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, keycloakId: true, email: true } },
@@ -129,7 +141,7 @@ export const getRecordHistory = async (attendanceId) => {
       orderBy: { changedAt: 'asc' },
     });
 
-    return { success: true, data: changes.map(c => ({ ...c, changedByUser: normalizeProfileImageUrl(c.changedByUser) })) };
+    return { success: true, data: changes.map(c => ({ ...c, changedByUser: normalizeProfileImageUrl(c.changedByUser), student: normalizeProfileImageUrl(c.attendance?.user) || null })) };
   } catch (error) {
     console.error('[attendance-log-postgres] getRecordHistory:', error);
     return { success: false, error: 'Internal server error' };

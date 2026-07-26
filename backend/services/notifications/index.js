@@ -40,6 +40,45 @@ export const setWSEmitter = (emitter) => {
 };
 
 /**
+ * Enrich notification payload with class/subject/program IDs when a workflow
+ * documentId or classId is available. This makes program/subject/class filters
+ * on the frontend reliable without forcing every caller to compute them.
+ */
+async function enrichPayload(payload) {
+  if (!payload) return payload;
+  if (payload.programId != null && payload.classId != null && payload.subjectId != null) return payload;
+
+  try {
+    if (payload.classId != null && (payload.programId == null || payload.subjectId == null)) {
+      const cls = await prisma.class.findUnique({
+        where: { id: payload.classId },
+        select: { id: true, programId: true, subjectId: true }
+      });
+      if (cls) {
+        if (payload.programId == null) payload.programId = cls.programId;
+        if (payload.subjectId == null) payload.subjectId = cls.subjectId;
+      }
+    }
+
+    if (payload.programId == null && payload.documentId != null && payload.classId == null) {
+      const doc = await prisma.workflowDocument.findUnique({
+        where: { id: payload.documentId },
+        select: { class: { select: { id: true, programId: true, subjectId: true } } }
+      });
+      if (doc?.class) {
+        payload.classId = doc.class.id;
+        payload.programId = doc.class.programId;
+        payload.subjectId = doc.class.subjectId;
+      }
+    }
+  } catch (error) {
+    log.error('Failed to enrich notification payload', { error: error.message });
+  }
+
+  return payload;
+}
+
+/**
  * Emit a notification to recipients
  * @param {string} event - Event name (e.g., 'workflow.assigned')
  * @param {Object} payload - Event payload
@@ -50,7 +89,9 @@ export const setWSEmitter = (emitter) => {
 export const emit = async (event, payload, actor, recipientCriteria) => {
   try {
     log.info('Emitting notification', { event, recipientCriteria });
-    
+
+    const enrichedPayload = await enrichPayload(payload);
+
     // Validate event
     const template = getTemplate(event);
     if (!template) {
@@ -82,7 +123,7 @@ export const emit = async (event, payload, actor, recipientCriteria) => {
       
       // Render template for recipient's language
       const lang = recipient.preferredLang || 'en';
-      const rendered = template.render(payload, lang);
+      const rendered = template.render(enrichedPayload, lang);
       
       // Deliver via each enabled channel
       const deliveries = [];
@@ -97,7 +138,7 @@ export const emit = async (event, payload, actor, recipientCriteria) => {
         
         try {
           // For in-app channel, capture the notificationId
-          const notificationData = { event, category, priority, metadata: payload, createdById: actor?.dbId ?? null };
+          const notificationData = { event, category, priority, metadata: enrichedPayload, createdById: actor?.dbId ?? null };
           if (notificationId) {
             notificationData.notificationId = notificationId;
           }
