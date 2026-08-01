@@ -67,7 +67,7 @@ export const shareFileWithUser = async ({ fileId, targetUserId, permissions = 'V
     console.error('[driveSharingService] Share file with user error:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to share file',
+      error: 'Failed to share file',
       timestamp: Date.now()
     };
   }
@@ -176,7 +176,7 @@ export const getFileShares = async ({ fileId, userId, subjectType }) => {
     console.error('[driveSharingService] Get file shares error:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to get file shares',
+      error: 'Failed to get file shares',
       timestamp: Date.now()
     };
   }
@@ -247,7 +247,7 @@ export const updateSharePermission = async ({ shareId, permissions, userId }) =>
     console.error('[driveSharingService] Update share permission error:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to update share permission',
+      error: 'Failed to update share permission',
       timestamp: Date.now()
     };
   }
@@ -315,7 +315,7 @@ export const deleteShare = async ({ shareId, userId }) => {
     console.error('[driveSharingService] Delete share error:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to delete share',
+      error: 'Failed to delete share',
       timestamp: Date.now()
     };
   }

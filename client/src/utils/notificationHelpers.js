@@ -2,6 +2,7 @@ import { formatDateTime, getQatarDateParts } from '@utils/date';
 import { NOTIFICATION_TYPES, NOTIFICATION_STATUS } from '@constants/notificationTypes.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { WORKFLOW_STATUS_COLORS } from '@constants/workspaceStatusColors.js';
+import { formatTermDisplay } from '@constants/gradingStandards';
 
 /**
  * Format a notification timestamp as a relative time string.
@@ -275,6 +276,30 @@ export const filterNotifications = ({
 }) => {
   let filtered = notifications;
 
+  // Debug: log notification data fields when academic filters are active
+  if (filterProgram !== 'all' || filterSubject !== 'all' || filterClass !== 'all' || filterYear !== 'all' || filterSemester !== 'all') {
+    console.log('[filterNotifications] Input:', {
+      total: notifications.length,
+      classesLoaded: classes.length,
+      subjectsLoaded: subjects.length,
+      filters: { filterProgram, filterSubject, filterClass, filterYear, filterSemester },
+      sampleNotifs: notifications.slice(0, 3).map(n => ({
+        id: n.id,
+        type: n.type,
+        classId: n.data?.classId || n.classId,
+        subjectId: n.data?.subjectId || n.metadata?.subjectId,
+        programId: n.data?.programId || n.metadata?.programId,
+      })),
+      sampleClasses: classes.slice(0, 3).map(c => ({
+        id: c.id || c.docId,
+        subjectId: c.subjectId,
+        programId: c.programId,
+        term: c.term,
+        year: c.year,
+      })),
+    });
+  }
+
   // Filter by read status
   if (filterType === NOTIFICATION_STATUS.UNREAD || filterType === 'unread') {
     filtered = filtered.filter(n => !n.isRead && !n.isArchived);
@@ -317,6 +342,7 @@ export const filterNotifications = ({
 
   // Filter by program
   if (filterProgram !== 'all') {
+    const before = filtered.length;
     filtered = filtered.filter(n => {
       const data = n.data || n.metadata || {};
       if (data.programId != null) {
@@ -343,10 +369,12 @@ export const filterNotifications = ({
       }
       return false;
     });
+    console.log('[filterNotifications] program filter:', { filterProgram, before, after: filtered.length, classesLoaded: classes.length });
   }
 
   // Filter by subject
   if (filterSubject !== 'all') {
+    const before = filtered.length;
     filtered = filtered.filter(n => {
       const classId = n.data?.classId || n.classId;
       const subjectId = n.data?.subjectId || n.metadata?.subjectId;
@@ -356,42 +384,60 @@ export const filterNotifications = ({
       }
       return String(subjectId) === String(filterSubject);
     });
+    console.log('[filterNotifications] subject filter:', { filterSubject, before, after: filtered.length, classesLoaded: classes.length });
   }
 
   // Filter by class
   if (filterClass !== 'all') {
+    const before = filtered.length;
     filtered = filtered.filter(n => {
       const classId = n.data?.classId || n.classId;
       return String(classId) === String(filterClass);
     });
+    console.log('[filterNotifications] class filter:', { filterClass, before, after: filtered.length });
   }
 
   // Filter by year
   if (filterYear !== 'all') {
+    const before = filtered.length;
     filtered = filtered.filter(n => {
       const classId = n.data?.classId || n.classId;
       if (classId) {
         const classItem = classes.find(c => String(c.id || c.docId) === String(classId));
         if (classItem?.year && String(classItem.year) === filterYear) return true;
-        if (classItem?.term && classItem.term.includes(' ')) {
-          const parts = classItem.term.split(' ');
-          if (parts.length > 1 && parts[parts.length - 1] === filterYear) return true;
+        if (classItem?.term) {
+          // Handle "Fall 2027" format
+          if (classItem.term.includes(' ')) {
+            const parts = classItem.term.split(' ');
+            if (parts.length > 1 && parts[parts.length - 1] === filterYear) return true;
+          }
+          // Handle "2027-FALL" format
+          if (classItem.term.includes('-')) {
+            const parts = classItem.term.split('-');
+            const yearPart = parts.find(p => !Number.isNaN(Number(p)));
+            if (yearPart && yearPart === filterYear) return true;
+          }
         }
       }
       return false;
     });
+    console.log('[filterNotifications] year filter:', { filterYear, before, after: filtered.length, classesLoaded: classes.length });
   }
 
   // Filter by semester
   if (filterSemester !== 'all') {
+    const before = filtered.length;
     filtered = filtered.filter(n => {
-      const subjectId = n.data?.subjectId || n.metadata?.subjectId;
-      if (subjectId) {
-        const subject = subjects.find(s => String(s.docId || s.id) === String(subjectId));
-        return String(subject?.semester) === String(filterSemester);
+      const classId = n.data?.classId || n.classId;
+      if (classId) {
+        const classItem = classes.find(c => String(c.id || c.docId) === String(classId));
+        if (classItem?.term) {
+          return formatTermDisplay(classItem.term) === filterSemester;
+        }
       }
       return false;
     });
+    console.log('[filterNotifications] semester filter:', { filterSemester, before, after: filtered.length, classesLoaded: classes.length });
   }
 
   // Filter by workflow board status (legend chips)

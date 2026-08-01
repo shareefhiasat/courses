@@ -11,24 +11,25 @@ import ColoredTooltip from './ColoredTooltip';
 
 function TrailingActionButton({ action, onClose }) {
   const color = action.tooltipColor || action.color || '#64748b';
+  const disabled = action.disabled;
   return (
     <ColoredTooltip title={action.title || ''} color={color} placement="top">
       <Box
-        onClick={(e) => {
+        onClick={disabled ? undefined : (e) => {
           e.stopPropagation();
           action.onClick?.();
           onClose?.();
         }}
         sx={{
-          cursor: 'pointer',
+          cursor: disabled ? 'default' : 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           width: 28,
           height: 28,
           borderRadius: 1,
-          opacity: 0.75,
-          '&:hover': { bgcolor: 'action.selected', opacity: 1 },
+          opacity: disabled ? 0.4 : 0.75,
+          '&:hover': disabled ? {} : { bgcolor: 'action.selected', opacity: 1 },
         }}
       >
         {action.icon}

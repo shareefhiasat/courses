@@ -42,7 +42,7 @@ export const logFileActivity = async ({ fileId, userId, action, metadata = {} })
     console.error('[fileActivityService] Log file activity error:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to log file activity',
+      error: 'Failed to log file activity',
       timestamp: Date.now()
     };
   }
@@ -94,7 +94,7 @@ export const getFileActivities = async ({ fileId, userId, limit = 50 }) => {
     console.error('[fileActivityService] Get file activities error:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to get file activities',
+      error: 'Failed to get file activities',
       timestamp: Date.now()
     };
   }
@@ -155,7 +155,7 @@ export const getFileActivityStats = async ({ fileId, userId }) => {
     console.error('[fileActivityService] Get file activity stats error:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to get file activity stats',
+      error: 'Failed to get file activity stats',
       timestamp: Date.now()
     };
   }

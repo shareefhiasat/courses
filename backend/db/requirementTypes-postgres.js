@@ -124,7 +124,7 @@ export const getRequirementTypes = async (params = {}) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to retrieve requirement types'
+      error: 'Failed to retrieve requirement types'
     };
   }
 };
@@ -210,7 +210,7 @@ export const getRequirementTypeById = async (id) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to retrieve requirement type'
+      error: 'Failed to retrieve requirement type'
     };
   }
 };
@@ -296,7 +296,7 @@ export const createRequirementType = async (data) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to create requirement type'
+      error: 'Failed to create requirement type'
     };
   }
 };
@@ -406,7 +406,7 @@ export const updateRequirementType = async (id, data) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to update requirement type'
+      error: 'Failed to update requirement type'
     };
   }
 };
@@ -475,7 +475,7 @@ export const deleteRequirementType = async (id) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to delete requirement type'
+      error: 'Failed to delete requirement type'
     };
   }
 };

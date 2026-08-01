@@ -76,7 +76,7 @@ export const getAllResourceTypes = async (params = {}) => {
     console.error('[ResourceTypes DB] ❌ Error getting resource types:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to retrieve resource types',
+      error: 'Failed to retrieve resource types',
       data: []
     };
   }
@@ -125,7 +125,7 @@ export const getResourceTypeById = async (resourceTypeId) => {
     console.error('[ResourceTypes DB] ❌ Error getting resource type:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to retrieve resource type',
+      error: 'Failed to retrieve resource type',
       data: null
     };
   }
@@ -180,7 +180,7 @@ export const createResourceType = async (resourceTypeData, user = null) => {
     console.error('[ResourceTypes DB] ❌ Error creating resource type:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to create resource type',
+      error: 'Failed to create resource type',
       data: null
     };
   }
@@ -240,7 +240,7 @@ export const updateResourceType = async (resourceTypeId, updateData, user = null
     console.error('[ResourceTypes DB] ❌ Error updating resource type:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to update resource type',
+      error: 'Failed to update resource type',
       data: null
     };
   }
@@ -288,7 +288,7 @@ export const deleteResourceType = async (resourceTypeId) => {
     console.error('[ResourceTypes DB] ❌ Error deleting resource type:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to delete resource type',
+      error: 'Failed to delete resource type',
       data: null
     };
   }

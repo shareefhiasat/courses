@@ -5,7 +5,7 @@
  * ARCHITECTURE: Centralized constants → Used across all workflow components
  */
 
-import { CheckCircle, XCircle, Clock, AlertCircle, AlertTriangle, GitBranch, Send, FileText, CircleCheckBig } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, AlertCircle, AlertTriangle, GitBranch, Send, FileText, FilePenLine, CircleCheckBig } from 'lucide-react';
 
 /**
  * Workflow Document Status Values
@@ -148,7 +148,7 @@ export const IN_PROGRESS_STATUSES = [
  * Centralized icon mapping for workflow document statuses
  */
 export const WORKFLOW_STATUS_ICONS = {
-  [WORKFLOW_STATUS.DRAFT]: FileText,
+  [WORKFLOW_STATUS.DRAFT]: FilePenLine,
   [WORKFLOW_STATUS.SUBMITTED]: Send,
   [WORKFLOW_STATUS.UNDER_HR_REVIEW]: AlertTriangle,
   [WORKFLOW_STATUS.UNDER_REVIEW]: AlertTriangle,

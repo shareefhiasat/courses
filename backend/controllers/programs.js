@@ -7,6 +7,7 @@
 
 import programBusinessService from '../services/programs.js';
 import { applyListScope } from '../utils/applyListScope.js';
+import { asyncHandler, sendResult } from '../utils/asyncHandler.js';
 
 /**
  * Get all programs
@@ -14,25 +15,10 @@ import { applyListScope } from '../utils/applyListScope.js';
  * @param {object} req - Express request object
  * @param {object} res - Express response object
  */
-export const getProgramsController = async (req, res) => {
-  try {
-    console.log('[Controller] Getting programs with query:', req.query);
-    const result = await applyListScope(req, await programBusinessService.getAllPrograms(req.query), 'program');
-    
-    if (result.success) {
-      res.status(200).json(result);
-    } else {
-      res.status(400).json(result);
-    }
-  } catch (error) {
-    console.error('[Controller] Error getting programs:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      message: 'Failed to retrieve programs'
-    });
-  }
-};
+export const getProgramsController = asyncHandler(async (req, res) => {
+  const result = await applyListScope(req, await programBusinessService.getAllPrograms(req.query), 'program');
+  sendResult(res, result);
+});
 
 /**
  * Get program by ID
@@ -40,37 +26,14 @@ export const getProgramsController = async (req, res) => {
  * @param {object} req - Express request object
  * @param {object} res - Express response object
  */
-export const getProgramByIdController = async (req, res) => {
-  try {
-    const { id } = req.params;
-    console.log('[Controller] Getting program by ID:', id);
-    
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        error: 'Program ID is required',
-        message: 'Program ID is required'
-      });
-    }
-    
-    const result = await programBusinessService.getProgramById(id, req.query);
-    
-    if (result.success) {
-      res.status(200).json(result);
-    } else if (result.error === 'Program not found') {
-      res.status(404).json(result);
-    } else {
-      res.status(400).json(result);
-    }
-  } catch (error) {
-    console.error('[Controller] Error getting program:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      message: 'Failed to retrieve program'
-    });
+export const getProgramByIdController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ success: false, error: 'Program ID is required' });
   }
-};
+  const result = await programBusinessService.getProgramById(id, req.query);
+  sendResult(res, result);
+});
 
 /**
  * Create new program
@@ -78,30 +41,11 @@ export const getProgramByIdController = async (req, res) => {
  * @param {object} req - Express request object
  * @param {object} res - Express response object
  */
-export const createProgramController = async (req, res) => {
-  try {
-    const programData = req.body;
-    console.log('[Controller] Creating program:', programData.nameEn || 'unnamed');
-    
-    // Extract user from request (will be populated by auth middleware)
-    const user = req.user || null;
-    
-    const result = await programBusinessService.createProgram(programData, user);
-    
-    if (result.success) {
-      res.status(201).json(result);
-    } else {
-      res.status(400).json(result);
-    }
-  } catch (error) {
-    console.error('[Controller] Error creating program:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      message: 'Failed to create program'
-    });
-  }
-};
+export const createProgramController = asyncHandler(async (req, res) => {
+  const user = req.user || null;
+  const result = await programBusinessService.createProgram(req.body, user);
+  sendResult(res, result, { successStatus: 201 });
+});
 
 /**
  * Update program
@@ -109,41 +53,15 @@ export const createProgramController = async (req, res) => {
  * @param {object} req - Express request object
  * @param {object} res - Express response object
  */
-export const updateProgramController = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updateData = req.body;
-    console.log('[Controller] Updating program:', id);
-    
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        error: 'Program ID is required',
-        message: 'Program ID is required'
-      });
-    }
-    
-    // Extract user from request (will be populated by auth middleware)
-    const user = req.user || null;
-    
-    const result = await programBusinessService.updateProgram(id, updateData, user);
-    
-    if (result.success) {
-      res.status(200).json(result);
-    } else if (result.error === 'Program not found') {
-      res.status(404).json(result);
-    } else {
-      res.status(400).json(result);
-    }
-  } catch (error) {
-    console.error('[Controller] Error updating program:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      message: 'Failed to update program'
-    });
+export const updateProgramController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ success: false, error: 'Program ID is required' });
   }
-};
+  const user = req.user || null;
+  const result = await programBusinessService.updateProgram(id, req.body, user);
+  sendResult(res, result);
+});
 
 /**
  * Delete program (soft delete)
@@ -151,67 +69,21 @@ export const updateProgramController = async (req, res) => {
  * @param {object} req - Express request object
  * @param {object} res - Express response object
  */
-export const deleteProgramController = async (req, res) => {
-  try {
-    const { id } = req.params;
-    console.log('[Controller] Deleting program:', id);
-    
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        error: 'Program ID is required',
-        message: 'Program ID is required'
-      });
-    }
-    
-    const options = { force: req.body?.force || req.query?.force === 'true' };
-    const result = await programBusinessService.deleteProgram(id, options);
-    
-    if (result.success) {
-      res.status(200).json(result);
-    } else if (result.error === 'Program not found') {
-      res.status(404).json(result);
-    } else {
-      res.status(400).json(result);
-    }
-  } catch (error) {
-    console.error('[Controller] Error deleting program:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      message: 'Failed to delete program'
-    });
+export const deleteProgramController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ success: false, error: 'Program ID is required' });
   }
-};
+  const options = { force: req.body?.force || req.query?.force === 'true' };
+  const result = await programBusinessService.deleteProgram(id, options);
+  sendResult(res, result);
+});
 
-export const hardDeleteProgramController = async (req, res) => {
-  try {
-    const { id } = req.params;
-    console.log('[Controller] Hard deleting program:', id);
-    
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        error: 'Program ID is required',
-        message: 'Program ID is required'
-      });
-    }
-    
-    const result = await programBusinessService.hardDeleteProgram(id);
-    
-    if (result.success) {
-      res.status(200).json(result);
-    } else if (result.error === 'Program not found') {
-      res.status(404).json(result);
-    } else {
-      res.status(400).json(result);
-    }
-  } catch (error) {
-    console.error('[Controller] Error hard deleting program:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      message: 'Failed to hard delete program'
-    });
+export const hardDeleteProgramController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ success: false, error: 'Program ID is required' });
   }
-};
+  const result = await programBusinessService.hardDeleteProgram(id);
+  sendResult(res, result);
+});

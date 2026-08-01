@@ -6,55 +6,30 @@
  */
 
 import { permissionsService } from '../services/permissions.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 /**
  * Get all permissions (screens, operations, role permissions)
  */
-export const getPermissionsController = async (req, res) => {
-  try {
-    const lang = req.headers['accept-language'] || 'en';
-    const permissions = await permissionsService.getPermissions(lang);
-    
-    res.json({
-      success: true,
-      data: permissions
-    });
-  } catch (error) {
-    console.error('Error getting permissions:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
+export const getPermissionsController = asyncHandler(async (req, res) => {
+  const lang = req.headers['accept-language'] || 'en';
+  const permissions = await permissionsService.getPermissions(lang);
+  res.json({ success: true, data: permissions });
+});
 
 /**
  * Update permissions (batch update)
  */
-export const updatePermissionsController = async (req, res) => {
-  try {
-    const { updates } = req.body;
-    
-    if (!updates || !Array.isArray(updates)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid updates format'
-      });
-    }
-    
-    const result = await permissionsService.updatePermissions(updates);
-    
-    res.json({
-      success: true,
-      data: result.permissions ?? result,
-      impliedGrants: result.impliedGrants ?? [],
-      message: 'Permissions updated successfully',
-    });
-  } catch (error) {
-    console.error('Error updating permissions:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+export const updatePermissionsController = asyncHandler(async (req, res) => {
+  const { updates } = req.body;
+  if (!updates || !Array.isArray(updates)) {
+    return res.status(400).json({ success: false, error: 'Invalid updates format' });
   }
-};
+  const result = await permissionsService.updatePermissions(updates);
+  res.json({
+    success: true,
+    data: result.permissions ?? result,
+    impliedGrants: result.impliedGrants ?? [],
+    message: 'Permissions updated successfully',
+  });
+});

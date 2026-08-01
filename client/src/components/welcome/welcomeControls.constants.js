@@ -14,6 +14,7 @@ export const WELCOME_STORAGE_KEYS = Object.freeze({
   SCHEDULE_SHOW_DAY_DATE: 'welcome_schedule_show_day_date',
   SCHEDULE_SHOW_BREAK_COLUMNS: 'welcome_schedule_show_break_columns',
   SCHEDULE_DAY_FOCUS: 'welcome_schedule_day_focus',
+  SCHEDULE_HIDE_WEEKENDS: 'welcome_schedule_hide_weekends',
 });
 
 export const WELCOME_COLORS = Object.freeze({

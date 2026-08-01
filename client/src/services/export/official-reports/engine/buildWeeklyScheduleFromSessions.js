@@ -7,6 +7,7 @@ import {
 } from '@utils/schedulingDisplayUtils.js';
 
 const WORK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
+const ALL_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const DEFAULT_SLOT_WINDOWS = [
   { key: 'lecture1', min: 7 * 60, max: 8 * 60 },
@@ -189,8 +190,8 @@ function weeklySessionKey(session) {
   return `${weekday}-${minutes}`;
 }
 
-function buildSessionsByDay(sessions, lang, slotWindows, attachSessionMeta = false) {
-  const byDay = Object.fromEntries(WORK_DAYS.map((d) => [d, emptySlots(slotWindows)]));
+function buildSessionsByDay(sessions, lang, slotWindows, attachSessionMeta = false, dayCodes = WORK_DAYS) {
+  const byDay = Object.fromEntries(dayCodes.map((d) => [d, emptySlots(slotWindows)]));
   const seen = new Set();
 
   const active = (sessions || []).filter(
@@ -201,7 +202,7 @@ function buildSessionsByDay(sessions, lang, slotWindows, attachSessionMeta = fal
     .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime))
     .forEach((session) => {
       const { weekday, minutes } = qatarParts(session.startDateTime);
-      if (!WORK_DAYS.includes(weekday)) return;
+      if (!dayCodes.includes(weekday)) return;
       const uniq = weeklySessionKey(session);
       if (seen.has(`${weekday}-${uniq}`)) return;
       seen.add(`${weekday}-${uniq}`);
@@ -225,7 +226,7 @@ function buildSessionsByDay(sessions, lang, slotWindows, attachSessionMeta = fal
   return byDay;
 }
 
-function applyBreakSessions(byDay, breakSessions, breakTimes) {
+function applyBreakSessions(byDay, breakSessions, breakTimes, dayCodes = WORK_DAYS) {
   const defaults = breakTimes || DEFAULT_BREAKS;
   const seenBreaks = new Set();
 
@@ -235,7 +236,7 @@ function applyBreakSessions(byDay, breakSessions, breakTimes) {
     if (!date) return;
 
     const weekday = qatarParts(date).weekday;
-    if (!WORK_DAYS.includes(weekday)) return;
+    if (!dayCodes.includes(weekday)) return;
 
     let startMinutes = null;
     let timeStr = defaults.break1;
@@ -257,7 +258,7 @@ function applyBreakSessions(byDay, breakSessions, breakTimes) {
     byDay[weekday][slotKey] = { time: timeStr, isBreak: true };
   });
 
-  WORK_DAYS.forEach((day) => {
+  dayCodes.forEach((day) => {
     ['break1', 'break2'].forEach((bk) => {
       if (!byDay[day][bk]) {
         byDay[day][bk] = { time: defaults[bk] || DEFAULT_BREAKS[bk], isBreak: true };
@@ -266,7 +267,7 @@ function applyBreakSessions(byDay, breakSessions, breakTimes) {
   });
 }
 
-function applyOfficeHoursFromAvailability(byDay, availabilityRecords, lang, defaultRoom, slotWindows) {
+function applyOfficeHoursFromAvailability(byDay, availabilityRecords, lang, defaultRoom, slotWindows, dayCodes = WORK_DAYS) {
   const officeLabel = lang === 'ar' ? 'ساعات مكتبية' : 'Office Hours';
   const officeWindow = (slotWindows || DEFAULT_SLOT_WINDOWS).find((w) => w.key === 'officeHour');
   const officeMin = officeWindow?.min ?? 11 * 60;
@@ -284,7 +285,7 @@ function applyOfficeHoursFromAvailability(byDay, availabilityRecords, lang, defa
       if (startMin < officeMin - 30 || startMin >= officeMax) return;
 
       days.forEach((dayCode) => {
-        if (!WORK_DAYS.includes(dayCode)) return;
+        if (!dayCodes.includes(dayCode)) return;
         if (byDay[dayCode].officeHour?.subjectName) return;
         byDay[dayCode].officeHour = {
           subjectName: officeLabel,
@@ -330,14 +331,16 @@ export function buildWeeklyScheduleFromSessions({
   defaultRoom = '',
   timeSlots = [],
   attachSessionMeta = false,
+  hideWeekends = true,
 } = {}) {
+  const dayCodes = hideWeekends ? WORK_DAYS : ALL_DAYS;
   const { windows: slotWindows, breaks: breakTimes } = buildSlotWindowsFromTimeSlots(timeSlots);
 
-  const byDay = buildSessionsByDay(sessions, lang, slotWindows, attachSessionMeta);
-  applyBreakSessions(byDay, breakSessions, breakTimes);
-  applyOfficeHoursFromAvailability(byDay, instructorAvailability, lang, defaultRoom, slotWindows);
+  const byDay = buildSessionsByDay(sessions, lang, slotWindows, attachSessionMeta, dayCodes);
+  applyBreakSessions(byDay, breakSessions, breakTimes, dayCodes);
+  applyOfficeHoursFromAvailability(byDay, instructorAvailability, lang, defaultRoom, slotWindows, dayCodes);
 
-  const days = WORK_DAYS.map((code) => ({
+  const days = dayCodes.map((code) => ({
     dayCode: code,
     dayLabel: dayLabels[code] || code,
     slots: finalizeDaySlots(byDay[code], slotWindows, breakTimes),
@@ -346,4 +349,4 @@ export function buildWeeklyScheduleFromSessions({
   return days;
 }
 
-export { WORK_DAYS, DEFAULT_SLOT_WINDOWS as SLOT_WINDOWS };
+export { WORK_DAYS, ALL_DAYS, DEFAULT_SLOT_WINDOWS as SLOT_WINDOWS };

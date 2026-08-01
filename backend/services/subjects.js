@@ -23,7 +23,6 @@ const subjectCountsCache = createTtlCache('subjectCounts', 60_000);
  */
 export const getAllSubjects = async (params = {}, user = null) => {
   try {
-    console.log('🔍 Subjects service called with params:', params);
     const result = await getSubjectsFromDb(params);
     
     // Populate cache from fresh data
@@ -40,7 +39,7 @@ export const getAllSubjects = async (params = {}, user = null) => {
     console.error('Error in getAllSubjects:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to retrieve subjects',
+      error: 'Failed to retrieve subjects',
       data: []
     };
   }
@@ -65,7 +64,7 @@ export const getSubjectById = async (subjectId, user = null) => {
     console.error('Error in getSubjectById:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to retrieve subject',
+      error: 'Failed to retrieve subject',
       data: null
     };
   }
@@ -107,7 +106,7 @@ export const createSubject = async (subjectData, user = null) => {
     console.error('Error in createSubject:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to create subject',
+      error: 'Failed to create subject',
       data: null
     };
   }
@@ -133,7 +132,7 @@ export const updateSubject = async (subjectId, updateData, user = null) => {
     console.error('Error in updateSubject:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to update subject',
+      error: 'Failed to update subject',
       data: null
     };
   }
@@ -159,7 +158,7 @@ export const deleteSubject = async (subjectId, user = null, options = {}) => {
     console.error('Error in deleteSubject:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to delete subject',
+      error: 'Failed to delete subject',
       data: null
     };
   }
@@ -184,7 +183,7 @@ export const getSubjectsByProgram = async (programId, params = {}, user = null) 
     console.error('Error in getSubjectsByProgram:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to retrieve subjects for program',
+      error: 'Failed to retrieve subjects for program',
       data: []
     };
   }

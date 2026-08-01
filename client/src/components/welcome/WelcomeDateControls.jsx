@@ -8,11 +8,11 @@ import {
   WELCOME_SIZES,
 } from './welcomeControls.constants';
 
-function getWeekRange(date) {
+function getWeekRange(date, hideWeekends = true) {
   const ws = new Date(date);
   ws.setDate(ws.getDate() - ws.getDay());
   const we = new Date(ws);
-  we.setDate(we.getDate() + 4);
+  we.setDate(we.getDate() + (hideWeekends ? 4 : 6));
   const fmt = (x) => `${String(x.getDate()).padStart(2, '0')}/${String(x.getMonth() + 1).padStart(2, '0')}`;
   const jan1 = new Date(ws.getFullYear(), 0, 1);
   const dayOfYear = Math.floor((ws - jan1) / 86400000) + 1;
@@ -20,8 +20,8 @@ function getWeekRange(date) {
   return { ws, we, fmt, weekNum };
 }
 
-function WeekRangeDisplay({ selectedDate, isDark }) {
-  const { ws, we, fmt, weekNum } = getWeekRange(selectedDate);
+function WeekRangeDisplay({ selectedDate, isDark, hideWeekends }) {
+  const { ws, we, fmt, weekNum } = getWeekRange(selectedDate, hideWeekends);
   return (
     <span style={{
       fontSize: WELCOME_SIZES.fontSizeWeek,
@@ -93,6 +93,7 @@ export default function WelcomeDateControls({
   setOpsViewMode,
   dayFocus = false,
   setDayFocus,
+  hideWeekends = true,
   isInstructorOnly,
   isDark,
   isRTL,
@@ -122,7 +123,7 @@ export default function WelcomeDateControls({
         <NavButton onClick={handlePrev} ariaLabel={t('calendar_previous') || 'Previous week'} dataTestid="welcome-week-prev" padding={WELCOME_SIZES.paddingSm} isDark={isDark}>
           {isRTL ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </NavButton>
-        <WeekRangeDisplay selectedDate={selectedDate} isDark={isDark} />
+        <WeekRangeDisplay selectedDate={selectedDate} isDark={isDark} hideWeekends={hideWeekends} />
         <NavButton onClick={handleNext} ariaLabel={t('calendar_next') || 'Next week'} dataTestid="welcome-week-next" padding={WELCOME_SIZES.paddingSm} isDark={isDark}>
           {isRTL ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
         </NavButton>

@@ -14,6 +14,7 @@ import { AlertCircle, FileText } from 'lucide-react';
 import { useToast } from '@components/ui/ToastProvider.jsx';
 import { initiateAttendanceWorkflow, findExistingAttendanceWorkflow } from '@services/business/workflowInitiationService.js';
 import { deleteWorkflowDocument } from '@services/api/workflow-documents-api.js';
+import { WORKFLOW_STATUS } from '@constants/workflowStatusTypes.jsx';
 
 export default function InitiateWorkflowDialog({
   open,
@@ -61,7 +62,7 @@ export default function InitiateWorkflowDialog({
     if (!cls?.id || !selectedDate) return;
     if (precheckExisting) {
       const existingStatus = String(precheckExisting.status || '').toUpperCase();
-      if (existingStatus === 'DRAFT' || existingStatus === 'REJECTED') {
+      if (existingStatus === WORKFLOW_STATUS.REJECTED) {
         setLoading(true);
         setError(null);
         setPhase(t('initiate_workflow_reinitiating') || 'Re-initializing workflow…');
@@ -190,14 +191,14 @@ export default function InitiateWorkflowDialog({
             )}
             {precheckExisting && !error && (
               <Alert
-                severity={['DRAFT', 'REJECTED'].includes(String(precheckExisting.status || '').toUpperCase()) ? 'info' : 'warning'}
+                severity="warning"
                 icon={<AlertCircle size={20} />}
                 data-testid="initiate-workflow-existing-hint"
               >
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <span>
-                    {['DRAFT', 'REJECTED'].includes(String(precheckExisting.status || '').toUpperCase())
-                      ? (t('initiate_workflow_reinitiate_hint') || 'An existing workflow was found in this state. Click "Re-initiate" to delete it and create a fresh one.')
+                    {String(precheckExisting.status || '').toUpperCase() === WORKFLOW_STATUS.DRAFT
+                      ? (t('initiate_workflow_draft_exists') || 'A draft workflow already exists for this class and date. Reject it first to create a new one.')
                       : (t('initiate_workflow_existing_hint') || 'A workflow already exists for this class and date.')}
                   </span>
                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
@@ -209,7 +210,7 @@ export default function InitiateWorkflowDialog({
                     >
                       {t('initiate_workflow_go_operations') || 'Go to Operations'}
                     </Button>
-                    {precheckExisting.fileId && !['DRAFT'].includes(String(precheckExisting.status || '').toUpperCase()) && (
+                    {precheckExisting.fileId && String(precheckExisting.status || '').toUpperCase() !== WORKFLOW_STATUS.DRAFT && (
                       <Button
                         size="small"
                         variant="text"
@@ -273,12 +274,12 @@ export default function InitiateWorkflowDialog({
             </Button>
             <Button
               onClick={handleConfirm}
-              disabled={loading || !cls?.id || Boolean(precheckExisting && !['DRAFT', 'REJECTED'].includes(String(precheckExisting.status || '').toUpperCase()))}
+              disabled={loading || !cls?.id || Boolean(precheckExisting && String(precheckExisting.status || '').toUpperCase() !== WORKFLOW_STATUS.REJECTED)}
               variant="contained"
               size="small"
               data-testid="initiate-workflow-confirm"
             >
-              {precheckExisting && ['DRAFT', 'REJECTED'].includes(String(precheckExisting.status || '').toUpperCase())
+              {precheckExisting && String(precheckExisting.status || '').toUpperCase() === WORKFLOW_STATUS.REJECTED
                 ? (t('initiate_workflow_reinitiate') || 'Re-initiate')
                 : (t('initiate_workflow_confirm') || 'Confirm')}
             </Button>

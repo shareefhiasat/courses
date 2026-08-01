@@ -164,13 +164,6 @@ export const getSubjects = async (params = {}) => {
     const executionTime = Date.now() - startTime;
     console.log(`[Subjects DB] ✅ Retrieved ${subjects.length} subjects in ${executionTime}ms`);
     
-    // Debug logging to see the actual data structure
-    console.log('🔍 Subjects DB debug:', {
-      subjectsLength: subjects.length,
-      firstSubject: subjects[0],
-      subjectsData: subjects
-    });
-    
     return {
       success: true,
       data: subjects,
@@ -291,20 +284,9 @@ export const getSubjectById = async (subjectId) => {
  */
 async function resolveUserIdForAudit(user) {
   let createdBy = 1; // Default to admin user
-  
-  console.log('🔍 Backend received user:', user);
-  console.log('🔍 User ID types:', {
-    'user.id': user?.id,
-    'user.id type': typeof user?.id,
-    'user.uid': user?.uid,
-    'user.sub': user?.sub,
-    'user.keycloakId': user?.keycloakId,
-    'user.email': user?.email
-  });
-  
+
   if (user && user.id) {
     createdBy = user.id;
-    console.log('🔍 Using user.id for createdBy:', createdBy);
   } else if (user && user.uid) {
     // Try to find user by Keycloak UID (from frontend)
     const uidUser = await prisma.user.findFirst({ 
@@ -312,7 +294,6 @@ async function resolveUserIdForAudit(user) {
     });
     if (uidUser) {
       createdBy = uidUser.id;
-      console.log('🔍 Found user by uid/keycloakId:', createdBy);
     }
   } else if (user && user.sub) {
     // Try to find user by Keycloak ID
@@ -321,7 +302,6 @@ async function resolveUserIdForAudit(user) {
     });
     if (keycloakUser) {
       createdBy = keycloakUser.id;
-      console.log('🔍 Found user by sub/keycloakId:', createdBy);
     }
   } else if (user && user.email) {
     // Try to find user by email
@@ -330,11 +310,9 @@ async function resolveUserIdForAudit(user) {
     });
     if (emailUser) {
       createdBy = emailUser.id;
-      console.log('🔍 Found user by email:', createdBy);
     }
   } else {
     // Try to find an existing user or create a default one
-    console.log('🔍 No valid user found, using default admin');
     const defaultUser = await prisma.user.findFirst({ 
       where: { email: 'admin@milmanylms.com' } 
     });
@@ -501,8 +479,6 @@ export const updateSubject = async (subjectId, updateData, user = null) => {
     const dbUserId = await getDatabaseUserId(user);
     data.updatedBy = dbUserId || 1; // Default to admin user if not found
     
-    console.log('🔍 Backend update received user:', user);
-    console.log('🔍 Using database user ID for updatedBy:', data.updatedBy);
     
     const updatedSubject = await prisma.subject.update({
       where: { id: parseInt(subjectId) },

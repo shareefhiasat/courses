@@ -82,13 +82,15 @@ function formatSnapshotDate(value) {
 }
 
 const SCHEDULE_WORK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
+const SCHEDULE_ALL_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-function getWeekDayDates(selectedDate) {
+function getWeekDayDates(selectedDate, hideWeekends = true) {
   const anchor = selectedDate instanceof Date ? new Date(selectedDate) : new Date(selectedDate);
   const weekStart = new Date(anchor);
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   weekStart.setHours(12, 0, 0, 0);
-  return SCHEDULE_WORK_DAYS.map((_, index) => {
+  const days = hideWeekends ? SCHEDULE_WORK_DAYS : SCHEDULE_ALL_DAYS;
+  return days.map((_, index) => {
     const d = new Date(weekStart);
     d.setDate(d.getDate() + index);
     return d;
@@ -160,6 +162,14 @@ const WelcomePage = () => {
       return localStorage.getItem(WELCOME_STORAGE_KEYS.SCHEDULE_DAY_FOCUS) === '1';
     } catch {
       return false;
+    }
+  });
+  const [hideWeekends, setHideWeekends] = useState(() => {
+    try {
+      const saved = localStorage.getItem(WELCOME_STORAGE_KEYS.SCHEDULE_HIDE_WEEKENDS);
+      return saved !== '0'; // default true (weekends hidden)
+    } catch {
+      return true;
     }
   });
   const [opsViewMode, setOpsViewMode] = useState(() => {
@@ -236,8 +246,10 @@ const WelcomePage = () => {
   const boardExpanded = searchParams.get('expanded') === '1';
   const scheduleExpanded = searchParams.get('scheduleExpanded') === '1';
   const prevTabRef = useRef(tabParam);
+  const selectedDateRef = useRef(selectedDate);
+  selectedDateRef.current = selectedDate;
 
-  const weekDayDates = useMemo(() => getWeekDayDates(selectedDate), [selectedDate]);
+  const weekDayDates = useMemo(() => getWeekDayDates(selectedDate, hideWeekends), [selectedDate, hideWeekends]);
 
   const { refreshWeek: refreshScheduleStatus } = useScheduleStatusRealtime({
     classIds: cohortClassIds,
@@ -258,11 +270,11 @@ const WelcomePage = () => {
     if (!urlDate) return;
     const parsed = new Date(`${urlDate}T12:00:00`);
     if (isNaN(parsed.getTime())) return;
-    const currentIso = selectedDate.toISOString().split('T')[0];
+    const currentIso = selectedDateRef.current.toISOString().split('T')[0];
     if (urlDate !== currentIso) {
       setSelectedDate(parsed);
     }
-  }, [searchParams, isInstructor, selectedDate]);
+  }, [searchParams, isInstructor]);
 
   const welcomeBoardContext = useMemo(() => {
     if (!selection?.program?.id || !selection?.academicTerm?.id) return null;
@@ -391,6 +403,10 @@ const WelcomePage = () => {
     try { localStorage.setItem(WELCOME_STORAGE_KEYS.SCHEDULE_DAY_FOCUS, scheduleDayFocus ? '1' : '0'); } catch {}
   }, [scheduleDayFocus]);
 
+  useEffect(() => {
+    try { localStorage.setItem(WELCOME_STORAGE_KEYS.SCHEDULE_HIDE_WEEKENDS, hideWeekends ? '1' : '0'); } catch {}
+  }, [hideWeekends]);
+
   const scheduleToggles = (
     <ToggleButtonGroup
       value={[
@@ -398,16 +414,19 @@ const WelcomePage = () => {
         showScheduleInstructor && 'instructor',
         showDayDate && 'dayDate',
         showBreakColumns && 'breakColumns',
+        !hideWeekends && 'weekends',
       ].filter(Boolean)}
       onChange={(_, newValue) => {
         const nextRoom = newValue.includes('room');
         const nextInstructor = newValue.includes('instructor');
         const nextDayDate = newValue.includes('dayDate');
         const nextBreakColumns = newValue.includes('breakColumns');
+        const nextWeekends = newValue.includes('weekends');
         if (nextRoom !== showScheduleRoom) handleToggleScheduleRoom();
         if (nextInstructor !== showScheduleInstructor) handleToggleScheduleInstructor();
         if (nextDayDate !== showDayDate) handleToggleDayDate();
         if (nextBreakColumns !== showBreakColumns) handleToggleBreakColumns();
+        if (nextWeekends === hideWeekends) setHideWeekends(!nextWeekends);
       }}
       size="small"
       aria-label={t('schedule_columns')}
@@ -487,6 +506,23 @@ const WelcomePage = () => {
           }}
         >
           <Coffee size={14} />
+        </ToggleButton>
+      </ColoredTooltip>
+      <ColoredTooltip title={hideWeekends ? t('show_weekends') : t('hide_weekends')}>
+        <ToggleButton
+          value="weekends"
+          sx={{
+            p: 0.5,
+            minWidth: 28,
+            color: isDark ? '#94a3b8' : '#64748b',
+            '&.Mui-selected': {
+              bgcolor: isDark ? 'rgba(255,255,255,0.14)' : '#fff',
+              color: isDark ? '#f1f5f9' : '#1e293b',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+            },
+          }}
+        >
+          <CalendarDays size={14} />
         </ToggleButton>
       </ColoredTooltip>
     </ToggleButtonGroup>
@@ -791,6 +827,7 @@ const WelcomePage = () => {
         instructorAvailability: sources.instructorAvailability,
         timeSlots: sources.timeSlots,
         attachSessionMeta: true,
+        hideWeekends,
       });
 
       setScheduleData(prepared);
@@ -814,7 +851,7 @@ const WelcomePage = () => {
         setCohortSubjects([]);
       }
       if (classIds.length > 0) {
-        const weekDates = getWeekDayDates(selectedDate);
+        const weekDates = getWeekDayDates(selectedDate, hideWeekends);
         const results = await Promise.all(weekDates.map((d) => getScheduleStatus(classIds, d)));
         const combined = {};
         results.forEach((result, index) => {
@@ -834,7 +871,7 @@ const WelcomePage = () => {
     };
 
     loadSchedule();
-  }, [selection?.program, selection?.academicTerm, selectedDate, lang, t]);
+  }, [selection?.program, selection?.academicTerm, selectedDate, lang, t, hideWeekends]);
 
   const selectedWeekKey = useMemo(() => {
     const anchor = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
@@ -927,6 +964,27 @@ const WelcomePage = () => {
       setMenuAnchorEl(virtualEl);
     }
   }, [setSearchParams, selectedDate, isInstructorOnly, t, isInstructor]);
+
+  const handleWorkflowIconClick = useCallback((status) => {
+    if (!status?.workflowDocumentId) return;
+    const DAY_CODES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayOffset = DAY_CODES.indexOf(status?.dayCode);
+    let cellDate = selectedDate;
+    if (dayOffset >= 0) {
+      const weekStart = new Date(selectedDate);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      cellDate = new Date(weekStart);
+      cellDate.setDate(cellDate.getDate() + dayOffset);
+    }
+    const dateIso = toIsoDate(cellDate);
+    openOperationsTab({
+      lane: 'status',
+      classId: status?.classId,
+      date: dateIso,
+      workflowId: String(status.workflowDocumentId),
+      _t: String(Date.now()),
+    });
+  }, [openOperationsTab, selectedDate]);
 
   // Allow double-clicking another schedule cell to open its menu even when a menu is already open.
   // The MUI menu backdrop consumes the first click, so the cell's own onDoubleClick may not fire.
@@ -1138,18 +1196,19 @@ const WelcomePage = () => {
       });
       return;
     }
-    // Download directly and show bottom banner notification
+    // Use selected class from schedule if available, otherwise blank template
+    const selectedCls = selectedSession?.class || null;
     setExportingKey('daily-template-excel');
     try {
       const result = await exportDailyOfficialTemplate({
-        cls: { id: null, programId: selection.program.id },
+        cls: selectedCls || { id: null, programId: selection.program.id },
         program: selection.program,
-        subject: null,
+        subject: selectedCls?.subject || null,
         academicTerm: selection.academicTerm,
         lang,
         user,
         format,
-        instructorName: null,
+        instructorName: selectedSession?.instructor || null,
         skipDownload: true,
       });
       // Close the progress snackbar and show the success banner
@@ -1195,7 +1254,7 @@ const WelcomePage = () => {
     } finally {
       setExportingKey(null);
     }
-  }, [selection?.program, selection?.academicTerm, lang, user, t, showExportBanner]);
+  }, [selection?.program, selection?.academicTerm, selectedSession, lang, user, t, showExportBanner]);
 
   // Fetch the latest approved weekly attendance violation snapshot and closure status for the selected week (HR/Admin only)
   useEffect(() => {
@@ -1678,6 +1737,7 @@ const WelcomePage = () => {
             setOpsViewMode={setOpsViewMode}
             dayFocus={scheduleDayFocus}
             setDayFocus={setScheduleDayFocus}
+            hideWeekends={hideWeekends}
             isInstructorOnly={isInstructorOnly}
             isDark={isDark}
             isRTL={isRTL}
@@ -2173,6 +2233,7 @@ const WelcomePage = () => {
                   setOpsViewMode={setOpsViewMode}
                   dayFocus={scheduleDayFocus}
                   setDayFocus={setScheduleDayFocus}
+                  hideWeekends={hideWeekends}
                   isInstructorOnly={isInstructorOnly}
                   isDark={isDark}
                   isRTL={isRTL}
@@ -2208,6 +2269,7 @@ const WelcomePage = () => {
                       onCellClick={weekClosure?.isClosed ? undefined : handleCellClick}
                       onDateChange={isInstructorOnly ? null : setSelectedDate}
                       onGenerateDailyAttendance={weekClosure?.isClosed ? undefined : handleGenerateDailyAttendance}
+                      onWorkflowClick={handleWorkflowIconClick}
                       compact
                       fillHeight
                       fillWidth

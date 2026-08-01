@@ -8,7 +8,7 @@ import {
   exportDailyOfficialTemplate,
   exportDailyOfficialForDate,
 } from '@services/business/accessScopeExportService.js';
-import { FileText, FileSpreadsheet, AlertCircle, CheckCircle2, ExternalLink } from 'lucide-react';
+import { FileText, FileSpreadsheet, AlertCircle, CheckCircle2, ExternalLink, Workflow as WorkflowIcon } from 'lucide-react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton } from '@mui/material';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import useQRPermissions from '@hooks/useQRPermissions';
@@ -17,6 +17,8 @@ import { academicTermToYearTerm } from '@utils/academicTermUtils';
 import AppMenu from '@components/ui/mui/AppMenu.jsx';
 import InitiateWorkflowDialog from '@components/workspace/InitiateWorkflowDialog.jsx';
 import { findExistingAttendanceWorkflow } from '@services/business/workflowInitiationService.js';
+import { WORKFLOW_STATUS, getWorkflowStatusIcon } from '@constants/workflowStatusTypes.jsx';
+import { getWorkflowBadgeColor } from '@constants/workspaceStatusColors.js';
 
 function ScheduleContextMenu({
   session,
@@ -187,7 +189,6 @@ function ScheduleContextMenu({
   const handleOpenFilteredNotifications = useCallback(() => {
     const { year } = academicTerm ? academicTermToYearTerm(academicTerm) : {};
     onOpenNotifications?.({
-      filterClass: cls?.id ? String(cls.id) : 'all',
       filterSubject: subject?.id || cls?.subjectId ? String(subject?.id || cls?.subjectId) : 'all',
       filterProgram: program?.id ? String(program.id) : 'all',
       filterYear: year ? String(year) : 'all',
@@ -205,53 +206,52 @@ function ScheduleContextMenu({
   const actions = useMemo(() => {
     const items = [];
 
-    if (canExport && cls) {
-      // Hide daily export options for HR-only users
-      if (!hrOnly) {
-        items.push({
-          id: 'export-daily',
-          label: t('daily_official'),
-          icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
-          trailingActions: [
-            {
-              title: t('export_pdf') || 'PDF',
-              icon: <FileText size={16} style={{ color: '#e53935' }} />,
-              tooltipColor: '#e53935',
-              onClick: () => runExport('export-daily-pdf', async () => {
-                try {
-                  const result = await exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.PDF, skipDownload: true });
-                  const blobUrl = URL.createObjectURL(result.blob);
-                  onExportSuccess?.(buildExportBanner(`${t('daily_official') || 'Daily Official'} PDF`, EXPORT_FORMAT.PDF, result.blob, result.filename, blobUrl));
-                  setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-                } catch (err) {
-                  console.error('[ScheduleContextMenu] export daily pdf failed:', err);
-                  throw err;
-                }
-              }),
-            },
-            {
-              title: t('export_excel') || 'Excel',
-              icon: <FileSpreadsheet size={16} style={{ color: '#43a047' }} />,
-              tooltipColor: '#43a047',
-              onClick: () => runExport('export-daily-excel', async () => {
-                try {
-                  const result = await exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.EXCEL, skipDownload: true });
-                  const blobUrl = URL.createObjectURL(result.blob);
-                  onExportSuccess?.(buildExportBanner(`${t('daily_official') || 'Daily Official'} Excel`, EXPORT_FORMAT.EXCEL, result.blob, result.filename, blobUrl));
-                  setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-                } catch (err) {
-                  console.error('[ScheduleContextMenu] export daily excel failed:', err);
-                  throw err;
-                }
-              }),
-            },
-          ],
-        });
-        items.push({ divider: true });
-      }
+    const attendanceChildren = [];
+
+    // Daily Official export (inside Attendance submenu, after workflow item)
+    let dailyOfficialItem = null;
+    if (canExport && cls && !hrOnly) {
+      dailyOfficialItem = {
+        id: 'export-daily',
+        label: t('daily_official'),
+        icon: <FileText size={18} />,
+        trailingActions: [
+          {
+            title: t('export_pdf') || 'PDF',
+            icon: <FileText size={16} style={{ color: '#e53935' }} />,
+            tooltipColor: '#e53935',
+            onClick: () => runExport('export-daily-pdf', async () => {
+              try {
+                const result = await exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.PDF, skipDownload: true });
+                const blobUrl = URL.createObjectURL(result.blob);
+                onExportSuccess?.(buildExportBanner(`${t('daily_official') || 'Daily Official'} PDF`, EXPORT_FORMAT.PDF, result.blob, result.filename, blobUrl));
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+              } catch (err) {
+                console.error('[ScheduleContextMenu] export daily pdf failed:', err);
+                throw err;
+              }
+            }),
+          },
+          {
+            title: t('export_excel') || 'Excel',
+            icon: <FileSpreadsheet size={16} style={{ color: '#43a047' }} />,
+            tooltipColor: '#43a047',
+            onClick: () => runExport('export-daily-excel', async () => {
+              try {
+                const result = await exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.EXCEL, skipDownload: true });
+                const blobUrl = URL.createObjectURL(result.blob);
+                onExportSuccess?.(buildExportBanner(`${t('daily_official') || 'Daily Official'} Excel`, EXPORT_FORMAT.EXCEL, result.blob, result.filename, blobUrl));
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+              } catch (err) {
+                console.error('[ScheduleContextMenu] export daily excel failed:', err);
+                throw err;
+              }
+            }),
+          },
+        ],
+      };
     }
 
-    const attendanceChildren = [];
     const boardItem = {
       id: 'operations-attendance',
       label: t('workspace_menu_attendance_board') || 'Board',
@@ -283,88 +283,95 @@ function ScheduleContextMenu({
       if (standupItem) attendanceChildren.push(standupItem);
     }
 
+    // Add workflow actions inside the Attendance submenu for non-instructors
+    if (!instructorOnly) {
+      let workflowItem;
+      if (existingWorkflow) {
+        const status = String(existingWorkflow.status || '').toUpperCase();
+        const displayStatus = (hrOnly && status === WORKFLOW_STATUS.REJECTED) ? null : status;
+        if (displayStatus) {
+          const colorCfg = getWorkflowBadgeColor(status);
+          const statusLabel = t(`workflow_status_${status.toLowerCase()}`, status);
+          const iconColor = colorCfg.bg;
+          const StatusIcon = getWorkflowStatusIcon(status);
+          const canInitiate = (status === WORKFLOW_STATUS.REJECTED);
+          const trailingActions = [];
+          if (existingWorkflow.fileId && status !== WORKFLOW_STATUS.DRAFT) {
+            trailingActions.push({
+              title: t('operations_board_preview_pdf') || 'Preview PDF',
+              icon: <FileText size={16} color="#3b82f6" />,
+              tooltipColor: '#3b82f6',
+              onClick: handlePreviewPdf,
+            });
+          }
+          trailingActions.push({
+            title: canInitiate
+              ? (t('workspace_menu_workflow_initiate') || 'Re-initiate')
+              : (t('initiate_workflow_existing_hint') || 'A workflow already exists'),
+            icon: getThemedIcon('ui', 'file_signature', 16, canInitiate ? '#16a34a' : '#f59e0b'),
+            tooltipColor: canInitiate ? '#16a34a' : '#f59e0b',
+            onClick: canInitiate ? handleInitiateWorkflow : undefined,
+            disabled: !canInitiate,
+          });
+          workflowItem = {
+            id: 'daily-attendance-existing',
+            labelNode: (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                {t('workspace_menu_daily_attendance') || 'Daily attendance'}
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '2px 10px',
+                  borderRadius: '9999px',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  backgroundColor: colorCfg.bg,
+                  color: colorCfg.text,
+                  border: `1px solid ${colorCfg.border}`,
+                  lineHeight: '1.4',
+                  whiteSpace: 'nowrap',
+                }}>
+                  <WorkflowIcon size={12} color={colorCfg.text} strokeWidth={2.5} />
+                  {statusLabel}
+                </span>
+              </span>
+            ),
+            icon: <StatusIcon size={18} color={iconColor} />,
+            onClick: () => handleGoToOperationsFromWorkflow(existingWorkflow),
+            trailingActions,
+          };
+        }
+      } else {
+        workflowItem = {
+          id: 'initiate-workflow',
+          labelNode: (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              {t('workspace_menu_daily_attendance') || 'Daily attendance'}
+            </span>
+          ),
+          icon: getThemedIcon('ui', 'file_signature', 18, '#16a34a'),
+          onClick: handleInitiateWorkflow,
+        };
+      }
+
+      if (workflowItem) {
+        attendanceChildren.push({ divider: true });
+        attendanceChildren.push(workflowItem);
+      }
+
+      if (dailyOfficialItem) {
+        attendanceChildren.push({ divider: true });
+        attendanceChildren.push(dailyOfficialItem);
+      }
+    }
+
     items.push({
       id: 'attendance',
       label: t('workspace_menu_attendance') || 'Attendance',
       icon: getThemedIcon('ui', 'check_circle', 18, 'currentColor'),
       children: attendanceChildren,
     });
-
-    const workflowChildren = existingWorkflow
-      ? ((() => {
-        const status = String(existingWorkflow.status || '').toUpperCase();
-        const statusColors = {
-          APPROVED: { bg: '#16a34a', text: '#ffffff', border: '#16a34a' },
-          REJECTED: { bg: '#dc2626', text: '#ffffff', border: '#dc2626' },
-          DRAFT: { bg: '#6b7280', text: '#ffffff', border: '#6b7280' },
-          SUBMITTED: { bg: '#2563eb', text: '#ffffff', border: '#2563eb' },
-          UNDER_ADMIN_REVIEW: { bg: '#f59e0b', text: '#ffffff', border: '#f59e0b' },
-          UNDER_HR_REVIEW: { bg: '#e11d48', text: '#ffffff', border: '#e11d48' },
-        };
-        const colorCfg = statusColors[status] || { bg: '#6b7280', text: '#ffffff', border: '#6b7280' };
-        const statusLabel = t(`workflow_status_${status.toLowerCase()}`, status);
-        const iconColor = colorCfg.bg;
-        const displayStatus = (hrOnly && status === 'REJECTED') ? null : status;
-        if (!displayStatus) return [];
-        const workflowActions = [{
-          id: 'daily-attendance-existing',
-          labelNode: (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              {t('workspace_menu_daily_attendance') || 'Daily attendance'}
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '2px 10px',
-                borderRadius: '9999px',
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                backgroundColor: colorCfg.bg,
-                color: colorCfg.text,
-                border: `1px solid ${colorCfg.border}`,
-                lineHeight: '1.4',
-                whiteSpace: 'nowrap',
-              }}>
-                {statusLabel}
-              </span>
-            </span>
-          ),
-          icon: <AlertCircle size={18} color={iconColor} />,
-          onClick: () => handleGoToOperationsFromWorkflow(existingWorkflow),
-          trailingActions: (existingWorkflow.fileId && status !== 'DRAFT') ? [{
-            title: t('operations_board_preview_pdf') || 'Preview PDF',
-            icon: <FileText size={16} color="#3b82f6" />,
-            tooltipColor: '#3b82f6',
-            onClick: handlePreviewPdf,
-          }] : undefined,
-        }];
-        if (status === 'REJECTED' || status === 'DRAFT' || !existingWorkflow.fileId) {
-          workflowActions.push({
-            id: 'reinitiate-workflow',
-            labelKey: 'workspace_menu_workflow_initiate',
-            labelFallback: 'Re-initiate',
-            icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
-            onClick: handleInitiateWorkflow,
-          });
-        }
-        return workflowActions;
-      })())
-      : [{
-        id: 'initiate-workflow',
-        labelKey: 'workspace_menu_workflow_initiate',
-        labelFallback: 'Initiate',
-        icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
-        onClick: handleInitiateWorkflow,
-      }];
-
-    if (!instructorOnly) {
-      items.push({
-        id: 'workflow',
-        labelKey: 'workspace_menu_workflow',
-        labelFallback: 'Workflow',
-        icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
-        children: workflowChildren,
-      });
-    }
 
     if (!instructorOnly) {
       items.push({ divider: true });

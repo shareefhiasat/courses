@@ -32,7 +32,6 @@ import {
 } from '@components/operations-board/boardClassCalendarUtils.js';
 
 const DAY_CODES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const WORKING_DAY_CODES = new Set(['Sun', 'Mon', 'Tue', 'Wed', 'Thu']);
 
 function isSameCalendarWeek(a, b) {
   const startA = new Date(a);
@@ -344,7 +343,7 @@ function getWorkflowStatusLabel(status, t) {
   return t(key) || ws;
 }
 
-function WorkflowStatusGroup({ status, t, lang, selectedDate, hideTooltips = false }) {
+function WorkflowStatusGroup({ status, t, lang, selectedDate, hideTooltips = false, onWorkflowClick }) {
   const ws = status?.workflowStatus;
   if (!ws || ws === 'NOT_TAKEN') return null;
   const color = WORKFLOW_STATUS_COLORS[ws];
@@ -352,17 +351,21 @@ function WorkflowStatusGroup({ status, t, lang, selectedDate, hideTooltips = fal
   const label = getWorkflowStatusLabel(status, t);
   if (!label) return null;
 
+  const handleClick = onWorkflowClick
+    ? (e) => { e.stopPropagation(); onWorkflowClick(status); }
+    : undefined;
+
   return (
     <span className={gridStyles.workflowGroup}>
       {!hideTooltips && (
         <ScheduleStatusHistoryTooltip status={status} lang={lang} fallbackDate={selectedDate} t={t} currentColor={color}>
-          <span className={gridStyles.workflowIconWrap} style={{ '--workflow-color': color }}>
+          <span className={gridStyles.workflowIconWrap} style={{ '--workflow-color': color, ...(onWorkflowClick ? { cursor: 'pointer' } : {}) }} onClick={handleClick} role={onWorkflowClick ? 'button' : undefined}>
             <WorkflowIcon className={gridStyles.workflowIconSvg} color={color} strokeWidth={2.5} />
           </span>
         </ScheduleStatusHistoryTooltip>
       )}
       {hideTooltips && (
-        <span className={gridStyles.workflowIconWrap} style={{ '--workflow-color': color }}>
+        <span className={gridStyles.workflowIconWrap} style={{ '--workflow-color': color, ...(onWorkflowClick ? { cursor: 'pointer' } : {}) }} onClick={handleClick} role={onWorkflowClick ? 'button' : undefined}>
           <WorkflowIcon className={gridStyles.workflowIconSvg} color={color} strokeWidth={2.5} />
         </span>
       )}
@@ -580,6 +583,7 @@ function InteractiveSlotCell({
   hideNotesComments = false,
   hideTooltips = false,
   onGenerateDailyAttendance,
+  onWorkflowClick,
   rowSpan = 4,
 }) {
   if (isBreak) {
@@ -674,7 +678,7 @@ function InteractiveSlotCell({
               <span className={gridStyles.indicatorDivider} aria-hidden="true">|</span>
             )}
             {hasWorkflow && (
-              <WorkflowStatusGroup status={status} t={t} lang={lang} selectedDate={selectedDate} hideTooltips={hideTooltips} />
+              <WorkflowStatusGroup status={status} t={t} lang={lang} selectedDate={selectedDate} hideTooltips={hideTooltips} onWorkflowClick={onWorkflowClick ? (wfStatus) => onWorkflowClick({ ...wfStatus, classId: slot.classId, dayCode }) : undefined} />
             )}
           </div>
         );
@@ -804,6 +808,7 @@ function DayBlock({
   hideNotesComments = false,
   hideTooltips = false,
   onGenerateDailyAttendance,
+  onWorkflowClick,
   rowTypes,
   rowSpan,
   showDayDate = true,
@@ -833,7 +838,7 @@ function DayBlock({
                     const anchor = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
                     const weekStart = new Date(anchor);
                     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-                    const dayIndex = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'].indexOf(day.dayCode);
+                    const dayIndex = DAY_CODES.indexOf(day.dayCode);
                     if (dayIndex < 0) return null;
                     const dayDate = new Date(weekStart);
                     dayDate.setDate(dayDate.getDate() + dayIndex);
@@ -907,6 +912,7 @@ function DayBlock({
                 hideNotesComments={hideNotesComments}
                 hideTooltips={hideTooltips}
                 onGenerateDailyAttendance={onGenerateDailyAttendance}
+                onWorkflowClick={onWorkflowClick}
                 rowSpan={rowSpan}
               />
             );
@@ -927,6 +933,7 @@ const OfficialWeeklyScheduleGrid = ({
   onCellClick,
   onDateChange,
   onGenerateDailyAttendance,
+  onWorkflowClick,
   compact = false,
   fillHeight = false,
   fillWidth = false,
@@ -1024,8 +1031,7 @@ const OfficialWeeklyScheduleGrid = ({
   const actualToday = new Date();
   const todayCode = DAY_CODES[actualToday.getDay()];
   const isViewingCurrentWeek = isSameCalendarWeek(selectedDate, actualToday);
-  const isWorkingToday = WORKING_DAY_CODES.has(todayCode);
-  const showTodayTimeline = isViewingCurrentWeek && isWorkingToday;
+  const showTodayTimeline = isViewingCurrentWeek;
   const metaLine = [batch, year && term ? `${year} / ${term}` : year || term].filter(Boolean).join(' — ');
   const { start: dayStartMin, end: dayEndMin } = resolveProgramHours({ ...scheduleData, days: displayDays });
   const dateInputValue = selectedDate.toISOString().split('T')[0];
@@ -1148,6 +1154,7 @@ const OfficialWeeklyScheduleGrid = ({
               hideNotesComments={hideNotesComments}
               hideTooltips={hideTooltips}
               onGenerateDailyAttendance={onGenerateDailyAttendance}
+              onWorkflowClick={onWorkflowClick}
               rowTypes={visibleRowTypes}
               rowSpan={rowSpan}
               showDayDate={showDayDate}

@@ -3,6 +3,7 @@ import {
   buildWeeklyScheduleFromSessions,
   hasScheduleContent,
   WORK_DAYS,
+  ALL_DAYS,
   buildSlotWindowsFromTimeSlots,
   buildColumnDefsFromTimeSlots,
 } from './buildWeeklyScheduleFromSessions.js';
@@ -13,6 +14,8 @@ const DAY_I18N = {
   Tue: { en: 'Tuesday', ar: 'الثلاثاء' },
   Wed: { en: 'Wednesday', ar: 'الأربعاء' },
   Thu: { en: 'Thursday', ar: 'الخميس' },
+  Fri: { en: 'Friday', ar: 'الجمعة' },
+  Sat: { en: 'Saturday', ar: 'السبت' },
 };
 
 const DEFAULT_BREAKS = {
@@ -36,11 +39,11 @@ function buildColumns(lang, timeSlots = [], t = null) {
   ];
 }
 
-function buildDayLabels(lang, t) {
+function buildDayLabels(lang, t, dayCodes = WORK_DAYS) {
   const labels = {};
-  WORK_DAYS.forEach((code) => {
+  dayCodes.forEach((code) => {
     if (typeof t === 'function') {
-      const key = { Sun: 'sun', Mon: 'mon', Tue: 'tue', Wed: 'wed', Thu: 'thu' }[code];
+      const key = { Sun: 'sun', Mon: 'mon', Tue: 'tue', Wed: 'wed', Thu: 'thu', Fri: 'fri', Sat: 'sat' }[code];
       labels[code] = t(key, DAY_I18N[code][lang === 'ar' ? 'ar' : 'en']);
     } else {
       labels[code] = DAY_I18N[code][lang === 'ar' ? 'ar' : 'en'];
@@ -50,9 +53,9 @@ function buildDayLabels(lang, t) {
 }
 
 /** Empty weekly grid — breaks only, no fabricated subjects. */
-function buildEmptyDays(lang, dayLabels, timeSlots = []) {
+function buildEmptyDays(lang, dayLabels, timeSlots = [], dayCodes = WORK_DAYS) {
   const { windows: slotWindows, breaks: breakTimes } = buildSlotWindowsFromTimeSlots(timeSlots);
-  return WORK_DAYS.map((code) => ({
+  return dayCodes.map((code) => ({
     dayCode: code,
     dayLabel: dayLabels[code] || DAY_I18N[code][lang === 'ar' ? 'ar' : 'en'],
     slots: Object.fromEntries(
@@ -73,6 +76,7 @@ export function prepareWeeklyScheduleData({
   timeSlots = [],
   t = null,
   attachSessionMeta = false,
+  hideWeekends = true,
 } = {}) {
   const isAr = lang === 'ar';
   const serial = buildSerialNumber(metadata.programId || metadata.classId, { prefix: 'WS' });
@@ -81,7 +85,8 @@ export function prepareWeeklyScheduleData({
   const room = metadata.scheduleRoom || '';
   const year = metadata.year || '';
   const term = metadata.term || '';
-  const dayLabels = buildDayLabels(lang, t);
+  const dayCodes = hideWeekends ? WORK_DAYS : ALL_DAYS;
+  const dayLabels = buildDayLabels(lang, t, dayCodes);
 
   const dynamicDays = buildWeeklyScheduleFromSessions({
     sessions,
@@ -92,11 +97,12 @@ export function prepareWeeklyScheduleData({
     defaultRoom: room,
     timeSlots,
     attachSessionMeta,
+    hideWeekends,
   });
 
   const days = hasScheduleContent(dynamicDays)
     ? dynamicDays
-    : buildEmptyDays(lang, dayLabels, timeSlots);
+    : buildEmptyDays(lang, dayLabels, timeSlots, dayCodes);
 
   const tx = (key, fallback) => (typeof t === 'function' ? t(key) : null) || fallback;
 

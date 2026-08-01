@@ -99,7 +99,7 @@ export const addFileComment = async ({ fileId, userId, comment }) => {
     console.error('[fileCommentService] Add file comment error:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to add file comment',
+      error: 'Failed to add file comment',
       timestamp: Date.now()
     };
   }
@@ -152,7 +152,7 @@ export const getFileComments = async ({ fileId, userId }) => {
     console.error('[fileCommentService] Get file comments error:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to get file comments',
+      error: 'Failed to get file comments',
       timestamp: Date.now()
     };
   }
@@ -247,7 +247,7 @@ export const deleteFileComment = async ({ commentId, userId }) => {
     console.error('[fileCommentService] Error stack:', error.stack);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to delete comment',
+      error: 'Failed to delete comment',
       timestamp: Date.now()
     };
   }
@@ -327,7 +327,7 @@ export const updateFileComment = async ({ commentId, comment, userId }) => {
     console.error('[fileCommentService] Update file comment error:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to update file comment',
+      error: 'Failed to update file comment',
       timestamp: Date.now()
     };
   }

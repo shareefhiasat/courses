@@ -721,7 +721,6 @@ const getDatabaseUserId = async (user) => {
         where: { keycloakId: user.sub } 
       });
       if (keycloakUser) {
-        console.log('🔍 Found user by sub/keycloakId:', keycloakUser.id);
         return keycloakUser.id;
       }
     }
@@ -732,7 +731,6 @@ const getDatabaseUserId = async (user) => {
         where: { email: user.email } 
       });
       if (emailUser) {
-        console.log('🔍 Found user by email:', emailUser.id);
         return emailUser.id;
       }
     }
@@ -1058,17 +1056,7 @@ const getAllStudentMarksReport = async (req, res) => {
   try {
     const { programId, subjectId, classId, year, term, isRepeated, gradeType, userId, studentId } = req.query;
     const filterUserId = userId || studentId;
-    
-    console.log('🔍 [MARKS DEBUG] getAllStudentMarksReport called with filters:', {
-      programId,
-      subjectId,
-      classId,
-      year,
-      term,
-      isRepeated,
-      userId: filterUserId
-    });
-    
+
     // Build where clause for classes
     const classWhere = {};
     if (programId) {
@@ -1141,7 +1129,6 @@ const getAllStudentMarksReport = async (req, res) => {
       }
     });
     
-    console.log('🔍 [MARKS DEBUG] Found enrollments:', enrollments.length);
 
     const scope = await getRequestScope(req);
     const scopedEnrollments = scope.unrestricted
@@ -1153,14 +1140,6 @@ const getAllStudentMarksReport = async (req, res) => {
           categoryId: e.class?.categoryId,
         }));
 
-    console.log('🔍 [MARKS DEBUG] Enrollment details:', scopedEnrollments.map(e => ({
-      userId: e.userId,
-      userName: e.user.displayName || e.user.email,
-      subjectId: e.subjectId,
-      classId: e.classId,
-      status: e.status?.code
-    })));
-    
     // Get all student marks for these enrollments
     const studentIds = scopedEnrollments.map(e => e.userId);
     const subjectIds = [...new Set(scopedEnrollments.map(e => e.subjectId))];
@@ -1179,16 +1158,7 @@ const getAllStudentMarksReport = async (req, res) => {
         })
       }
     });
-    
-    console.log('🔍 [MARKS DEBUG] Found marks records:', marks.length);
-    console.log('🔍 [MARKS DEBUG] Marks with isRepeated status:', marks.map(m => ({
-      userId: m.userId,
-      subjectId: m.subjectId,
-      classId: m.classId,
-      isRepeated: m.isRepeated,
-      gradeType: m.gradeType
-    })));
-    
+
     // Get marks distributions for all subjects
     const distributions = await prisma.marksDistribution.findMany({
       where: {
@@ -1231,18 +1201,7 @@ const getAllStudentMarksReport = async (req, res) => {
     const filteredData = isRepeated !== undefined && isRepeated !== '' 
       ? reportData.filter(r => r.isRepeated === (isRepeated === 'true'))
       : reportData;
-    
-    console.log('🔍 [MARKS DEBUG] Report data before filter:', reportData.length);
-    console.log('🔍 [MARKS DEBUG] Report data after isRepeated filter:', filteredData.length);
-    console.log('🔍 [MARKS DEBUG] Sample records:', filteredData.slice(0, 5).map(r => ({
-      studentId: r.studentId,
-      subjectId: r.subjectId,
-      classId: r.classId,
-      isRepeated: r.isRepeated,
-      gradeType: r.gradeType,
-      letterGrade: r.letterGrade
-    })));
-    
+
     res.json({
       success: true,
       data: filteredData,

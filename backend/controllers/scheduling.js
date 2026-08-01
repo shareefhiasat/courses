@@ -9,6 +9,7 @@ import effortReportDb from '../db/effort-report-postgres.js';
 import { isSuperAdmin, getEffectiveRoles } from '../utils/roleUtils.js';
 import { canAccessTeacherInScope, applySchedulingDataScope } from '../utils/schedulingScope.js';
 import { scopeForbidden } from '../utils/scopeAccess.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 function parseQueryParams(req) {
   const {
@@ -66,186 +67,119 @@ function resolveInstructorScope(req, params) {
   return params;
 }
 
-export const getBreakSessions = async (req, res) => {
-  try {
-    const params = await scopedParams(req, res);
-    if (!params) return;
-    const result = await breakSessionsDb.getBreakSessions(params);
-    res.status(result.success ? 200 : 500).json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Internal server error" });
+export const getBreakSessions = asyncHandler(async (req, res) => {
+  const params = await scopedParams(req, res);
+  if (!params) return;
+  const result = await breakSessionsDb.getBreakSessions(params);
+  res.status(result.success ? 200 : 500).json(result);
+});
+
+export const createBreakSession = asyncHandler(async (req, res) => {
+  const roles = getEffectiveRoles(req.user?.roles || []);
+  if (!isSuperAdmin(roles) && !roles.includes('admin') && !roles.includes('hr')) {
+    return res.status(403).json({ success: false, error: 'Access denied: Only admin and HR can create break sessions' });
   }
-};
+  const result = await breakSessionsDb.createBreakSession(req.body, req.user?.dbId);
+  res.status(result.success ? 201 : 400).json(result);
+});
 
-export const createBreakSession = async (req, res) => {
-  try {
-    // Authorization check: only admin/HR can create break sessions
-    const roles = getEffectiveRoles(req.user?.roles || []);
-    if (!isSuperAdmin(roles) && !roles.includes('admin') && !roles.includes('hr')) {
-      return res.status(403).json({
-        success: false,
-        error: 'Access denied: Only admin and HR can create break sessions'
-      });
-    }
-
-    const result = await breakSessionsDb.createBreakSession(req.body, req.user?.dbId);
-    res.status(result.success ? 201 : 400).json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Internal server error" });
+export const updateBreakSession = asyncHandler(async (req, res) => {
+  const roles = getEffectiveRoles(req.user?.roles || []);
+  if (!isSuperAdmin(roles) && !roles.includes('admin') && !roles.includes('hr')) {
+    return res.status(403).json({ success: false, error: 'Access denied: Only admin and HR can update break sessions' });
   }
-};
+  const result = await breakSessionsDb.updateBreakSession(req.params.id, req.body, req.user?.dbId);
+  res.status(result.success ? 200 : 400).json(result);
+});
 
-export const updateBreakSession = async (req, res) => {
-  try {
-    // Authorization check: only admin/HR can update break sessions
-    const roles = getEffectiveRoles(req.user?.roles || []);
-    if (!isSuperAdmin(roles) && !roles.includes('admin') && !roles.includes('hr')) {
-      return res.status(403).json({
-        success: false,
-        error: 'Access denied: Only admin and HR can update break sessions'
-      });
-    }
-
-    const result = await breakSessionsDb.updateBreakSession(req.params.id, req.body, req.user?.dbId);
-    res.status(result.success ? 200 : 400).json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Internal server error" });
+export const deleteBreakSession = asyncHandler(async (req, res) => {
+  const roles = getEffectiveRoles(req.user?.roles || []);
+  if (!isSuperAdmin(roles) && !roles.includes('admin') && !roles.includes('hr')) {
+    return res.status(403).json({ success: false, error: 'Access denied: Only admin and HR can delete break sessions' });
   }
-};
+  const { deleteScope } = req.body || {};
+  const result = await breakSessionsDb.deleteBreakSession(req.params.id, deleteScope);
+  res.status(result.success ? 200 : 400).json(result);
+});
 
-export const deleteBreakSession = async (req, res) => {
-  try {
-    // Authorization check: only admin/HR can delete break sessions
-    const roles = getEffectiveRoles(req.user?.roles || []);
-    if (!isSuperAdmin(roles) && !roles.includes('admin') && !roles.includes('hr')) {
-      return res.status(403).json({
-        success: false,
-        error: 'Access denied: Only admin and HR can delete break sessions'
-      });
-    }
+export const getSchedulingSummary = asyncHandler(async (req, res) => {
+  const params = await scopedParams(req, res);
+  if (!params) return;
+  const result = await schedulingSummaryDb.getSchedulingSummary(params);
+  res.status(result.success ? 200 : 500).json(result);
+});
 
-    const { deleteScope } = req.body || {};
-    const result = await breakSessionsDb.deleteBreakSession(req.params.id, deleteScope);
-    res.status(result.success ? 200 : 400).json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Internal server error" });
+export const getBreakSessionSummary = asyncHandler(async (req, res) => {
+  const params = await scopedParams(req, res);
+  if (!params) return;
+  const result = await schedulingSummaryDb.getBreakSessionSummary(params);
+  res.status(result.success ? 200 : 500).json(result);
+});
+
+export const getHolidaySummary = asyncHandler(async (req, res) => {
+  const params = parseQueryParams(req);
+  const result = await schedulingSummaryDb.getHolidaySummary(params);
+  res.status(result.success ? 200 : 500).json(result);
+});
+
+export const getTeacherWorkloadSummary = asyncHandler(async (req, res) => {
+  const params = parseQueryParams(req);
+  const result = await schedulingSummaryDb.getTeacherWorkloadSummary(params);
+  res.status(result.success ? 200 : 500).json(result);
+});
+
+export const getClassroomUtilizationSummary = asyncHandler(async (req, res) => {
+  const params = parseQueryParams(req);
+  const result = await schedulingSummaryDb.getClassroomUtilizationSummary(params);
+  res.status(result.success ? 200 : 500).json(result);
+});
+
+export const getTeacherEffort = asyncHandler(async (req, res) => {
+  const { teacherId } = req.params;
+  if (!(await assertTeacherAccess(req, res, teacherId))) return;
+  const params = await scopedParams(req, res);
+  if (!params) return;
+  const result = await teacherEffortDb.getTeacherEffortSummary(teacherId, params);
+  res.status(result.success ? 200 : 500).json(result);
+});
+
+export const exportTeacherEffortExcel = asyncHandler(async (req, res) => {
+  const { teacherId } = req.params;
+  if (!(await assertTeacherAccess(req, res, teacherId))) return;
+  const params = await scopedParams(req, res);
+  if (!params) return;
+  const result = await teacherEffortDb.exportTeacherEffortCSV(teacherId, params);
+  if (!result.success) {
+    return res.status(500).json(result);
   }
-};
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+  return res.send(result.data);
+});
 
-export const getSchedulingSummary = async (req, res) => {
-  try {
-    const params = await scopedParams(req, res);
-    if (!params) return;
-    const result = await schedulingSummaryDb.getSchedulingSummary(params);
-    res.status(result.success ? 200 : 500).json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Internal server error" });
+export const exportTeacherEffortPDF = asyncHandler(async (req, res) => {
+  const { teacherId } = req.params;
+  if (!(await assertTeacherAccess(req, res, teacherId))) return;
+  const params = await scopedParams(req, res);
+  if (!params) return;
+  const result = await teacherEffortDb.getTeacherEffortSummary(teacherId, params);
+  if (!result.success) {
+    return res.status(500).json(result);
   }
-};
+  return res.status(200).json({ success: true, data: result.data, format: 'pdf-ready' });
+});
 
-export const getBreakSessionSummary = async (req, res) => {
-  try {
-    const params = await scopedParams(req, res);
-    if (!params) return;
-    const result = await schedulingSummaryDb.getBreakSessionSummary(params);
-    res.status(result.success ? 200 : 500).json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Internal server error" });
-  }
-};
-
-export const getHolidaySummary = async (req, res) => {
-  try {
-    const params = parseQueryParams(req);
-    const result = await schedulingSummaryDb.getHolidaySummary(params);
-    res.status(result.success ? 200 : 500).json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Internal server error" });
-  }
-};
-
-export const getTeacherWorkloadSummary = async (req, res) => {
-  try {
-    const params = parseQueryParams(req);
-    const result = await schedulingSummaryDb.getTeacherWorkloadSummary(params);
-    res.status(result.success ? 200 : 500).json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Internal server error" });
-  }
-};
-
-export const getClassroomUtilizationSummary = async (req, res) => {
-  try {
-    const params = parseQueryParams(req);
-    const result = await schedulingSummaryDb.getClassroomUtilizationSummary(params);
-    res.status(result.success ? 200 : 500).json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Internal server error" });
-  }
-};
-
-export const getTeacherEffort = async (req, res) => {
-  try {
-    const { teacherId } = req.params;
-    if (!(await assertTeacherAccess(req, res, teacherId))) return;
-    const params = await scopedParams(req, res);
-    if (!params) return;
-    const result = await teacherEffortDb.getTeacherEffortSummary(teacherId, params);
-    res.status(result.success ? 200 : 500).json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Internal server error" });
-  }
-};
-
-export const exportTeacherEffortExcel = async (req, res) => {
-  try {
-    const { teacherId } = req.params;
-    if (!(await assertTeacherAccess(req, res, teacherId))) return;
-    const params = await scopedParams(req, res);
-    if (!params) return;
-    const result = await teacherEffortDb.exportTeacherEffortCSV(teacherId, params);
-    if (!result.success) {
-      return res.status(500).json(result);
-    }
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
-    return res.send(result.data);
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Internal server error" });
-  }
-};
-
-export const exportTeacherEffortPDF = async (req, res) => {
-  try {
-    const { teacherId } = req.params;
-    if (!(await assertTeacherAccess(req, res, teacherId))) return;
-    const params = await scopedParams(req, res);
-    if (!params) return;
-    const result = await teacherEffortDb.getTeacherEffortSummary(teacherId, params);
-    if (!result.success) {
-      return res.status(500).json(result);
-    }
-    return res.status(200).json({ success: true, data: result.data, format: 'pdf-ready' });
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Internal server error" });
-  }
-};
-
-export const getEffortReport = async (req, res) => {
-  try {
-    const params = await scopedParams(req, res);
-    if (!params) return;
-    if (params.reportFormat) params.reportFormat = req.query.reportFormat || 'summary';
-    const result = await effortReportDb.getEffortReport({
-      ...params,
-      reportFormat: req.query.reportFormat || 'summary',
-      term: req.query.term || null,
-      year: req.query.year || null,
-      subjectId: req.query.subjectId ? parseInt(req.query.subjectId, 10) : params.subjectId,
-      classId: req.query.classId ? parseInt(req.query.classId, 10) : null,
-    });
-    res.status(result.success ? 200 : 500).json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: "Internal server error" });
-  }
-};
+export const getEffortReport = asyncHandler(async (req, res) => {
+  const params = await scopedParams(req, res);
+  if (!params) return;
+  if (params.reportFormat) params.reportFormat = req.query.reportFormat || 'summary';
+  const result = await effortReportDb.getEffortReport({
+    ...params,
+    reportFormat: req.query.reportFormat || 'summary',
+    term: req.query.term || null,
+    year: req.query.year || null,
+    subjectId: req.query.subjectId ? parseInt(req.query.subjectId, 10) : params.subjectId,
+    classId: req.query.classId ? parseInt(req.query.classId, 10) : null,
+  });
+  res.status(result.success ? 200 : 500).json(result);
+});

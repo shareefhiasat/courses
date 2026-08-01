@@ -218,8 +218,28 @@ export async function exportDailyOfficialTemplate({
 }) {
   const resolvedClass = await resolveClassForExport(cls, { instructorName });
   const meta = buildClassMetadata(resolvedClass, program, subject, lang, { instructorName, academicTerm });
+
+  let roster = [];
+  if (resolvedClass?.id) {
+    try {
+      const studentsRes = await getStudentsByClass(resolvedClass.id);
+      const enrollments = studentsRes.success ? studentsRes.data : [];
+      roster = enrollments.map((e) => {
+        const studentUser = e.user || e;
+        return {
+          id: e.userId ?? studentUser.id ?? e.studentId,
+          user: studentUser,
+          studentNumber: studentUser.studentNumber || e.studentNumber,
+          sequence: e.sequence ?? e.studentOrder,
+        };
+      });
+    } catch {
+      // fall back to empty roster (blank template)
+    }
+  }
+
   const reportData = prepareDailyOfficialData({
-    roster: [],
+    roster,
     attendanceByUserId: {},
     lang,
     isStandup: false,

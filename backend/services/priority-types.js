@@ -29,7 +29,7 @@ export const getAllPriorityTypes = async (params = {}, user = null) => {
     console.error('[PriorityTypes Service] Error getting all priority types:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to get priority types',
+      error: 'Failed to get priority types',
       data: null
     };
   }
@@ -50,7 +50,7 @@ export const getPriorityTypeById = async (id, user = null) => {
     console.error('[PriorityTypes Service] Error getting priority type by ID:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to get priority type',
+      error: 'Failed to get priority type',
       data: null
     };
   }
@@ -105,7 +105,7 @@ export const createPriorityType = async (priorityTypeData, user = null) => {
     console.error('[PriorityTypes Service] Error creating priority type:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to create priority type',
+      error: 'Failed to create priority type',
       data: null
     };
   }
@@ -136,7 +136,7 @@ export const updatePriorityType = async (id, updateData, user = null) => {
     console.error('[PriorityTypes Service] Error updating priority type:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to update priority type',
+      error: 'Failed to update priority type',
       data: null
     };
   }
@@ -160,7 +160,7 @@ export const deletePriorityType = async (id, user = null) => {
     console.error('[PriorityTypes Service] Error deleting priority type:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to delete priority type',
+      error: 'Failed to delete priority type',
       data: null
     };
   }

@@ -135,7 +135,7 @@ export const getQuizzes = async (params = {}) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to get quizzes'
+      error: 'Failed to get quizzes'
     };
   }
 };
@@ -217,7 +217,7 @@ export const getQuizById = async (id) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to get quiz'
+      error: 'Failed to get quiz'
     };
   }
 };
@@ -345,7 +345,7 @@ export const createQuiz = async (quizData) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to create quiz'
+      error: 'Failed to create quiz'
     };
   }
 };
@@ -507,7 +507,7 @@ export const updateQuiz = async (id, quizData) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to update quiz'
+      error: 'Failed to update quiz'
     };
   }
 };
@@ -547,7 +547,7 @@ export const deleteQuiz = async (id) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to delete quiz'
+      error: 'Failed to delete quiz'
     };
   }
 };
@@ -615,7 +615,7 @@ export const getQuizStats = async (quizId) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to get quiz stats'
+      error: 'Failed to get quiz stats'
     };
   }
 };

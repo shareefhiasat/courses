@@ -217,7 +217,7 @@ const getEnrollments = async (params = {}) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to retrieve enrollments',
+      error: 'Failed to retrieve enrollments',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -320,7 +320,7 @@ const getEnrollmentById = async (id) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to retrieve enrollment',
+      error: 'Failed to retrieve enrollment',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -528,7 +528,7 @@ const create = async (enrollmentData, user = null) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to create enrollment',
+      error: 'Failed to create enrollment',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -644,7 +644,7 @@ const update = async (id, updateData, user = null) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to update enrollment',
+      error: 'Failed to update enrollment',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -706,7 +706,7 @@ const deleteEnrollment = async (id) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to delete enrollment',
+      error: 'Failed to delete enrollment',
       code: 'UNKNOWN_ERROR'
     };
   }

@@ -49,7 +49,7 @@ export const getAllClasses = async (params = {}, user = null) => {
     console.error('Error in getAllClasses:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to retrieve classes',
+      error: 'Failed to retrieve classes',
       data: []
     };
   }
@@ -78,7 +78,7 @@ export const getClassById = async (classId, user = null) => {
     console.error('Error in getClassById:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to retrieve class',
+      error: 'Failed to retrieve class',
       data: null
     };
   }
@@ -137,7 +137,7 @@ export const createClass = async (classData, user = null) => {
     console.error('Error in createClass:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to create class',
+      error: 'Failed to create class',
       data: null
     };
   }
@@ -175,7 +175,7 @@ export const updateClass = async (classId, updateData, user = null) => {
     console.error('Error in updateClass:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to update class',
+      error: 'Failed to update class',
       data: null
     };
   }
@@ -209,7 +209,7 @@ export const deleteClass = async (classId, user = null, options = {}) => {
     console.error('Error in deleteClass:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to delete class',
+      error: 'Failed to delete class',
       data: null
     };
   }
@@ -239,7 +239,7 @@ export const getClassesByProgram = async (programId, params = {}, user = null) =
     console.error('Error in getClassesByProgram:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to retrieve classes for program',
+      error: 'Failed to retrieve classes for program',
       data: []
     };
   }
@@ -269,7 +269,7 @@ export const getClassesBySubject = async (subjectId, params = {}, user = null) =
     console.error('Error in getClassesBySubject:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to retrieve classes for subject',
+      error: 'Failed to retrieve classes for subject',
       data: []
     };
   }
@@ -299,7 +299,7 @@ export const getClassesByInstructor = async (instructorId, params = {}, user = n
     console.error('Error in getClassesByInstructor:', error);
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to retrieve classes for instructor',
+      error: 'Failed to retrieve classes for instructor',
       data: []
     };
   }

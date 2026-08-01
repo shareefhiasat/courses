@@ -124,7 +124,7 @@ export const getSubjectTypes = async (params = {}) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to retrieve subject types'
+      error: 'Failed to retrieve subject types'
     };
   }
 };
@@ -210,7 +210,7 @@ export const getSubjectTypeById = async (id) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to retrieve subject type'
+      error: 'Failed to retrieve subject type'
     };
   }
 };
@@ -296,7 +296,7 @@ export const createSubjectType = async (data) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to create subject type'
+      error: 'Failed to create subject type'
     };
   }
 };
@@ -406,7 +406,7 @@ export const updateSubjectType = async (id, data) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to update subject type'
+      error: 'Failed to update subject type'
     };
   }
 };
@@ -475,7 +475,7 @@ export const deleteSubjectType = async (id) => {
     
     return {
       success: false,
-      error: 'Internal server error' || 'Failed to delete subject type'
+      error: 'Failed to delete subject type'
     };
   }
 };

@@ -27,6 +27,7 @@ import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
+import { formatTermDisplay, getLocalizedTermDisplay } from '@constants/gradingStandards';
 
 const NotificationsPage = () => {
   const { user, loading: authLoading } = useAuth();
@@ -340,9 +341,9 @@ const NotificationsPage = () => {
           <Select
             value={filterProgram}
             onChange={(e) => {
-              setFilterProgram(e.target.value);
-              setFilterSubject('all');
-              setFilterClass('all');
+              const v = e.target.value || 'all';
+              setFilterProgram(v);
+              if (v === 'all') { setFilterSubject('all'); setFilterClass('all'); }
             }}
             options={[
               { value: 'all', label: 'All Programs' },
@@ -356,27 +357,8 @@ const NotificationsPage = () => {
             fullWidth
           />
           <Select
-            value={filterSubject}
-            onChange={(e) => {
-              setFilterSubject(e.target.value);
-              setFilterClass('all');
-            }}
-            options={[
-              { value: 'all', label: 'All Subjects' },
-              ...(subjects || [])
-                .filter(s => filterProgram === 'all' || String(s.programId) === String(filterProgram))
-                .map(s => ({
-                  value: s.docId || s.id,
-                  label: `${s.code || ''} - ${s.nameEn || s.name || s.docId}`.trim()
-                }))
-            ]}
-            size="small"
-            searchable
-            fullWidth
-          />
-          <Select
             value={filterClass}
-            onChange={(e) => setFilterClass(e.target.value)}
+            onChange={(e) => setFilterClass(e.target.value || 'all')}
             options={[
               { value: 'all', label: 'All Classes' },
               ...(classes || [])
@@ -388,10 +370,19 @@ const NotificationsPage = () => {
                   }
                   return true;
                 })
-                .map(c => ({
-                  value: c.id || c.docId,
-                  label: `${c.name || c.code || 'Unnamed'}${c.term ? ` (${c.term})` : ''}`
-                }))
+                .map(c => {
+                  const rawName = c.name || c.code || 'Unnamed';
+                  const termDisplay = c.term ? getLocalizedTermDisplay(c.term, lang) : '';
+                  const yearPart = c.year || (c.term && c.term.includes('-') ? c.term.split('-').find(p => !Number.isNaN(Number(p))) : (c.term && c.term.includes(' ') ? c.term.split(' ').find(p => !Number.isNaN(Number(p))) : null));
+                  let cleanName = rawName;
+                  if (c.term) cleanName = cleanName.replace(c.term, '');
+                  if (yearPart) cleanName = cleanName.replace(new RegExp(`\\b${yearPart}\\b`, 'g'), '');
+                  const termName = c.term ? formatTermDisplay(c.term) : '';
+                  if (termName && termName !== c.term) cleanName = cleanName.replace(new RegExp(`\\b${termName}\\b`, 'gi'), '');
+                  cleanName = cleanName.replace(/\s+/g, ' ').replace(/\s+-$/, '').replace(/^-\s+/, '').trim() || rawName;
+                  const suffix = [termDisplay, yearPart].filter(Boolean).join(' ');
+                  return { value: c.id || c.docId, label: suffix ? `${cleanName} (${suffix})` : cleanName };
+                })
             ]}
             size="small"
             searchable
@@ -399,15 +390,21 @@ const NotificationsPage = () => {
           />
           <Select
             value={filterYear}
-            onChange={(e) => setFilterYear(e.target.value)}
+            onChange={(e) => setFilterYear(e.target.value || 'all')}
             options={[
               { value: 'all', label: 'All Years' },
               ...Array.from(new Set((classes || []).map(c => {
                 if (c.year) return String(c.year);
-                if (c.term && c.term.includes(' ')) {
-                  const parts = c.term.split(' ');
-                  if (parts.length > 1 && !isNaN(parts[parts.length - 1])) {
-                    return parts[parts.length - 1];
+                if (c.term) {
+                  if (c.term.includes(' ')) {
+                    const parts = c.term.split(' ');
+                    if (parts.length > 1 && !isNaN(parts[parts.length - 1])) {
+                      return parts[parts.length - 1];
+                    }
+                  }
+                  if (c.term.includes('-')) {
+                    const yearPart = c.term.split('-').find(p => !Number.isNaN(Number(p)));
+                    if (yearPart) return yearPart;
                   }
                 }
                 return null;
@@ -418,10 +415,10 @@ const NotificationsPage = () => {
           />
           <Select
             value={filterSemester}
-            onChange={(e) => setFilterSemester(e.target.value)}
+            onChange={(e) => setFilterSemester(e.target.value || 'all')}
             options={[
               { value: 'all', label: t('all_semesters') },
-              ...Array.from(new Set((subjects || []).map(s => s.semester).filter(Boolean))).map(v => ({ value: v, label: v }))
+              ...Array.from(new Set((classes || []).map(c => c.term ? formatTermDisplay(c.term) : null).filter(Boolean))).map(v => ({ value: v, label: getLocalizedTermDisplay(v, lang) }))
             ]}
             size="small"
             fullWidth

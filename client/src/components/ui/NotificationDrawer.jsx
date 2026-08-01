@@ -19,7 +19,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import useResizableDrawer from '@hooks/useResizableDrawer';
 import { formatDateTime } from '@utils/date';
-import { formatNotificationTime, filterNotifications as filterNotificationsUtil, groupNotificationsByDate, gotoFromNotification as gotoFromNotificationUtil, WORKFLOW_NOTIFICATION_STATUS_FILTERS, getWorkflowSubgroupColor, getWorkflowStatusKey, getLocalizedNotificationTitle } from '@utils/notificationHelpers';
+import { formatNotificationTime, filterNotifications as filterNotificationsUtil, groupNotificationsByDate, gotoFromNotification as gotoFromNotificationUtil, WORKFLOW_NOTIFICATION_STATUS_FILTERS, getWorkflowSubgroupColor, getWorkflowStatusKey, getLocalizedNotificationTitle, getLocalizedWorkflowName } from '@utils/notificationHelpers';
 import Input from './Input';
 import Select from './Select';
 import { RECORD_TYPES } from '@utils/sharedTypes';
@@ -32,6 +32,7 @@ import useNotifications from '@hooks/useNotifications';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import { useToast } from '@ui';
+import { formatTermDisplay, getLocalizedTermDisplay } from '@constants/gradingStandards';
 
 // ── Notification Card (extracted for reuse in sub-groups) ──────────────────
 const NotificationCard = ({ notification, idx, isDark, isRTL, theme, t, lang, formatTime, hoveredCard, setHoveredCard, gotoFromNotification, handleMarkAsRead, handleMarkAsUnread, handleArchive, handleUnarchive, handleDelete, iconBtnStyle, getNotificationIcon, getCategoryColor, getNotificationBorderColor, PortalTooltip, getThemedIcon, motion, AnimatePresence, programs, classes }) => {
@@ -326,7 +327,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
     if (filterSubject && filterSubject !== 'all') setFilterSubject(String(filterSubject));
     if (filterProgram && filterProgram !== 'all') setFilterProgram(String(filterProgram));
     if (filterYear && filterYear !== 'all') setFilterYear(String(filterYear));
-    if (filterSemester && filterSemester !== 'all') setFilterSemester(String(filterSemester));
+    if (filterSemester && filterSemester !== 'all') setFilterSemester(formatTermDisplay(String(filterSemester)));
     if (openAdvanced) setShowAdvanced(true);
   }, [isOpen, initialFilters]);
 
@@ -354,7 +355,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
     if (isHR && !isAdmin && !isSuperAdmin) {
       feed = notifications.filter((n) => getWorkflowStatusKey(n) !== 'REJECTED');
     }
-    return filterNotificationsUtil({
+    const result = filterNotificationsUtil({
       notifications: feed,
       filterType,
       filterCategory,
@@ -372,6 +373,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
       subjects,
       classes
     });
+    return result;
   }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, searchTerm, showArchived, filterProgram, filterSubject, filterClass, filterYear, filterSemester, filterWorkflowStatus, subjects, classes, isHR, isAdmin, isSuperAdmin]);
 
   const hasActiveFilters = searchTerm.trim()
@@ -833,25 +835,10 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
                 <div style={{ marginBottom: '0.3rem' }}>
                   <Select
                     value={filterProgram}
-                    onChange={(e) => { setFilterProgram(e.target.value); setFilterSubject('all'); setFilterClass('all') }}
+                    onChange={(e) => { const v = e.target.value || 'all'; setFilterProgram(v); if (v === 'all') { setFilterSubject('all'); setFilterClass('all'); } }}
                     options={[
                       { value: 'all', label: t('all_programs') },
                       ...(programs || []).map(p => ({ value: p.docId || p.id, label: p.nameEn || p.name || p.code || p.docId }))
-                    ]}
-                    size="small" searchable fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
-                  />
-                </div>
-                {/* Subject — own row */}
-                <div style={{ marginBottom: '0.3rem' }}>
-                  <Select
-                    value={filterSubject}
-                    onChange={(e) => { setFilterSubject(e.target.value); setFilterClass('all') }}
-                    options={[
-                      { value: 'all', label: t('all_subjects') },
-                      ...(subjects || []).filter(s => filterProgram === 'all' || String(s.programId) === String(filterProgram)).map(s => ({
-                        value: s.docId || s.id,
-                        label: `${s.code || ''} - ${s.nameEn || s.name || s.docId}`.trim()
-                      }))
                     ]}
                     size="small" searchable fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
                   />
@@ -860,7 +847,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
                 <div style={{ marginBottom: '0.3rem' }}>
                   <Select
                     value={filterClass}
-                    onChange={(e) => setFilterClass(e.target.value)}
+                    onChange={(e) => setFilterClass(e.target.value || 'all')}
                     options={[
                       { value: 'all', label: t('all_classes') },
                       ...(classes || []).filter(c => {
@@ -870,7 +857,20 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
                           if (!subject || String(subject.programId) !== String(filterProgram)) return false;
                         }
                         return true;
-                      }).map(c => ({ value: c.id || c.docId, label: `${c.name || c.code || 'Unnamed'}${c.term ? ` (${c.term})` : ''}` }))
+                      }).map(c => {
+                      const rawName = c.name || c.code || 'Unnamed';
+                      const termDisplay = c.term ? getLocalizedTermDisplay(c.term, lang) : ''
+                      const yearPart = c.year || (c.term && c.term.includes('-') ? c.term.split('-').find(p => !Number.isNaN(Number(p))) : (c.term && c.term.includes(' ') ? c.term.split(' ').find(p => !Number.isNaN(Number(p))) : null));
+                      // Clean the class name by removing embedded year/term parts
+                      let cleanName = rawName;
+                      if (c.term) cleanName = cleanName.replace(c.term, '');
+                      if (yearPart) cleanName = cleanName.replace(new RegExp(`\\b${yearPart}\\b`, 'g'), '');
+                      const termName = c.term ? formatTermDisplay(c.term) : ''
+                      if (termName && termName !== c.term) cleanName = cleanName.replace(new RegExp(`\\b${termName}\\b`, 'gi'), '');
+                      cleanName = cleanName.replace(/\s+/g, ' ').replace(/\s+-$/, '').replace(/^-\s+/, '').trim() || rawName;
+                      const suffix = [termDisplay, yearPart].filter(Boolean).join(' ')
+                      return { value: c.id || c.docId, label: suffix ? `${cleanName} (${suffix})` : cleanName }
+                    })
                     ]}
                     size="small" searchable fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
                   />
@@ -883,14 +883,20 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
                 }}>
                   <Select
                     value={filterYear}
-                    onChange={(e) => setFilterYear(e.target.value)}
+                    onChange={(e) => setFilterYear(e.target.value || 'all')}
                     options={[
                       { value: 'all', label: t('notifications.all_years') },
                       ...Array.from(new Set((classes || []).map(c => {
                         if (c.year) return String(c.year);
-                        if (c.term && c.term.includes(' ')) {
-                          const parts = c.term.split(' ');
-                          if (parts.length > 1 && !isNaN(parts[parts.length - 1])) return parts[parts.length - 1];
+                        if (c.term) {
+                          if (c.term.includes(' ')) {
+                            const parts = c.term.split(' ');
+                            if (parts.length > 1 && !isNaN(parts[parts.length - 1])) return parts[parts.length - 1];
+                          }
+                          if (c.term.includes('-')) {
+                            const yearPart = c.term.split('-').find(p => !Number.isNaN(Number(p)));
+                            if (yearPart) return yearPart;
+                          }
                         }
                         return null;
                       }).filter(Boolean))).sort((a, b) => Number(b) - Number(a)).map(y => ({ value: y, label: y }))
@@ -899,10 +905,10 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
                   />
                   <Select
                     value={filterSemester}
-                    onChange={(e) => setFilterSemester(e.target.value)}
+                    onChange={(e) => setFilterSemester(e.target.value || 'all')}
                     options={[
                       { value: 'all', label: t('notifications.all_semesters') },
-                      ...Array.from(new Set((subjects || []).map(s => s.semester).filter(Boolean))).map(v => ({ value: v, label: v }))
+                      ...Array.from(new Set((classes || []).map(c => c.term ? formatTermDisplay(c.term) : null).filter(Boolean))).map(v => ({ value: v, label: getLocalizedTermDisplay(v, lang) }))
                     ]}
                     size="small" fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
                   />

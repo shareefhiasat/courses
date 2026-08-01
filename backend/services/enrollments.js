@@ -63,7 +63,7 @@ export const getAllEnrollments = async (params = {}, user = null) => {
     console.error(`[${serviceName}] Error in getAllEnrollments:`, error);
     return {
       success: false,
-      error: 'Internal server error' || "Failed to retrieve enrollments",
+      error: "Failed to retrieve enrollments",
       data: [],
       total: 0,
     };
@@ -104,7 +104,7 @@ export const getEnrollmentById = async (id, user = null) => {
     console.error(`[${serviceName}] Error in getEnrollmentById:`, error);
     return {
       success: false,
-      error: 'Internal server error' || "Failed to retrieve enrollment",
+      error: "Failed to retrieve enrollment",
       data: null,
     };
   }
@@ -220,7 +220,7 @@ const prisma = (await import('../db/prismaClient.js')).default;
     console.error(`[${serviceName}] Error in createEnrollment:`, error);
     return {
       success: false,
-      error: 'Internal server error' || "Failed to create enrollment",
+      error: "Failed to create enrollment",
       data: null,
     };
   }
@@ -344,7 +344,7 @@ const prisma = (await import('../db/prismaClient.js')).default;
     console.error(`[${serviceName}] Error in updateEnrollment:`, error);
     return {
       success: false,
-      error: 'Internal server error' || "Failed to update enrollment",
+      error: "Failed to update enrollment",
       data: null,
     };
   }
@@ -446,7 +446,7 @@ const prisma = (await import('../db/prismaClient.js')).default;
     console.error(`[${serviceName}] Error in deleteEnrollment:`, error);
     return {
       success: false,
-      error: 'Internal server error' || "Failed to delete enrollment",
+      error: "Failed to delete enrollment",
     };
   }
 };
@@ -494,7 +494,7 @@ export const getEnrollmentsByStudent = async (
     console.error(`[${serviceName}] Error in getEnrollmentsByStudent:`, error);
     return {
       success: false,
-      error: 'Internal server error' || "Failed to retrieve student enrollments",
+      error: "Failed to retrieve student enrollments",
       data: [],
       total: 0,
     };
@@ -543,9 +543,6 @@ export const getEnrollmentsByProgram = async (
   user = null,
 ) => {
   try {
-    console.log('🔍 [EnrollmentsService] getEnrollmentsByProgram - programId:', programId);
-    console.log('🔍 [EnrollmentsService] getEnrollmentsByProgram - params:', params);
-    console.log('🔍 [EnrollmentsService] getEnrollmentsByProgram - user:', user);
     
     // Add business logic filters if needed
     const businessParams = { ...params, programId };
@@ -576,7 +573,6 @@ export const getEnrollmentsByProgram = async (
     // Use the db service which already supports programId filtering
     const result = await enrollmentDbService.getEnrollments(businessParams);
 
-    console.log('🔍 [EnrollmentsService] getEnrollmentsByProgram - result:', result);
 
     return {
       ...result,

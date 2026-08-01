@@ -28,6 +28,19 @@ export const WORKFLOW_STATUS_COLORS = {
   REJECTED: '#ef4444',
 };
 
+export const WORKFLOW_STATUS_BADGE_COLORS = {
+  APPROVED: { bg: '#16a34a', text: '#ffffff', border: '#16a34a' },
+  REJECTED: { bg: '#dc2626', text: '#ffffff', border: '#dc2626' },
+  DRAFT: { bg: '#6b7280', text: '#ffffff', border: '#6b7280' },
+  SUBMITTED: { bg: '#2563eb', text: '#ffffff', border: '#2563eb' },
+  UNDER_ADMIN_REVIEW: { bg: '#f59e0b', text: '#ffffff', border: '#f59e0b' },
+  UNDER_HR_REVIEW: { bg: '#e11d48', text: '#ffffff', border: '#e11d48' },
+};
+
+export function getWorkflowBadgeColor(status) {
+  return WORKFLOW_STATUS_BADGE_COLORS[status] || { bg: '#6b7280', text: '#ffffff', border: '#6b7280' };
+}
+
 /** Sky blue for participation indicators on the operations board */
 export const BOARD_PARTICIPATION_COLOR = '#38bdf8';
 
