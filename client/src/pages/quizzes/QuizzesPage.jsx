@@ -1242,7 +1242,6 @@ export default function QuizzesPage() {
                             variant="outline"
                             size="sm"
                             className={QuizManagementPageStyles.iconButton}
-                            title={t('preview_quiz')}
                             aria-label={t('preview_quiz')}
                             onClick={() => handlePreview(quiz.id)}
                           >
@@ -1252,7 +1251,6 @@ export default function QuizzesPage() {
                             variant="outline"
                             size="sm"
                             className={QuizManagementPageStyles.iconButton}
-                            title={t('edit_quiz')}
                             aria-label={t('edit_quiz')}
                             onClick={() => handleEdit(quiz)}
                           >
@@ -1264,7 +1262,6 @@ export default function QuizzesPage() {
                             className={QuizManagementPageStyles.iconButton}
                             onClick={() => handleDelete(quiz.id)}
                             disabled={deleting === quiz.id}
-                            title={t('delete_quiz')}
                             aria-label={t('delete_quiz')}
                           >
                             {deleting === quiz.id ? (
@@ -1582,7 +1579,6 @@ export default function QuizzesPage() {
                     variant="outline"
                     size="sm"
                     onClick={addQuestion}
-                    title={t('add_question_btn')}
                   >
                     {getThemedIcon('ui', 'plus', 14, theme)}
                   </Button>
@@ -1718,7 +1714,6 @@ export default function QuizzesPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => addOption(activeQuestionIndex)}
-                                title={t('add_option')}
                               >
                                 {getThemedIcon('ui', 'plus', 14, theme)}
                               </Button>
@@ -1748,7 +1743,6 @@ export default function QuizzesPage() {
                                       color: option.correct ? '#fff' : (theme === 'light' ? '#6b7280' : 'rgba(255,255,255,0.5)'),
                                       border: option.correct ? '2px solid #10b981' : '1px solid ' + (theme === 'light' ? '#d1d5db' : 'rgba(255,255,255,0.2)')
                                     }}
-                                    title={option.correct ? t('mark_as_incorrect') : t('mark_as_correct')}
                                   >
                                     {option.correct ? getThemedIcon('ui', 'check_circle', 16, theme) : getThemedIcon('ui', 'x_circle', 16, theme)}
                                   </button>
@@ -1786,7 +1780,6 @@ export default function QuizzesPage() {
                                           deleteOption(activeQuestionIndex, option.id);
                                         }
                                       }}
-                                      title={t('delete_option_label')}
                                     >
                                       {getThemedIcon('ui', 'trash', 14, theme)}
                                     </button>

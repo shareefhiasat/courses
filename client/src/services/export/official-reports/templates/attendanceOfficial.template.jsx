@@ -1,6 +1,6 @@
 import React from 'react';
 import { OFFICIAL_HEADER } from '../shared/officialHeader.js';
-import { buildWatermarkLines } from '../engine/watermark.js';
+import { buildWatermarkLines, buildStatusWatermark } from '../engine/watermark.js';
 import styles from './officialReport.module.css';
 
 const TABLE_LABELS = {
@@ -97,7 +97,11 @@ function ViolationsTableBody({ dateGroups, labels }) {
 }
 
 function ViolationsPage({ data, dateGroups, labels, showHeader, showFooter, showWatermark }) {
-  const wm = buildWatermarkLines(data.watermarkUser);
+  const statusWm = data.watermarkStatus
+    ? buildStatusWatermark(data.watermarkStatus, data.approvedByUser, data.lang, data.approvedAt, data.watermarkUser, data.serial)
+    : null;
+  const fallbackWm = buildWatermarkLines(data.watermarkUser);
+  const wm = statusWm || fallbackWm;
 
   return (
     <div
@@ -105,11 +109,11 @@ function ViolationsPage({ data, dateGroups, labels, showHeader, showFooter, show
       className={`${styles.officialPage} ${data.lang === 'ar' ? styles.officialPageRtl : ''} ${styles.arabicShapedText}`}
       lang={data.lang === 'ar' ? 'ar' : 'en'}
     >
-      {showWatermark && (wm.en || wm.ar || wm.uuid) && (
-        <div className={styles.officialWatermark} aria-hidden>
-          {wm.en && <div>{wm.en}</div>}
-          {wm.ar && wm.ar !== wm.en && <div>{wm.ar}</div>}
-          {wm.uuid && <div style={{ fontSize: '7px', opacity: 0.5, marginTop: '12px' }}>{wm.uuid}</div>}
+      {showWatermark && (wm?.en || wm?.ar || wm?.uuid) && (
+        <div className={`${styles.officialWatermark} ${wm?.status === 'approved' ? styles.officialWatermarkApproved : ''} ${wm?.status && wm?.status !== 'approved' ? styles.officialWatermarkDraft : ''}`} style={{ color: wm?.color }} aria-hidden>
+          {wm.en && String(wm.en).split(' — ').map((line, i) => <div key={`e-${i}`}>{line}</div>)}
+          {wm.ar && wm.ar !== wm.en && String(wm.ar).split(' — ').map((line, i) => <div key={`a-${i}`}>{line}</div>)}
+          {wm.uuid && <div>{wm.uuid}</div>}
         </div>
       )}
       <div className={`${styles.officialContent} ${showFooter ? styles.officialContentFlex : ''}`}>

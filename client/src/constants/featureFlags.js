@@ -49,6 +49,57 @@ export const FEATURE_FLAGS = {
     enabledForRoles: [ROLE_STRINGS.INSTRUCTOR, ROLE_STRINGS.ADMIN, ROLE_STRINGS.HR, ROLE_STRINGS.SUPER_ADMIN],
     defaultValue: true,
     version: '1.0.0'
+  },
+
+  HELP_COMMAND_PALETTE: {
+    id: 'HELP_COMMAND_PALETTE',
+    name: 'Help Command Palette',
+    description: 'Enables the Cmd/Ctrl+K help palette and help icon',
+    category: 'help',
+    enabledForRoles: [],
+    defaultValue: false,
+    version: '1.0.0'
+  },
+
+  JOYRIDE_TOUR: {
+    id: 'JOYRIDE_TOUR',
+    name: 'Joyride Guided Tour',
+    description: 'Enables the joyride walkthrough tour on the home page',
+    category: 'help',
+    enabledForRoles: [],
+    defaultValue: false,
+    version: '1.0.0'
+  },
+
+  // Beta / rollout-controlled features
+  MARKS_TAB: {
+    id: 'MARKS_TAB',
+    name: 'Marks Tab',
+    description: 'Shows the student marks report tab in the Welcome and Student Dashboard pages',
+    category: 'beta',
+    enabledForRoles: [],
+    defaultValue: false,
+    version: '1.0.0'
+  },
+
+  AI_BALLOON: {
+    id: 'AI_BALLOON',
+    name: 'AI Help Balloon',
+    description: 'Shows the floating AI help balloon (MiniChatBalloon) on the Welcome page',
+    category: 'beta',
+    enabledForRoles: [],
+    defaultValue: true,
+    version: '1.0.0'
+  },
+
+  CHAT_DM_RESTRICTIONS: {
+    id: 'CHAT_DM_RESTRICTIONS',
+    name: 'Chat DM Restrictions',
+    description: 'Restricts direct messaging: students cannot chat with other students, and instructors can only message admins',
+    category: 'beta',
+    enabledForRoles: [],
+    defaultValue: true,
+    version: '1.0.0'
   }
 };
 
@@ -120,6 +171,20 @@ export const getFeaturesByCategory = (category) => {
  */
 export const featureExists = (featureId) => {
   return FEATURE_FLAGS.hasOwnProperty(featureId);
+};
+
+/**
+ * Check if a feature is globally enabled (role-agnostic).
+ * Returns true when the flag has a truthy defaultValue or is enabled for at least one role.
+ * Useful for kill-switches in non-component code (e.g. tour scheduler).
+ * @param {string} featureId - Feature flag ID
+ * @returns {boolean} Whether the feature is enabled for anyone
+ */
+export const isFeatureGloballyEnabled = (featureId) => {
+  const feature = FEATURE_FLAGS[featureId];
+  if (!feature) return false;
+  if (feature.defaultValue) return true;
+  return Array.isArray(feature.enabledForRoles) && feature.enabledForRoles.length > 0;
 };
 
 /**

@@ -23,6 +23,8 @@ import {
 } from '../db/workflowDocuments-postgres.js';
 import prisma from '../db/prismaClient.js';
 import { putObject, deleteObject, BUCKETS, ensureBuckets, getObjectMetadata, listObjectVersions, streamObjectVersion, copyObject } from './minioService.js';
+import { BUCKET_TYPES } from '../constants/driveConstants.js';
+import { ENROLLMENT_STATUS_CODES } from '../constants/enrollmentConstants.js';
 import { byRole } from './notifications/recipients.js';
 import { v4 as uuidv4 } from 'uuid';
 import { buildTaxonomyFields, resolveApprovalFlow } from '../utils/workflowTaxonomy.js';
@@ -33,6 +35,7 @@ import { EVENTS } from './notifications/constants.js';
 import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 import { getEffectiveDataScope } from './scopeResolver.js';
 import { LMS_ROLES } from './keycloakAdminService.js';
+import { ATTENDANCE_STATUS_CODES, normalizeAttendanceStatus } from '../constants/attendanceConstants.js';
 
 
 /**
@@ -193,6 +196,102 @@ export async function shareWorkflowFile({
 }
 
 /**
+ * Replace/upload a new file (e.g. watermarked warning letter) for a workflow document.
+ * Used during approve/reject of ATTENDANCE_WARNING workflows.
+ *
+ * @param {Object} params
+ * @param {Object} params.document - The workflow document being updated
+ * @param {string} params.fileData - Base64-encoded file content
+ * @param {string} params.fileName - File name including extension
+ * @param {string} params.fileType - MIME type
+ * @param {number} params.actorId - ID of the user uploading the file
+ * @param {string} params.status - Status used for the watermark/object key (APPROVED, REJECTED, etc.)
+ * @returns {Promise<{success: boolean, fileId?: string, fileVersionId?: string, objectKey?: string, error?: string}>}
+ */
+export async function replaceWorkflowDocumentFile({
+  document,
+  fileData,
+  fileName,
+  fileType,
+  actorId,
+  status,
+}) {
+  try {
+    if (!fileData || !fileName || !fileType) {
+      return { success: false, error: 'Missing file data' };
+    }
+
+    const timestamp = Date.now();
+    const fileExtension = fileName.split('.').pop() || 'pdf';
+    const statusSlug = status ? String(status).toLowerCase() : 'approved';
+    const objectKey = `attendance/warning/${document.program || 'ALL'}/${document.subject || 'ALL'}/${document.classId || 0}/${document.targetStudentId || 0}/${timestamp}_${statusSlug}.pdf`;
+
+    const buffer = Buffer.from(fileData, 'base64');
+    await ensureBuckets();
+    await putObject(BUCKETS.WORKFLOW, objectKey, buffer, buffer.length, { 'Content-Type': fileType });
+
+    const metadata = await getObjectMetadata(BUCKETS.WORKFLOW, objectKey);
+    const minioVersionId = metadata.versionId;
+
+    const file = await prisma.file.create({
+      data: {
+        id: uuidv4(),
+        s3Key: objectKey,
+        bucket: BUCKET_TYPES.WORKFLOW,
+        name: fileName,
+        mimeType: fileType,
+        size: buffer.length,
+        ownerId: actorId,
+        folderId: null,
+        folderPath: null,
+        currentVersionId: null,
+        isActive: true,
+        isStarred: false,
+        isDeleted: false,
+      },
+    });
+
+    const fileVersion = await prisma.fileVersion.create({
+      data: {
+        fileId: file.id,
+        versionNumber: 1,
+        s3Key: objectKey,
+        size: buffer.length,
+        uploadedById: actorId,
+        changeNote: `Warning letter ${statusSlug} and attached by ${actorId}`,
+        minioVersionId,
+        isCurrent: true,
+      },
+    });
+
+    await prisma.file.update({
+      where: { id: file.id },
+      data: { currentVersionId: fileVersion.id },
+    });
+
+    // Share with the appropriate approval-flow role
+    await shareWorkflowFile({
+      fileId: file.id,
+      submitterId: actorId,
+      approvalFlow: resolveApprovalFlow(document),
+      classId: document.classId,
+      workflowCategory: document.workflowCategory,
+      attendanceSubtype: document.attendanceSubtype,
+    });
+
+    return {
+      success: true,
+      fileId: file.id,
+      fileVersionId: fileVersion.id,
+      objectKey,
+    };
+  } catch (err) {
+    console.error('[replaceWorkflowDocumentFile] error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
  * Statuses considered "in-progress" — a new workflow should not be created
  * while one of these exists for the same dedup scope.
  */
@@ -215,6 +314,7 @@ const IN_PROGRESS_STATUSES = [
  *   PENALTY                   → classId + targetStudentId
  *   BEHAVIOR                  → classId + targetStudentId
  *   DISCONTINUATION           → classId + targetStudentId
+ *   MARKS (general/marksReportType metadata) → program + dateFrom + dateTo + marksReportType + academicTermId
  *   GENERAL                   → exempt (no dedup)
  *
  * @returns {Promise<{isDuplicate: boolean, existingDocument?: object, existingDraft?: object}>}
@@ -227,7 +327,41 @@ export async function checkDuplicateWorkflow({
   dateFrom,
   dateTo,
   targetStudentId,
+  program,
+  metadata,
 }) {
+  if (workflowCategory === 'GENERAL' && metadata?.marksReportType) {
+    const where = {
+      workflowCategory: 'GENERAL',
+      status: { in: [...IN_PROGRESS_STATUSES, 'APPROVED'] },
+    };
+    if (program) where.program = program;
+    if (dateFrom) where.dateFrom = new Date(dateFrom);
+    if (dateTo) where.dateTo = new Date(dateTo);
+
+    const existingDocs = await prisma.workflowDocument.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+    const existing = existingDocs.find((d) => {
+      const meta = d.metadata || {};
+      return (
+        meta.marksReportType === metadata.marksReportType &&
+        meta.academicTermId === metadata.academicTermId
+      );
+    });
+
+    if (!existing) return { isDuplicate: false };
+
+    if (existing.status === 'DRAFT') {
+      return { isDuplicate: true, existingDraft: existing };
+    }
+    if (existing.status === 'APPROVED') {
+      return { isDuplicate: true, existingApproved: existing };
+    }
+    return { isDuplicate: true, existingDocument: existing };
+  }
+
   if (workflowCategory === 'GENERAL') {
     return { isDuplicate: false };
   }
@@ -235,11 +369,12 @@ export async function checkDuplicateWorkflow({
   // For ATTENDANCE/DAILY, only one DRAFT is allowed at a time.
   // If a DRAFT exists → block with existingDraft (user must reject it first).
   // If a non-DRAFT in-progress exists → hard block with existingDocument.
+  // If an APPROVED exists → block (no new workflow once approved).
   if (workflowCategory === 'ATTENDANCE' && attendanceSubtype === 'DAILY') {
     const where = {
       workflowCategory: 'ATTENDANCE',
       attendanceSubtype: 'DAILY',
-      status: { in: IN_PROGRESS_STATUSES },
+      status: { in: [...IN_PROGRESS_STATUSES, 'APPROVED'] },
     };
     if (classId) where.classId = Number(classId);
     if (date) where.date = new Date(date);
@@ -260,11 +395,15 @@ export async function checkDuplicateWorkflow({
       return { isDuplicate: true, existingDraft: existing };
     }
 
+    if (existing.status === 'APPROVED') {
+      return { isDuplicate: true, existingApproved: existing };
+    }
+
     return { isDuplicate: true, existingDocument: existing };
   }
 
   const where = {
-    status: { in: IN_PROGRESS_STATUSES },
+    status: { in: [...IN_PROGRESS_STATUSES, ...(workflowCategory === 'ATTENDANCE' && attendanceSubtype === 'WEEKLY_SUMMARY' ? ['APPROVED'] : [])] },
   };
 
   if (classId) {
@@ -367,14 +506,23 @@ export async function createWorkflowDocumentWithUpload(data) {
       targetStudentId,
     });
     if (dedupCheck.isDuplicate) {
+      const errorKey = dedupCheck.existingDraft
+        ? 'workflow_error_draft_exists'
+        : dedupCheck.existingApproved
+        ? 'workflow_error_approved_exists'
+        : 'workflow_error_in_progress_exists';
       return {
         success: false,
         code: 409,
+        errorKey,
         error: dedupCheck.existingDraft
           ? 'A draft workflow already exists for this class and date. Reject it first to create a new one.'
+          : dedupCheck.existingApproved
+          ? 'An approved workflow already exists for this class and date. No new workflow can be created.'
           : 'An in-progress workflow already exists for this scope',
         existingDocument: dedupCheck.existingDocument,
         existingDraft: dedupCheck.existingDraft,
+        existingApproved: dedupCheck.existingApproved,
       };
     }
 
@@ -408,14 +556,14 @@ export async function createWorkflowDocumentWithUpload(data) {
         data: {
           id: uuidv4(),
           s3Key: objectKey,
-          bucket: BUCKETS.WORKFLOW,
+          bucket: BUCKET_TYPES.WORKFLOW,
           name: fileName,
           mimeType: fileType,
           size: fileSize,
           ownerId: submitterId,
           folderId: null,
           folderPath: null,
-          currentVersionId: minioVersionId,
+          currentVersionId: null,
           isActive: true,
           isStarred: false,
           isDeleted: false,
@@ -516,6 +664,39 @@ export async function createWorkflowDocumentWithUpload(data) {
       attendanceSubtype: taxonomy.attendanceSubtype,
     });
 
+    // Notify the appropriate reviewers
+    try {
+      const isWeekly = taxonomy.attendanceSubtype === 'WEEKLY_SUMMARY';
+      const targetRole = isWeekly ? LMS_ROLES.ADMIN : LMS_ROLES.HR;
+      const submitter = result.document.submitter;
+      const cls = result.document.class;
+
+      await notificationGateway.emit(
+        EVENTS.WORKFLOW_SUBMITTED,
+        {
+          ...buildNotificationNameVars(submitter, 'Unknown User'),
+          workflowName: result.document.title,
+          documentId: result.document.id,
+          workflowType: result.document.workflowType,
+          workflowCategory: result.document.workflowCategory,
+          attendanceSubtype: result.document.attendanceSubtype,
+          classId: result.document.classId,
+          className: cls?.nameEn || null,
+          classNameAr: cls?.nameAr || cls?.nameEn || null,
+          date: result.document.date,
+          dateFrom: result.document.dateFrom,
+          dateTo: result.document.dateTo,
+          program: result.document.program,
+          senderName: submitter?.displayName || 'Unknown',
+          senderId: submitterId,
+        },
+        { dbId: submitterId },
+        { role: targetRole, excludeInstructors: isWeekly }
+      );
+    } catch (notificationError) {
+      console.error('[createWorkflowDocumentWithUpload] Failed to emit notification:', notificationError);
+    }
+
     return { 
       success: true, 
       data: {
@@ -610,7 +791,7 @@ export async function addComment(data) {
       if (doc) {
         const author = await prisma.user.findUnique({
           where: { id: authorId },
-          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, keycloakId: true }
         });
 
         const commentPreview = comment && comment.length > 80 ? comment.substring(0, 80) + '...' : comment;
@@ -685,7 +866,7 @@ export async function deleteComment(commentId, userId, userRoles) {
     console.log('[deleteComment] Comment found:', comment);
 
     if (!comment) {
-      return { success: false, error: 'Comment not found' };
+      return { success: false, errorKey: 'workflow_error_comment_not_found', error: 'Comment not found' };
     }
 
     // Check if user is Super Admin
@@ -694,7 +875,7 @@ export async function deleteComment(commentId, userId, userRoles) {
 
     // Only comment author or Super Admin can delete
     if (comment.authorId !== userId && !isSuperAdmin) {
-      return { success: false, error: 'Insufficient permissions to delete comment' };
+      return { success: false, errorKey: 'workflow_error_comment_delete_permission', error: 'Insufficient permissions to delete comment' };
     }
 
     return await deleteWorkflowCommentFromDB(commentId);
@@ -722,19 +903,19 @@ export async function resubmitWorkflowDocument(data) {
     // Get existing document
     const existingDoc = await getWorkflowDocumentById(documentId);
     if (!existingDoc.success) {
-      return { success: false, error: 'Document not found' };
+      return { success: false, errorKey: 'workflow_error_document_not_found', error: 'Document not found' };
     }
 
     const document = existingDoc.data;
 
     // Validate that user is the submitter
     if (document.submitterId !== submitterId) {
-      return { success: false, error: 'Only the submitter can resubmit this document' };
+      return { success: false, errorKey: 'workflow_error_only_submitter_resubmit', error: 'Only the submitter can resubmit this document' };
     }
 
     // Validate that document is rejected
     if (document.status !== 'REJECTED') {
-      return { success: false, error: 'Only rejected documents can be resubmitted' };
+      return { success: false, errorKey: 'workflow_error_only_rejected_can_resubmit', error: 'Only rejected documents can be resubmitted' };
     }
 
     // Generate structured file name with version
@@ -757,14 +938,14 @@ export async function resubmitWorkflowDocument(data) {
       data: {
         id: uuidv4(),
         s3Key: objectKey,
-        bucket: BUCKETS.WORKFLOW,
+        bucket: BUCKET_TYPES.WORKFLOW,
         name: fileName,
         mimeType: fileType,
         size: buffer.length,
         ownerId: submitterId,
         folderId: null,
         folderPath: null,
-        currentVersionId: minioVersionId,
+        currentVersionId: null,
         isActive: true,
         isStarred: false,
         isDeleted: false,
@@ -853,27 +1034,34 @@ export async function uploadSignedDocument(data) {
     // Get existing document
     const existingDoc = await getWorkflowDocumentById(documentId);
     if (!existingDoc.success) {
-      return { success: false, error: 'Document not found' };
+      return { success: false, errorKey: 'workflow_error_document_not_found', error: 'Document not found' };
     }
 
     const document = existingDoc.data;
 
-    // Validate that document is ATTENDANCE_WEEKLY
-    if (document.workflowType !== 'ATTENDANCE_WEEKLY') {
-      return { success: false, error: 'Only weekly summary documents can have signed uploads' };
+    // Validate that document is an attendance daily or weekly workflow
+    const isAttendanceDoc = document.workflowCategory === 'ATTENDANCE'
+      && (document.attendanceSubtype === 'DAILY' || document.attendanceSubtype === 'WEEKLY_SUMMARY');
+    const isLegacyWeekly = document.workflowType === 'ATTENDANCE_WEEKLY';
+    if (!isAttendanceDoc && !isLegacyWeekly) {
+      return { success: false, errorKey: 'workflow_error_only_attendance_signed_upload', error: 'Only daily or weekly attendance documents can have signed uploads' };
     }
 
-    // Validate that user is Admin
+    // Validate that user is Admin or HR
     const adminUsers = await byRole('admin');
+    const hrUsersForPerm = await byRole('hr');
     const isAdmin = adminUsers.some(u => u.userId === adminId);
-    if (!isAdmin) {
-      return { success: false, error: 'Only Admin users can upload signed documents' };
+    const isHR = hrUsersForPerm.some(u => u.userId === adminId);
+    if (!isAdmin && !isHR) {
+      return { success: false, errorKey: 'workflow_error_only_admin_hr_signed_upload', error: 'Only Admin or HR users can upload signed documents' };
     }
 
-    // Get HR users for reassignment
-    const hrUsers = await byRole('hr');
-    if (hrUsers.length === 0) {
-      return { success: false, error: 'No HR users found for reassignment' };
+    const isApprovedDoc = document.status === 'APPROVED';
+
+    // Get HR users for reassignment (only needed for pre-approval weekly flow)
+    let hrUsers = hrUsersForPerm;
+    if (!isApprovedDoc && hrUsers.length === 0) {
+      return { success: false, errorKey: 'workflow_error_no_hr_users', error: 'No HR users found for reassignment' };
     }
 
     // Generate structured file name with version
@@ -896,27 +1084,29 @@ export async function uploadSignedDocument(data) {
       data: {
         id: uuidv4(),
         s3Key: objectKey,
-        bucket: BUCKETS.WORKFLOW,
+        bucket: BUCKET_TYPES.WORKFLOW,
         name: fileName,
         mimeType: fileType,
         size: buffer.length,
         ownerId: adminId,
         folderId: null,
         folderPath: null,
-        currentVersionId: minioVersionId,
+        currentVersionId: null,
         isActive: true,
         isStarred: false,
         isDeleted: false,
       }
     });
 
-    // Get existing file's max version number to increment
-    const existingFile = await prisma.file.findUnique({
-      where: { id: document.fileId },
-      include: { versions: true }
-    });
+    // Get existing file's max version number to increment (guard: doc may have no file yet)
+    const existingFile = document.fileId
+      ? await prisma.file.findUnique({
+          where: { id: document.fileId },
+          include: { versions: true }
+        })
+      : null;
 
-    const maxVersion = existingFile?.versions?.length > 0 
+    const maxVersion = existingFile?.versions?.length > 0
       ? Math.max(...existingFile.versions.map(v => v.versionNumber))
       : 0;
 
@@ -928,7 +1118,7 @@ export async function uploadSignedDocument(data) {
         s3Key: objectKey,
         size: buffer.length,
         uploadedById: adminId,
-        changeNote: comment || 'Signed document uploaded by Admin',
+        changeNote: comment || 'Signed document uploaded',
         minioVersionId: minioVersionId,
         isCurrent: true,
       }
@@ -940,33 +1130,64 @@ export async function uploadSignedDocument(data) {
       data: { currentVersionId: fileVersion.id }
     });
 
-    // Update document with new file, reassign to HR, update status
-    const updated = await prisma.workflowDocument.update({
-      where: { id: documentId },
-      data: {
-        fileId: file.id,
-        currentAssigneeId: hrUsers[0].userId, // Reassign to first HR user
-        status: 'UNDER_HR_REVIEW',
-        reviewCycleCount: document.reviewCycleCount + 1,
-        updatedBy,
-        updatedAt: new Date()
-      },
-      include: {
-        file: true,
-        submitter: true,
-        currentAssignee: true,
-        class: true
-      }
-    });
+    let updated;
+    if (isApprovedDoc) {
+      // Post-approval: attach signed copy without changing status/assignee/original file
+      updated = await prisma.workflowDocument.update({
+        where: { id: documentId },
+        data: {
+          signedFileId: file.id,
+          signedAt: new Date(),
+          signedById: adminId,
+          updatedBy,
+          updatedAt: new Date()
+        },
+        include: {
+          file: true,
+          signedFile: true,
+          submitter: true,
+          currentAssignee: true,
+          class: true
+        }
+      });
 
-    // Record status history
-    await createWorkflowStatusHistory({
-      workflowDocumentId: documentId,
-      fromStatus: document.status,
-      toStatus: 'UNDER_HR_REVIEW',
-      actorId: adminId,
-      reason: comment || 'Signed document uploaded by Admin, reassigned to HR for final review'
-    });
+      // Record audit history (status unchanged)
+      await createWorkflowStatusHistory({
+        workflowDocumentId: documentId,
+        fromStatus: document.status,
+        toStatus: document.status,
+        actorId: adminId,
+        reason: comment || 'Signed copy uploaded for approved document'
+      });
+    } else {
+      // Pre-approval (legacy weekly flow): replace file, reassign to HR, move to UNDER_HR_REVIEW
+      updated = await prisma.workflowDocument.update({
+        where: { id: documentId },
+        data: {
+          fileId: file.id,
+          currentAssigneeId: hrUsers[0].userId, // Reassign to first HR user
+          status: 'UNDER_HR_REVIEW',
+          reviewCycleCount: document.reviewCycleCount + 1,
+          updatedBy,
+          updatedAt: new Date()
+        },
+        include: {
+          file: true,
+          submitter: true,
+          currentAssignee: true,
+          class: true
+        }
+      });
+
+      // Record status history
+      await createWorkflowStatusHistory({
+        workflowDocumentId: documentId,
+        fromStatus: document.status,
+        toStatus: 'UNDER_HR_REVIEW',
+        actorId: adminId,
+        reason: comment || 'Signed document uploaded by Admin, reassigned to HR for final review'
+      });
+    }
 
     // Add comment if provided
     if (comment) {
@@ -1002,19 +1223,19 @@ export async function withdrawWorkflowDocument(data) {
     // Get existing document
     const existingDoc = await getWorkflowDocumentById(documentId);
     if (!existingDoc.success) {
-      return { success: false, error: 'Document not found' };
+      return { success: false, errorKey: 'workflow_error_document_not_found', error: 'Document not found' };
     }
 
     const document = existingDoc.data;
 
     // Validate that user is the submitter
     if (document.submitterId !== submitterId) {
-      return { success: false, error: 'Only the submitter can withdraw this document' };
+      return { success: false, errorKey: 'workflow_error_only_submitter_withdraw', error: 'Only the submitter can withdraw this document' };
     }
 
     // Validate that document is in SUBMITTED status
     if (document.status !== 'SUBMITTED') {
-      return { success: false, error: 'Only submitted documents can be withdrawn' };
+      return { success: false, errorKey: 'workflow_error_only_submitted_can_withdraw', error: 'Only submitted documents can be withdrawn' };
     }
 
     // Update document status to DRAFT
@@ -1188,7 +1409,7 @@ export async function listFileVersions(fileId) {
 
     if (!file) {
       console.error('[listFileVersions] File not found for fileId:', fileId);
-      return { success: false, error: 'File not found' };
+      return { success: false, errorKey: 'workflow_error_file_not_found', error: 'File not found' };
     }
 
     // Get MinIO versions - handle invalid bucket names
@@ -1229,7 +1450,7 @@ export async function downloadFileVersion(fileId, versionId, req, res) {
     });
 
     if (!file) {
-      return { success: false, error: 'File not found' };
+      return { success: false, errorKey: 'workflow_error_file_not_found', error: 'File not found' };
     }
 
     // Get version record
@@ -1238,7 +1459,7 @@ export async function downloadFileVersion(fileId, versionId, req, res) {
     });
 
     if (!version) {
-      return { success: false, error: 'Version not found' };
+      return { success: false, errorKey: 'workflow_error_version_not_found', error: 'Version not found' };
     }
 
     // Stream the specific version from MinIO
@@ -1307,6 +1528,14 @@ export async function createCustomWorkflowDocument(data) {
       approvalFlow,
     });
 
+    // Marks reports use metadata for deduplication
+    const marksDedupMetadata = taxonomy.marksReportType
+      ? {
+          marksReportType: taxonomy.marksReportType,
+          ...((workflowMetadata || {})),
+        }
+      : (workflowMetadata || {});
+
     // Check for duplicate in-progress workflow before doing any work
     const dedupCheck = await checkDuplicateWorkflow({
       workflowCategory: taxonomy.workflowCategory,
@@ -1316,16 +1545,47 @@ export async function createCustomWorkflowDocument(data) {
       dateFrom,
       dateTo,
       targetStudentId: primaryTargetStudentId,
+      program,
+      metadata: marksDedupMetadata,
     });
     if (dedupCheck.isDuplicate) {
+      const existing = dedupCheck.existingDocument || dedupCheck.existingDraft || dedupCheck.existingApproved;
+      const className = existing?.class
+        ? (existing.class.nameEn || existing.class.nameAr || existing.class.code)
+        : '';
+      const isWeekly = attendanceSubtype === 'WEEKLY_SUMMARY';
+      const scopeLabel = isWeekly
+        ? (className ? `weekly summary for class ${className}` : 'weekly summary for this scope')
+        : (className ? `workflow for class ${className}` : 'workflow for this scope');
+      const dateLabel = isWeekly && dateFrom && dateTo
+        ? `from ${new Date(dateFrom).toLocaleDateString()} to ${new Date(dateTo).toLocaleDateString()}`
+        : (date ? `on ${new Date(date).toLocaleDateString()}` : 'for this date');
+      const status = existing?.status;
+
+      let errorKey;
+      let errorMsg;
+      if (status === 'DRAFT') {
+        errorKey = 'workflow_error_draft_exists';
+        errorMsg = `A ${scopeLabel} already exists ${dateLabel} with status DRAFT. Reject the existing workflow first before creating a new one.`;
+      } else if (status === 'APPROVED') {
+        errorKey = 'workflow_error_approved_exists';
+        errorMsg = `An approved ${scopeLabel} already exists ${dateLabel} with status APPROVED. No new workflow can be created unless the existing one is rejected.`;
+      } else if (status) {
+        errorKey = 'workflow_error_in_progress_exists';
+        errorMsg = `A ${scopeLabel} already exists ${dateLabel} with status ${status}. You cannot create two weekly workflows for the same class + same week while the first one is still ${status}.`;
+      } else {
+        errorKey = 'workflow_error_in_progress_exists';
+        errorMsg = `A ${scopeLabel} already exists ${dateLabel}. You cannot create two weekly workflows for the same class + same week while the first one is still in progress.`;
+      }
+
       return {
         success: false,
         code: 409,
-        error: dedupCheck.existingDraft
-          ? 'A draft workflow already exists for this class and date. Reject it first to create a new one.'
-          : 'An in-progress workflow already exists for this scope',
+        errorKey,
+        error: errorMsg,
         existingDocument: dedupCheck.existingDocument,
         existingDraft: dedupCheck.existingDraft,
+        existingApproved: dedupCheck.existingApproved,
       };
     }
 
@@ -1366,7 +1626,7 @@ export async function createCustomWorkflowDocument(data) {
         data: {
           id: uuidv4(),
           s3Key: objectKey,
-          bucket: BUCKETS.WORKFLOW,
+          bucket: BUCKET_TYPES.WORKFLOW,
           name: fileName,
           mimeType: 'application/octet-stream', // Default MIME type for custom files
           size: objectMetadata.size,
@@ -1380,22 +1640,6 @@ export async function createCustomWorkflowDocument(data) {
       filePath = objectKey;
       fileId = file.id;
     }
-
-    let currentAssigneeId = null;
-    if (reviewers && reviewers.length > 0) {
-      try {
-        const reviewerUsers = await byRole(reviewers[0]);
-        if (reviewerUsers.length > 0) {
-          currentAssigneeId = reviewerUsers[0].userId;
-        }
-      } catch (error) {
-        console.error('[createCustomWorkflowDocument] Error getting reviewer users:', error);
-      }
-    } else {
-      currentAssigneeId = await getAssigneeForApprovalFlow(taxonomy.approvalFlow);
-    }
-
-    const documentStatus = (reviewers && reviewers.length > 0) ? 'SUBMITTED' : 'DRAFT';
 
     let resolvedProgram = data.program || null;
     let resolvedSubject = data.subject || null;
@@ -1417,6 +1661,32 @@ export async function createCustomWorkflowDocument(data) {
         resolvedInstructorId = resolvedInstructorId || cls.instructorId || submitterId;
       }
     }
+
+    let currentAssigneeId = null;
+    if (data.currentAssigneeId) {
+      currentAssigneeId = Number(data.currentAssigneeId);
+    } else if (reviewers && reviewers.length > 0) {
+      const firstReviewer = reviewers[0];
+      const looksLikeUserId = typeof firstReviewer === 'number' || /^\d+$/.test(String(firstReviewer));
+      if (looksLikeUserId) {
+        currentAssigneeId = Number(firstReviewer);
+      } else {
+        try {
+          const reviewerUsers = await byRole(firstReviewer);
+          if (reviewerUsers.length > 0) {
+            currentAssigneeId = reviewerUsers[0].userId;
+          }
+        } catch (error) {
+          console.error('[createCustomWorkflowDocument] Error getting reviewer users:', error);
+        }
+      }
+    }
+    if (!currentAssigneeId) {
+      currentAssigneeId = resolvedInstructorId || await getAssigneeForApprovalFlow(taxonomy.approvalFlow);
+    }
+
+    const isUserIdReviewer = reviewers && reviewers.length > 0 && (typeof reviewers[0] === 'number' || /^\d+$/.test(String(reviewers[0])));
+    const documentStatus = data.status || (isUserIdReviewer ? 'DRAFT' : ((reviewers && reviewers.length > 0) ? 'SUBMITTED' : 'DRAFT'));
 
     if (taxonomy.attendanceSubtype === 'DAILY' && dateFrom && !attendanceDate) {
       attendanceDate = dateFrom;
@@ -1440,6 +1710,7 @@ export async function createCustomWorkflowDocument(data) {
       dateTo,
       metadata: {
         ...(workflowMetadata || {}),
+        ...(taxonomy.marksReportType ? { marksReportType: taxonomy.marksReportType } : {}),
         shareTargetMode: specificUserIds?.length ? 'users' : 'role',
         specificUserIds: specificUserIds?.length ? specificUserIds.map(Number) : [],
         targetStudentIds: resolvedTargetStudentIds,
@@ -1510,7 +1781,7 @@ export async function deleteWorkflowDocument(id) {
     // Get document details before deletion for cleanup
     const document = await getWorkflowDocumentById(id);
     if (!document.success) {
-      return { success: false, error: 'Workflow document not found' };
+      return { success: false, errorKey: 'workflow_error_workflow_document_not_found', error: 'Workflow document not found' };
     }
 
     const docData = document.data;
@@ -1744,6 +2015,43 @@ export async function checkAttendanceWorkflowLock(attendanceId) {
 }
 
 /**
+ * Check if a weekly summary workflow is in progress for the week containing the given date.
+ * Used to prevent attendance changes once a weekly summary has been initiated.
+ * If classId is provided, only checks for that specific class.
+ *
+ * @param {string|Date} date
+ * @param {number} [classId] - Optional class ID for per-class locking
+ * @returns {Promise<{blocked: boolean, workflow?: object}>}
+ */
+export async function checkWeeklyWorkflowLock(date, classId = null) {
+  try {
+    if (!date) return { blocked: false };
+    const d = new Date(date);
+    const where = {
+      workflowCategory: 'ATTENDANCE',
+      attendanceSubtype: 'WEEKLY_SUMMARY',
+      status: { not: 'REJECTED' },
+      dateFrom: { lte: d },
+      dateTo: { gte: d },
+    };
+    if (classId) {
+      where.classId = Number(classId);
+    }
+    const existing = await prisma.workflowDocument.findFirst({
+      where,
+      select: { id: true, title: true, status: true, dateFrom: true, dateTo: true, classId: true },
+    });
+    if (existing) {
+      return { blocked: true, workflow: existing };
+    }
+    return { blocked: false };
+  } catch (error) {
+    console.error('[checkWeeklyWorkflowLock] Error:', error);
+    return { blocked: false };
+  }
+}
+
+/**
  * Check if a student has any in-progress workflow for a given category (PENALTY/BEHAVIOR).
  * Used by validation guards since penalties/behaviors have no junction table.
  *
@@ -1813,7 +2121,7 @@ export async function getBoardWorkflowDocuments(filters = {}) {
       ...(attendanceSubtype && { attendanceSubtype }),
       ...(workflowType && { workflowType }),
       ...(status && { status }),
-      ...(classId && attendanceSubtype !== 'WEEKLY_SUMMARY' && { classId: parseInt(classId, 10) }),
+      ...(classId && { classId: parseInt(classId, 10) }),
     };
 
     if (dateFrom && dateTo) {
@@ -1828,14 +2136,25 @@ export async function getBoardWorkflowDocuments(filters = {}) {
       };
     }
 
-    if ((programId || subjectId) && attendanceSubtype !== 'WEEKLY_SUMMARY') {
-      where.class = {
-        ...(programId && { programId: parseInt(programId, 10) }),
-        ...(subjectId && { subjectId: parseInt(subjectId, 10) }),
-      };
-    }
-    if (programId && attendanceSubtype === 'WEEKLY_SUMMARY') {
-      where.program = String(programId);
+    if ((programId || subjectId)) {
+      if (attendanceSubtype === 'WEEKLY_SUMMARY') {
+        // Per-class weekly summaries have classId set — filter via class relation
+        // Also keep program string field as fallback for legacy documents
+        where.OR = [
+          {
+            class: {
+              ...(programId && { programId: parseInt(programId, 10) }),
+              ...(subjectId && { subjectId: parseInt(subjectId, 10) }),
+            },
+          },
+          ...(programId ? [{ program: String(programId) }] : []),
+        ];
+      } else {
+        where.class = {
+          ...(programId && { programId: parseInt(programId, 10) }),
+          ...(subjectId && { subjectId: parseInt(subjectId, 10) }),
+        };
+      }
     }
 
     if (search) {
@@ -1878,8 +2197,8 @@ export async function getBoardWorkflowDocuments(filters = {}) {
         updatedBy: true,
         createdAt: true,
         updatedAt: true,
-        submitter: true,
-        currentAssignee: true,
+        submitter: { include: { roleAssignments: { include: { role: true } } } },
+        currentAssignee: { include: { roleAssignments: { include: { role: true } } } },
         instructor: {
           select: {
             id: true,
@@ -1890,10 +2209,16 @@ export async function getBoardWorkflowDocuments(filters = {}) {
             firstNameAr: true,
             lastNameAr: true,
             email: true,
+            keycloakId: true,
+            profileImageUrl: true,
+            roleAssignments: { include: { role: true } },
           },
         },
         file: true,
         snapshotFile: true,
+        signedFileId: true,
+        signedAt: true,
+        signedFile: true,
         class: {
           select: {
             id: true,
@@ -1915,6 +2240,9 @@ export async function getBoardWorkflowDocuments(filters = {}) {
                 firstNameAr: true,
                 lastNameAr: true,
                 email: true,
+                keycloakId: true,
+                profileImageUrl: true,
+                roleAssignments: { include: { role: true } },
               },
             },
           },
@@ -1930,7 +2258,7 @@ export async function getBoardWorkflowDocuments(filters = {}) {
             actorId: true,
             reason: true,
             createdAt: true,
-            actor: { select: { id: true, displayName: true, firstName: true, lastName: true } },
+            actor: { select: { id: true, displayName: true, displayNameAr: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true } },
             workflowDocument: true,
           },
         },
@@ -2003,7 +2331,7 @@ export async function ensureDailyWorkflows({ date, classIds = [], actorId = null
       });
 
       if (dup.isDuplicate) {
-        skipped.push({ classId: cid, existingId: dup.existingDocument?.id || dup.existingDraft?.id });
+        skipped.push({ classId: cid, existingId: dup.existingDocument?.id || dup.existingDraft?.id || dup.existingApproved?.id });
         continue;
       }
 
@@ -2067,7 +2395,7 @@ export async function ensureWorkflowOversightFileShares(fileId) {
   if (!fileId) return false;
   try {
     const doc = await prisma.workflowDocument.findFirst({
-      where: { OR: [{ fileId }, { snapshotFileId: fileId }] },
+      where: { OR: [{ fileId }, { snapshotFileId: fileId }, { signedFileId: fileId }] },
       select: {
         id: true,
         submitterId: true,
@@ -2099,6 +2427,138 @@ export async function ensureWorkflowOversightFileShares(fileId) {
   }
 }
 
+const QATAR_OFFSET_MS = 3 * 60 * 60 * 1000;
+
+function getQatarDayRange(dateInput) {
+  const d = new Date(dateInput);
+  const qatarTime = new Date(d.getTime() + QATAR_OFFSET_MS);
+  const y = qatarTime.getUTCFullYear();
+  const m = qatarTime.getUTCMonth();
+  const day = qatarTime.getUTCDate();
+  const dayStart = new Date(Date.UTC(y, m, day, -3, 0, 0));
+  const dayEnd = new Date(Date.UTC(y, m, day + 1, -3, 0, 0));
+  return { dayStart, dayEnd };
+}
+
+async function validateDailyAttendanceTaken(classId, date, cls = null) {
+  const parsedClassId = parseInt(classId, 10);
+  if (!parsedClassId || !date) {
+    return { ok: true };
+  }
+
+  const { dayStart, dayEnd } = getQatarDayRange(date);
+
+  const [enrolledCount, attendances, classInfo] = await Promise.all([
+    prisma.enrollment.count({
+      where: {
+        classId: parsedClassId,
+        status: { code: ENROLLMENT_STATUS_CODES.ACTIVE },
+      },
+    }),
+    prisma.attendance.findMany({
+      where: {
+        classId: parsedClassId,
+        date: { gte: dayStart, lt: dayEnd },
+      },
+      include: { status: true },
+    }),
+    cls || prisma.class.findUnique({
+      where: { id: parsedClassId },
+      select: { id: true, nameEn: true, nameAr: true, code: true },
+    }),
+  ]);
+
+  if (enrolledCount === 0) {
+    return { ok: true };
+  }
+
+  const className = cls?.nameEn || classInfo?.nameEn || classInfo?.code || '';
+  const classNameAr = cls?.nameAr || classInfo?.nameAr || className;
+  const dateString = dayStart.toISOString().slice(0, 10);
+
+  if (attendances.length < enrolledCount) {
+    return {
+      ok: false,
+      reason: 'incomplete',
+      missing: enrolledCount - attendances.length,
+      enrolled: enrolledCount,
+      taken: attendances.length,
+      classId: parsedClassId,
+      className,
+      classNameAr,
+      date: dateString,
+    };
+  }
+
+  const notYetCount = attendances.filter((a) => !a.status || !a.status.code).length;
+  if (notYetCount > 0) {
+    return {
+      ok: false,
+      reason: 'not_yet',
+      missing: notYetCount,
+      enrolled: enrolledCount,
+      taken: attendances.length - notYetCount,
+      classId: parsedClassId,
+      className,
+      classNameAr,
+      date: dateString,
+    };
+  }
+
+  const lateCount = attendances.filter((a) => normalizeAttendanceStatus(a.status.code) === ATTENDANCE_STATUS_CODES.LATE).length;
+  if (lateCount > 0) {
+    return {
+      ok: false,
+      reason: 'late',
+      lateCount,
+      enrolled: enrolledCount,
+      taken: attendances.length,
+      classId: parsedClassId,
+      className,
+      classNameAr,
+      date: dateString,
+    };
+  }
+
+  return { ok: true };
+}
+
+export async function validateWorkflowAttendanceBeforeApproval(document) {
+  if (document.workflowCategory !== 'ATTENDANCE') {
+    return { ok: true };
+  }
+
+  if (document.attendanceSubtype === 'DAILY') {
+    if (!document.classId || !document.date) {
+      return { ok: true };
+    }
+    return validateDailyAttendanceTaken(document.classId, document.date, document.class);
+  }
+
+  if (document.attendanceSubtype === 'WEEKLY_SUMMARY') {
+    const linkedIds = document.metadata?.linkedDailyDocumentIds;
+    if (Array.isArray(linkedIds) && linkedIds.length > 0) {
+      const dailyDocs = await prisma.workflowDocument.findMany({
+        where: { id: { in: linkedIds.map((id) => parseInt(id, 10)).filter(Boolean) } },
+        select: {
+          id: true,
+          classId: true,
+          date: true,
+          class: { select: { nameEn: true, nameAr: true, code: true } },
+        },
+      });
+      for (const doc of dailyDocs) {
+        if (!doc.classId || !doc.date) continue;
+        const res = await validateDailyAttendanceTaken(doc.classId, doc.date, doc.class);
+        if (!res.ok) return res;
+      }
+    }
+    return { ok: true };
+  }
+
+  return { ok: true };
+}
+
 export default {
   createWorkflowDocumentWithUpload,
   getWorkflowDocument,
@@ -2127,4 +2587,5 @@ export default {
   ensureDailyWorkflows,
   ensureWorkflowOversightFileShares,
   shareWorkflowFile,
+  validateWorkflowAttendanceBeforeApproval,
 };

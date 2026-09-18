@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   amendAttendanceController,
+  approveAttendanceExcuseController,
   getAttendanceAmendmentsController,
   getAllAttendanceAmendmentsController
 } from '../controllers/attendance-amendment.js';
@@ -46,6 +47,40 @@ const router = Router();
  *         description: Internal server error
  */
 router.post('/', amendAttendanceController);
+
+/**
+ * @swagger
+ * /api/v1/attendance-amendment/approve:
+ *   post:
+ *     summary: Approve an attendance excuse
+ *     tags: [Attendance Amendment]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - attendanceId
+ *               - reason
+ *             properties:
+ *               attendanceId:
+ *                 type: integer
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Attendance excuse approved successfully
+ *       403:
+ *         description: Access denied
+ *       400:
+ *         description: Invalid request
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/approve', approveAttendanceExcuseController);
 
 /**
  * @swagger

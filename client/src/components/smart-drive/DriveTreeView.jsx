@@ -130,7 +130,6 @@ export default function DriveTreeView({ folders, onFolderSelect, currentFolderId
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
             }}
-            title={getLocalizedFolderName(folder, lang)}
           >
             {getLocalizedFolderName(folder, lang)}
           </span>

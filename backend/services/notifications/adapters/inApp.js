@@ -33,15 +33,15 @@ export const setWSEmitter = (emitter) => {
  */
 export const send = async (notification, recipient, rendered) => {
   try {
-    // Deduplicate: if groupKey exists, check for a recent duplicate within 5 minutes
+    // Deduplicate: if groupKey exists, check for a recent duplicate within 1 minute
     const groupKey = rendered.groupKey || null;
     if (groupKey) {
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
       const existing = await prisma.notification.findFirst({
         where: {
           userId: recipient.userId,
           groupKey,
-          createdAt: { gte: fiveMinutesAgo },
+          createdAt: { gte: oneMinuteAgo },
         },
         select: { id: true },
       });

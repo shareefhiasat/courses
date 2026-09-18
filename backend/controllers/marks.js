@@ -1,5 +1,5 @@
 import prisma from '../db/prismaClient.js';
-import { suggestAttendanceMarkComponent, listDeductionRules, getDeductionHistory, getClassAbsenceWarningCounts } from '../services/attendanceDeductionService.js';
+import { suggestAttendanceMarkComponent, listDeductionRules, getDeductionHistory, getClassAbsenceWarningCounts, getClassAttendanceWeeks as getClassAttendanceWeeksService } from '../services/attendanceDeductionService.js';
 import { calculateLetterGrade, MANUAL_GRADES, GRADE_TYPE, resolveMarkGrade, resolveComplementaryGrade } from '../utils/formatting/gradingStandards.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
@@ -262,6 +262,14 @@ const updateStudentMarks = async (req, res) => {
       return scopeForbidden(res);
     }
 
+    const { scope, class: cls } = classCheck;
+    const canEdit = scope.unrestricted
+      || (scope.canManageCategoryIds || []).includes(cls.categoryId)
+      || cls.instructorId === req.user?.dbId;
+    if (!canEdit) {
+      return scopeForbidden(res, 'You do not have permission to edit marks for this class. Instructors can only edit their own classes.');
+    }
+
     const marks = req.body || {};
     const isRepeated = Boolean(marks.isRepeated);
     const gradeType = marks.gradeType || 'calculated';
@@ -492,6 +500,20 @@ const updateStudentMarks = async (req, res) => {
 const batchUpdateStudentMarks = async (req, res) => {
   try {
     const { subjectId, classId } = req.params;
+
+    const classCheck = await assertClassInScope(req, classId);
+    if (!classCheck.ok) {
+      return scopeForbidden(res);
+    }
+
+    const { scope, class: cls } = classCheck;
+    const canEdit = scope.unrestricted
+      || (scope.canManageCategoryIds || []).includes(cls.categoryId)
+      || cls.instructorId === req.user?.dbId;
+    if (!canEdit) {
+      return scopeForbidden(res, 'You do not have permission to edit marks for this class. Instructors can only edit their own classes.');
+    }
+
     const { students } = req.body;
 
     if (!Array.isArray(students)) {
@@ -896,7 +918,7 @@ const getStudentDeductionHistory = async (req, res) => {
 
 const getAbsenceWarningCounts = async (req, res) => {
   try {
-    const { classId, userId } = req.query;
+    const { classId, userId, dateFrom, dateTo } = req.query;
     if (!classId) {
       return res.status(400).json({ success: false, error: 'classId is required' });
     }
@@ -904,6 +926,8 @@ const getAbsenceWarningCounts = async (req, res) => {
     const result = await getClassAbsenceWarningCounts({
       classId: parseInt(classId, 10),
       ...(userId && { userId: parseInt(userId, 10) }),
+      ...(dateFrom && { dateFrom }),
+      ...(dateTo && { dateTo }),
     });
 
     if (!result.success) {
@@ -913,6 +937,28 @@ const getAbsenceWarningCounts = async (req, res) => {
     res.json({ success: true, data: result.data });
   } catch (error) {
     console.error('Error getting absence warning counts:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+};
+
+const getClassAttendanceWeeks = async (req, res) => {
+  try {
+    const { classId } = req.query;
+    if (!classId) {
+      return res.status(400).json({ success: false, error: 'classId is required' });
+    }
+
+    const result = await getClassAttendanceWeeksService({
+      classId: parseInt(classId, 10),
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json({ success: true, data: result.weeks });
+  } catch (error) {
+    console.error('Error getting class attendance weeks:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 };
@@ -929,6 +975,7 @@ export {
   getAbsenceDeductionRules,
   getStudentDeductionHistory,
   getAbsenceWarningCounts,
+  getClassAttendanceWeeks,
 };
 
 const DEFAULT_MARKS_DISTRIBUTION = {
@@ -1079,7 +1126,7 @@ const getAllStudentMarksReport = async (req, res) => {
     const enrollments = await prisma.enrollment.findMany({
       where: {
         status: {
-          code: 'ENROLLED'
+          code: ENROLLMENT_STATUS_CODES.ACTIVE
         },
         ...(filterUserId && { userId: parseInt(filterUserId) }),
         ...(Object.keys(classWhere).length > 0 && {

@@ -144,6 +144,9 @@ const getEnrollments = async (params = {}) => {
             firstNameAr: true,
             lastNameAr: true,
             studentNumber: true,
+            sequence: true,
+            rankEn: true,
+            rankAr: true,
             profileImageUrl: true
           }
         },
@@ -249,6 +252,9 @@ const getEnrollmentById = async (id) => {
             firstNameAr: true,
             lastNameAr: true,
             studentNumber: true,
+            sequence: true,
+            rankEn: true,
+            rankAr: true,
             profileImageUrl: true
           }
         },
@@ -465,6 +471,10 @@ const create = async (enrollmentData, user = null) => {
             lastName: true,
             firstNameAr: true,
             lastNameAr: true,
+            studentNumber: true,
+            sequence: true,
+            rankEn: true,
+            rankAr: true,
             profileImageUrl: true
           }
         },
@@ -574,6 +584,10 @@ const update = async (id, updateData, user = null) => {
             lastName: true,
             firstNameAr: true,
             lastNameAr: true,
+            studentNumber: true,
+            sequence: true,
+            rankEn: true,
+            rankAr: true,
             profileImageUrl: true
           }
         },

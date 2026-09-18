@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -17,9 +17,10 @@ import { WELCOME_STORAGE_KEYS, WELCOME_COLORS } from '@components/welcome/welcom
 import { getScheduleStatus, getAllPrograms, getProgramTerms } from '@services/business/attendanceWorkspaceService';
 import { loadWeeklyScheduleSources } from '@services/business/weeklyScheduleExportService';
 import { prepareWeeklyScheduleData } from '@services/export/official-reports/engine/prepareWeeklyScheduleData';
-import { exportWeeklyScheduleReport, EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
-import { academicTermToYearTerm } from '@utils/academicTermUtils';
+import { exportWeeklyScheduleReport, EXPORT_FORMAT, downloadBlob } from '@services/export/official-reports/index.jsx';
+import { academicTermToYearTerm, getAcademicTermDisplayName } from '@utils/academicTermUtils';
 import { getThemedIcon } from '@constants/iconTypes';
+import { canViewParticipation } from '@components/operations-board/hrAttendancePrivacy.js';
 
 const STEPS = { PROGRAM: 'program', TERM: 'term', SCHEDULE: 'schedule' };
 
@@ -29,6 +30,7 @@ const AttendanceWorkspacePage = () => {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   const [step, setStep] = useState(STEPS.PROGRAM);
   const [selection, setSelection] = useState(null);
@@ -58,6 +60,7 @@ const AttendanceWorkspacePage = () => {
   });
 
   const instructorId = user?.dbId;
+  const isInstructorOnly = isInstructor && !isAdmin && !isSuperAdmin && !isHR;
 
   const handleToggleShowRoom = useCallback(() => {
     setShowRoom((prev) => {
@@ -198,9 +201,21 @@ const AttendanceWorkspacePage = () => {
       sessionType: slot.sessionType || 'lecture',
     } : null);
     if (!session) return;
+
+    // Instructors can go back in time to view participation, but cannot act on past classes.
+    if (isInstructorOnly) {
+      const selectedDay = new Date(selectedDate);
+      selectedDay.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDay.getTime() < today.getTime()) {
+        return;
+      }
+    }
+
     setSelectedSession(session);
     setMenuAnchor(anchor);
-  }, []);
+  }, [isInstructorOnly, selectedDate]);
 
   const handleCloseClassMenu = useCallback(() => {
     setSelectedSession(null);
@@ -222,7 +237,7 @@ const AttendanceWorkspacePage = () => {
     setInboxClassId(null);
   }, []);
 
-  const handlePrintSchedule = useCallback(async () => {
+  const handleExportWeeklySchedule = useCallback(async (format = EXPORT_FORMAT.PDF) => {
     if (!selection?.program || !scheduleData) return;
     setExporting(true);
     try {
@@ -244,15 +259,12 @@ const AttendanceWorkspacePage = () => {
       const safeName = (programName || 'schedule').replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_');
       const filename = `${safeName}_${year || ''}_${term || ''}_weekly`;
       const blob = await exportWeeklyScheduleReport(reportData, {
-        format: EXPORT_FORMAT.PDF,
+        format,
         filename,
+        download: false,
       });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${filename}.pdf`;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const ext = format === EXPORT_FORMAT.EXCEL ? 'xlsx' : 'pdf';
+      downloadBlob(blob, `${filename}.${ext}`);
     } finally {
       setExporting(false);
     }
@@ -264,21 +276,34 @@ const AttendanceWorkspacePage = () => {
     ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)'
     : 'linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%)';
 
+  const handleGoToStandup = useCallback(() => {
+    const programId = selection?.program?.id;
+    if (!programId) return;
+    if (isInstructorOnly) {
+      const selectedDay = new Date(selectedDate);
+      selectedDay.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDay.getTime() < today.getTime()) return;
+    }
+    const date = dateInputValue;
+    navigate(`/qr-scanner?programId=${programId}&date=${date}&mode=standup`);
+  }, [selection, dateInputValue, navigate, isInstructorOnly, selectedDate]);
+
   const canInteractAll = isAdmin || isSuperAdmin || isHR;
 
   const fabActions = step === STEPS.SCHEDULE ? [
-  {
-    id: 'print-schedule',
-    label: t('workspace_print_schedule'),
-    icon: getThemedIcon('ui', 'download', 18, 'primary'),
-    onClick: handlePrintSchedule,
-    loading: exporting,
-  },
   {
     id: 'inbox-outbox',
     label: t('inbox_outbox_button'),
     icon: getThemedIcon('ui', 'mailbox', 18, 'primary'),
     onClick: () => setInboxOutboxOpen(true),
+  },
+  {
+    id: 'standup',
+    label: t('standup') || 'Standup',
+    icon: getThemedIcon('ui', 'users', 18, 'primary'),
+    onClick: handleGoToStandup,
   },
 ] : [];
 
@@ -344,7 +369,7 @@ const AttendanceWorkspacePage = () => {
             <p style={{ fontSize: '12px', color: isDark ? '#94a3b8' : '#64748b', margin: '4px 0 0' }}>
               {scheduleData?.subtitle || selection?.program?.nameEn}
               {selection?.academicTerm && (
-                <> · {lang === 'ar' && selection.academicTerm.nameAr ? selection.academicTerm.nameAr : selection.academicTerm.nameEn}</>
+                <> · {getAcademicTermDisplayName(selection.academicTerm, lang)}</>
               )}
             </p>
           </div>
@@ -362,6 +387,7 @@ const AttendanceWorkspacePage = () => {
             <input
               type="date"
               value={dateInputValue}
+              max={isInstructorOnly ? new Date().toISOString().split('T')[0] : undefined}
               onChange={(e) => setSelectedDate(new Date(`${e.target.value}T12:00:00`))}
               data-testid="workspace-date-picker"
               style={{
@@ -374,6 +400,26 @@ const AttendanceWorkspacePage = () => {
               }}
             />
           </label>
+
+          <button
+            type="button"
+            onClick={handleGoToStandup}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '8px',
+              border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+              background: isDark ? '#1e293b' : '#ffffff',
+              color: isDark ? '#f1f5f9' : '#1e293b',
+              cursor: 'pointer',
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            {getThemedIcon('ui', 'users', 14, 'currentColor')}
+            {t('standup') || 'Standup'}
+          </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <ColoredTooltip title={showRoom ? t('hide_room') : t('show_room')} color={WELCOME_COLORS.gold} placement="bottom">
@@ -417,10 +463,12 @@ const AttendanceWorkspacePage = () => {
             statusMap={statusMap}
             instructorId={isInstructor ? instructorId : null}
             interactiveAll={canInteractAll}
+            hideParticipation={!canViewParticipation({ isInstructor, isAdmin, isHR, isSuperAdmin })}
             selectedDate={selectedDate}
             onCellClick={handleCellClick}
             showInstructor={showInstructor}
             showRoom={showRoom}
+            onExportWeeklySchedule={handleExportWeeklySchedule}
           />
         )}
 

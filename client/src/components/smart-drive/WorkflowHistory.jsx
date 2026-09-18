@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLang } from '@contexts/LangContext';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { getStatusColorClasses } from '@constants/workflowStatusTypes';
@@ -40,9 +41,11 @@ export default function WorkflowHistory({ history = [], onClose }) {
             </div>
             {/* Role badge overlay */}
             {(() => { const role = entry.userRole || entry.role; if (!role) return null; const roleIcon = getUserRoleIcon(role); const roleColor = getUserRoleColor(role); if (!roleIcon) return null; return (
-              <div style={{ position: 'absolute', bottom: '-2px', insetInlineEnd: '-2px', width: '1.125rem', height: '1.125rem', borderRadius: '9999px', background: 'var(--panel, white)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--panel, white)', boxShadow: '0 0 0 1px var(--border, #e5e7eb)' }} title={t(`roles.${role}`, role)}>
-                {React.cloneElement(roleIcon, { color: roleColor, size: 10 })}
-              </div>
+              <ColoredTooltip title={t(`roles.${role}`, role)}>
+                <div style={{ position: 'absolute', bottom: '-2px', insetInlineEnd: '-2px', width: '1.125rem', height: '1.125rem', borderRadius: '9999px', background: 'var(--panel, white)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--panel, white)', boxShadow: '0 0 0 1px var(--border, #e5e7eb)' }}>
+                  {React.cloneElement(roleIcon, { color: roleColor, size: 10 })}
+                </div>
+              </ColoredTooltip>
             ); })()}
           </div>
           <div className="flex-1 min-w-0">

@@ -8,7 +8,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 import PortalTooltip from '@ui/PortalTooltip';
-import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel, ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY, getStatusCodeFromRecord } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceSoftColors, getAttendanceLabel, getLocalizedAttendanceLabel, ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY, getStatusCodeFromRecord } from '@constants/attendanceTypes';
 import { calculateAttentionScore, getRowHighlightStyle } from '@utils/attendanceHighlight.js';
 import { getNoteTypeFromStatus, NOTE_METHOD } from '@constants/noteTypes';
 import { getAttendanceByStudent, rosterQuickAction, deleteAttendance, getStudentAttendanceByDate, markAttendance } from '@services/business/attendanceServiceUnified.js';
@@ -16,7 +16,6 @@ import { getPenalties, getPenaltiesByStudent, deletePenalty } from '@services/bu
 import { getQatarDateParts, formatForDateInput } from '@utils/date-formatter.js';
 import { getParticipations, getParticipationsByStudent, deleteParticipation } from '@services/business/participationService';
 import { getBehaviors, deleteBehavior } from '@services/business/behaviorService';
-import { CheckSmallIcon, ClockSmallIcon } from '@utils/icons.jsx';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { generateReferenceId, generateStudentQRCode } from '@utils/qrCode';
 import { QRCodeDisplay, useQRCodeEmail } from '@utils/qrCodeUtils';
@@ -1019,6 +1018,9 @@ const StudentRoster = React.memo(function StudentRoster({
       );
     }
 
+    // Soft pill style: light background + colored text + colored border
+    const soft = getAttendanceSoftColors(normalizedStatus);
+
     // Special handling for Present status with green checkmark
     if (status === 'present') {
       return (
@@ -1027,9 +1029,9 @@ const StudentRoster = React.memo(function StudentRoster({
             borderRadius: '0.375rem',
             fontSize: 'var(--font-size-xs)',
             fontWeight: 500,
-            background: 'var(--color-success, #16a34a)', // Darker green to match other interface elements
-            color: 'var(--text-on-success, white)',
-            border: '1px solid var(--color-success, #16a34a)',
+            background: soft.bg,
+            color: soft.text,
+            border: `1px solid ${soft.border}`,
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.375rem'
@@ -1050,9 +1052,9 @@ const StudentRoster = React.memo(function StudentRoster({
           borderRadius: '0.375rem',
           fontSize: 'var(--font-size-xs)',
           fontWeight: 500,
-          background: getAttendanceColor(normalizedStatus),
-          color: 'var(--text-on-colored, white)',
-          border: `1px solid ${getAttendanceColor(normalizedStatus)}`
+          background: soft.bg,
+          color: soft.text,
+          border: `1px solid ${soft.border}`
         }}>
         {getLocalizedAttendanceLabel(status, lang)}
       </span>

@@ -57,7 +57,6 @@ export default function FileCard({ file, onDownload, onShare, onDelete, onVersio
           <h3 
             className="font-medium text-gray-900 dark:text-white truncate cursor-pointer hover:text-blue-600"
             onClick={() => onDetails?.(file)}
-            title={file.name}
           >
             {file.name}
           </h3>

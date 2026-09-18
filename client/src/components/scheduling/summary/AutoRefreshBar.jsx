@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useLang } from '@contexts/LangContext';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { useTheme } from '@contexts/ThemeContext';
 import { Select } from '@ui';
 import { RefreshCw } from 'lucide-react';
@@ -92,17 +93,18 @@ export default function AutoRefreshBar({
             data-testid="refresh-interval-select"
           />
         )}
-        <button
-          type="button"
-          onClick={handleRefresh}
-          data-testid="manual-refresh-btn"
-          title={t('refresh')}
-          aria-label={t('refresh')}
-          style={compactButtonStyle}
-        >
-          <RefreshCw size={14} />
-          <span>{t('refresh')}</span>
-        </button>
+        <ColoredTooltip title={t('refresh')}>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            data-testid="manual-refresh-btn"
+            aria-label={t('refresh')}
+            style={compactButtonStyle}
+          >
+            <RefreshCw size={14} />
+            <span>{t('refresh')}</span>
+          </button>
+        </ColoredTooltip>
         {ms > 0 && (
           <div style={{ width: '48px', height: '4px', background: theme === 'dark' ? '#374151' : '#e5e7eb', borderRadius: '2px' }}>
             <div style={{ height: '100%', width: `${Math.min(100, progress)}%`, background: '#10b981', borderRadius: '2px', transition: 'width 0.25s linear' }} />
@@ -131,17 +133,18 @@ export default function AutoRefreshBar({
         marginBottom: '1rem',
       }}
     >
-      <button
-        type="button"
-        onClick={handleRefresh}
-        data-testid="manual-refresh-btn"
-        title={t('refresh')}
-        aria-label={t('refresh')}
-        style={compactButtonStyle}
-      >
-        <RefreshCw size={16} />
-        <span>{t('refresh')}</span>
-      </button>
+      <ColoredTooltip title={t('refresh')}>
+        <button
+          type="button"
+          onClick={handleRefresh}
+          data-testid="manual-refresh-btn"
+          aria-label={t('refresh')}
+          style={compactButtonStyle}
+        >
+          <RefreshCw size={16} />
+          <span>{t('refresh')}</span>
+        </button>
+      </ColoredTooltip>
       <Select
         placeholder={t('select_refresh_interval')}
         value={ms}

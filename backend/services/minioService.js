@@ -161,6 +161,22 @@ export async function getObjectMetadata(bucket, objectKey) {
  * @param {string}   args.filename - user-facing filename for Content-Disposition
  * @param {string}   args.mimeType
  */
+/**
+ * Build a Content-Disposition header value that is safe for non-ASCII filenames.
+ * HTTP headers only allow Latin-1, so a UTF-8 filename (e.g. Arabic) must be
+ * sent via RFC 5987 `filename*` with an ASCII `filename` fallback.
+ */
+function buildContentDisposition(disposition, filename) {
+  const raw = String(filename);
+  // ASCII fallback: strip quotes/backslashes/CRLF, then replace non-Latin-1 with '_'
+  const fallback = raw
+    .replace(/["\\\r\n]/g, '_')
+    .replace(/[^\x20-\x7E]/g, '_');
+  // RFC 5987 encoded filename (percent-encode UTF-8, keep attr-char set)
+  const encoded = encodeURIComponent(raw).replace(/['()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+  return `${disposition}; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+}
+
 export async function streamObject({ bucket, objectKey, req, res, filename, mimeType }) {
   const stat = await minioClient.statObject(bucket, objectKey);
   const total = stat.size;
@@ -170,14 +186,13 @@ export async function streamObject({ bucket, objectKey, req, res, filename, mime
   res.setHeader('Accept-Ranges', 'bytes');
   res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
   if (filename) {
-    const safe = String(filename).replace(/["\\\r\n]/g, '_');
     // Use inline for images and PDFs to allow browser preview, attachment for other types
     const isImage = mimeType && mimeType.startsWith('image/');
     const isPdf = mimeType === 'application/pdf';
     const isAudio = mimeType && mimeType.startsWith('audio/');
     const isVideo = mimeType && mimeType.startsWith('video/');
     const disposition = (isImage || isPdf || isAudio || isVideo) ? 'inline' : 'attachment';
-    res.setHeader('Content-Disposition', `${disposition}; filename="${safe}"`);
+    res.setHeader('Content-Disposition', buildContentDisposition(disposition, filename));
   }
 
   if (range) {
@@ -222,8 +237,7 @@ export async function streamObjectVersion({ bucket, objectKey, versionId, req, r
   res.setHeader('Accept-Ranges', 'bytes');
   res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
   if (filename) {
-    const safe = String(filename).replace(/["\\\r\n]/g, '_');
-    res.setHeader('Content-Disposition', `attachment; filename="${safe}"`);
+    res.setHeader('Content-Disposition', buildContentDisposition('attachment', filename));
   }
 
   if (range) {

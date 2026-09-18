@@ -181,7 +181,7 @@ export function WeeklyScheduleTemplate({ data, showWatermark = true }) {
         <div className={styles.officialWatermark} aria-hidden>
           {wm.en && <div>{wm.en}</div>}
           {wm.ar && wm.ar !== wm.en && <div>{wm.ar}</div>}
-          {wm.uuid && <div style={{ fontSize: '7px', opacity: 0.5, marginTop: '12px' }}>{wm.uuid}</div>}
+          {wm.uuid && <div>{wm.uuid}</div>}
         </div>
       )}
       <div className={styles.officialContentFlex}>

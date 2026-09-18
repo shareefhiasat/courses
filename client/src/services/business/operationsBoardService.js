@@ -15,6 +15,9 @@ import {
 } from '../../constants/workspaceStatusColors.js';
 import { info, error as logError } from '../utils/logger.js';
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
+import { resolveUserRole } from '@utils/userUtils.js';
+import { getAttendanceRecords } from '@services/business/attendanceService.js';
+import { getWeekRange } from './workflowSnapshotService.js';
 
 const SERVICE_NAME = 'OperationsBoardService';
 
@@ -138,19 +141,38 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
     const documents = result.data || [];
     const lang = filters.lang || 'en';
     const boardData = documents.map((doc) => {
-      const isWeeklySummary = doc.attendanceSubtype === 'WEEKLY_SUMMARY';
-      const classInstructor = isWeeklySummary
-        ? null
-        : (doc.class?.instructor || doc.instructor || null);
+      const classInstructor = doc.class?.instructor || doc.instructor || null;
       const classInstructorName = classInstructor
         ? getLocalizedUserName(classInstructor, lang, classInstructor.displayName || '')
         : null;
+      const assigneeRole = resolveUserRole(classInstructor || doc.currentAssignee);
+
+      let approvedBy = null;
+      let approvedByName = null;
+      let approvedAt = null;
+      if (Array.isArray(doc.statusHistory)) {
+        const approvalEntry = doc.statusHistory.find(
+          (h) => String(h.toStatus || '').toUpperCase() === 'APPROVED'
+        );
+        if (approvalEntry) {
+          approvedAt = approvalEntry.createdAt || null;
+          approvedBy = approvalEntry.actor || null;
+          approvedByName = getLocalizedUserName(
+            approvalEntry.actor,
+            lang,
+            approvalEntry.actor?.displayName || approvalEntry.approvedByName || ''
+          ) || null;
+        }
+      }
 
       const classNameEn = doc.class?.nameEn || doc.class?.code || '';
       const classNameAr = doc.class?.nameAr || classNameEn;
-      const dateStr = doc.date
-        ? (typeof doc.date === 'string' ? doc.date.slice(0, 10) : new Date(doc.date).toISOString().slice(0, 10))
-        : '';
+      const toIsoDateStr = (d) => d ? (typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10)) : '';
+      const dateStr = toIsoDateStr(doc.date);
+      const isWeeklySummary = doc.workflowType === 'ATTENDANCE_WEEKLY' || doc.attendanceSubtype === 'WEEKLY_SUMMARY';
+      const weeklyRange = isWeeklySummary ? getWeekRange(doc.date || doc.dateFrom || new Date()) : null;
+      const dateFrom = (isWeeklySummary ? (toIsoDateStr(doc.dateFrom) || weeklyRange?.weekFrom) : (toIsoDateStr(doc.dateFrom) || dateStr)) || dateStr;
+      const dateTo = (isWeeklySummary ? (toIsoDateStr(doc.dateTo) || weeklyRange?.weekTo) : (toIsoDateStr(doc.dateTo) || dateStr)) || dateStr;
       const originalTitle = doc.title || `Document #${doc.id}`;
       // Rebuild the English title with the English class name so the drawer/board
       // do not show Arabic class names when the user is in English mode.
@@ -171,15 +193,26 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
         nameAr,
         rawId: doc.id,
         status: doc.status,
-        assignee: classInstructorName
-          || doc.currentAssignee?.displayName
-          || doc.currentAssignee?.name
-          || doc.currentAssignee?.fullName
+        // Workflow routing is role-based; do not display a specific assignee name.
+        // Prefer the class instructor for class-linked workflows, otherwise the role.
+        assignee: classInstructorName || assigneeRole || null,
+        assigneeImage: classInstructor?.profileImageUrl
+          || classInstructor?.avatar
           || null,
+        submitter: getLocalizedUserName(doc.submitter, lang, doc.submitter?.displayName || '') || null,
+        submitterId: doc.submitterId || doc.submitter?.id || null,
+        submitterImage: doc.submitter?.profileImageUrl
+          || doc.submitter?.avatar
+          || null,
+        submitterRole: resolveUserRole(doc.submitter),
+        assigneeRole,
         assigneeId: classInstructor?.id || doc.currentAssigneeId,
         classInstructorId: classInstructor?.id || doc.instructorId || null,
         classInstructorName,
         workflowType: doc.workflowType,
+        attendanceSubtype: doc.attendanceSubtype,
+        dateFrom,
+        dateTo,
         classId: doc.classId,
         className: classNameEn,
         classNameEn,
@@ -193,33 +226,38 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
         updatedAt: doc.updatedAt,
         description: doc.description,
         fileName: doc.file?.name || null,
+        fileType: doc.file?.mimeType || null,
         fileId: doc.file?.id || null,
         snapshotFileId: doc.snapshotFileId || null,
         snapshotFileName: doc.snapshotFile?.name || null,
+        snapshotFileType: doc.snapshotFile?.mimeType || null,
+        approvedBy,
+        approvedByName,
+        approvedAt,
         raw: doc,
         comments: doc.comments || [],
       };
     });
 
-    const uniqueClassDates = new Map();
-    for (const doc of documents) {
-      if (doc.classId && doc.date) {
-        const dateStr = typeof doc.date === 'string' ? doc.date.slice(0, 10) : new Date(doc.date).toISOString().slice(0, 10);
-        const key = `${doc.classId}_${dateStr}`;
-        if (!uniqueClassDates.has(key)) {
-          uniqueClassDates.set(key, { classId: doc.classId, date: dateStr });
+    const uniqueClassRanges = new Map();
+    for (const item of boardData) {
+      if (item.classId && item.dateFrom && item.dateTo) {
+        const key = `${item.classId}_${item.dateFrom}_${item.dateTo}`;
+        if (!uniqueClassRanges.has(key)) {
+          uniqueClassRanges.set(key, { classId: item.classId, dateFrom: item.dateFrom, dateTo: item.dateTo });
         }
       }
     }
 
     const attendanceSummaryMap = new Map();
+    const attendanceNotesMap = new Map();
     await Promise.all(
-      Array.from(uniqueClassDates.values()).map(async ({ classId, date }) => {
+      Array.from(uniqueClassRanges.values()).map(async ({ classId, dateFrom, dateTo }) => {
         try {
-          apiService.clearCacheEntry(`/attendance?classId=${classId}&date=${date}`);
-          const attResult = await apiService.get(`/attendance?classId=${classId}&date=${date}`);
-          const records = attResult.data?.attendances || attResult.data || [];
+          const attResult = await getAttendanceRecords({ classId, dateFrom, dateTo, limit: 5000 });
+          const records = attResult.data || [];
           const counts = { present: 0, late: 0, absent: 0, excused: 0, humanCase: 0, notTaken: 0 };
+          const notes = [];
           for (const rec of records) {
             const lane = normalizeAttendanceStatus(rec);
             if (lane === ATTENDANCE_BOARD_LANES.PRESENT) counts.present++;
@@ -228,8 +266,11 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
             else if (lane === ATTENDANCE_BOARD_LANES.EXCUSED) counts.excused++;
             else if (lane === ATTENDANCE_BOARD_LANES.HUMAN_CASE) counts.humanCase++;
             else counts.notTaken++;
+            if (rec.notes) notes.push(rec.notes);
           }
-          attendanceSummaryMap.set(`${classId}_${date}`, counts);
+          const key = `${classId}_${dateFrom}_${dateTo}`;
+          attendanceSummaryMap.set(key, counts);
+          attendanceNotesMap.set(key, notes);
         } catch {}
       })
     );
@@ -247,11 +288,19 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
     }
 
     filtered = filtered.map((item) => {
-      if (item.classId && item.date) {
-        const dateStr = typeof item.date === 'string' ? item.date.slice(0, 10) : new Date(item.date).toISOString().slice(0, 10);
-        const key = `${item.classId}_${dateStr}`;
-        const summary = attendanceSummaryMap.get(key);
-        if (summary) item.attendanceSummary = summary;
+      if (item.classId && item.dateFrom && item.dateTo) {
+        const key = `${item.classId}_${item.dateFrom}_${item.dateTo}`;
+        const rangeSummary = attendanceSummaryMap.get(key);
+        const rangeNotes = attendanceNotesMap.get(key);
+        if (rangeSummary) {
+          const total = rangeSummary.present + rangeSummary.late + rangeSummary.absent + rangeSummary.excused + rangeSummary.humanCase + rangeSummary.notTaken;
+          if (total > 0) {
+            item.attendanceSummary = rangeSummary;
+          }
+        }
+        if (rangeNotes && rangeNotes.length > 0) {
+          item.attendanceNotes = (item.attendanceNotes || []).concat(rangeNotes);
+        }
       }
       return item;
     });
@@ -456,10 +505,10 @@ export const moveWorkflowCard = async (documentId, fromStatus, toStatus, reason 
   } catch (err) {
     logError(`${SERVICE_NAME}:moveWorkflowCard:error`, { error: err.message });
     const isPermissionError = err?.response?.status === 403 || err?.message?.includes('403');
-    const errorMessage = isPermissionError 
-      ? 'You do not have permission to perform this action' 
+    const errorMessage = isPermissionError
+      ? 'You do not have permission to perform this action'
       : err.message;
-    return { success: false, error: errorMessage, isPermissionError };
+    return { success: false, error: errorMessage, errorKey: isPermissionError ? 'workflow_error_permission_denied' : undefined, isPermissionError };
   }
 };
 
@@ -467,7 +516,7 @@ export const markWorkflowAsTaken = async (documentId, reason = null) => {
   return moveWorkflowCard(documentId, 'DRAFT', 'TAKEN', reason);
 };
 
-export const moveAttendanceCard = async (attendanceId, newStatus, notes = null, createPayload = null) => {
+export const moveAttendanceCard = async (attendanceId, newStatus, notes = null, createPayload = null, attachment = null) => {
   try {
     info(`${SERVICE_NAME}:moveAttendanceCard`, { attendanceId, newStatus });
 
@@ -481,12 +530,16 @@ export const moveAttendanceCard = async (attendanceId, newStatus, notes = null, 
     }
 
     const dbCode = boardLaneToDbCode(newStatus);
+    const attachmentFields = attachment
+      ? { attachmentUrl: attachment.url, attachmentName: attachment.name, attachmentType: attachment.type }
+      : {};
 
     if (!attendanceId && createPayload) {
       const result = await apiService.post('/attendance', {
         ...createPayload,
         status: dbCode,
         notes,
+        ...attachmentFields,
       });
       if (result.success) {
         apiService.clearCacheByPrefix('/attendance');
@@ -497,6 +550,7 @@ export const moveAttendanceCard = async (attendanceId, newStatus, notes = null, 
     const result = await apiService.put(`/attendance/${attendanceId}`, {
       status: dbCode,
       notes,
+      ...attachmentFields,
     });
     if (result.success) {
       apiService.clearCacheByPrefix('/attendance');
@@ -549,6 +603,29 @@ export const fetchAttendanceHistory = async (attendanceId) => {
   } catch (err) {
     logError(`${SERVICE_NAME}:fetchAttendanceHistory:error`, { error: err.message });
     return { success: false, data: [], error: err.message };
+  }
+};
+
+export const createAttendanceNote = async ({ userId, classId, date, notes, programId, subjectId }) => {
+  try {
+    info(`${SERVICE_NAME}:createAttendanceNote`, { userId, classId, date });
+    const result = await apiService.post('/attendance', {
+      userId,
+      classId,
+      date,
+      status: 'NOT_TAKEN',
+      notes,
+      programId,
+      subjectId,
+    });
+    if (result.success) {
+      apiService.clearCacheByPrefix('/attendance');
+    }
+    return result;
+  } catch (err) {
+    const apiError = err?.response?.data?.error || err?.response?.data?.message || err.message;
+    logError(`${SERVICE_NAME}:createAttendanceNote:error`, { error: apiError });
+    return { success: false, error: apiError };
   }
 };
 

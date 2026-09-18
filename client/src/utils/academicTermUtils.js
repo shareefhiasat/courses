@@ -24,6 +24,33 @@ export function academicTermToYearTerm(academicTerm) {
   return { year, term, termCode };
 }
 
+/**
+ * Returns a user-facing localized display name for an academic term.
+ * Prefers nameAr for Arabic, otherwise builds a clean label from the
+ * year/term so raw codes like "FALL" never leak into the navbar.
+ */
+export function getAcademicTermDisplayName(academicTerm, lang = 'en') {
+  if (!academicTerm) return '';
+
+  const nameAr = academicTerm.nameAr?.trim();
+  if (lang === 'ar' && nameAr) return nameAr;
+
+  const { year, term } = academicTermToYearTerm(academicTerm);
+  const rawTermPart = term && String(term).includes('-')
+    ? String(term).split('-').pop()
+    : term;
+
+  const localizedTerm = getAcademicTermLabel(rawTermPart, lang)
+    || getAcademicTermLabel(term, lang)
+    || rawTermPart
+    || term
+    || '';
+
+  if (!localizedTerm) return nameAr || academicTerm.nameEn?.trim() || '';
+
+  return year ? `${localizedTerm} ${year}` : localizedTerm;
+}
+
 function splitCompoundTerm(raw) {
   if (!raw) return { year: null, termPart: null };
   const str = String(raw).trim();

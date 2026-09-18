@@ -7,6 +7,8 @@ export const OPS_VIEW_MODES = Object.freeze({
 
 export const WELCOME_STORAGE_KEYS = Object.freeze({
   OPS_VIEW_MODE: 'welcome_ops_view_mode',
+  VIOLATIONS_VIEW_MODE: 'welcome_violations_view_mode',
+  MARKS_VIEW_MODE: 'welcome_marks_view_mode',
   FLOATING_TABS_POS: 'welcome_floating_tabs_pos',
   FLOATING_DATE_POS: 'welcome_floating_date_pos',
   SCHEDULE_SHOW_ROOM: 'welcome_schedule_show_room',

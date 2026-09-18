@@ -3,6 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getProgramTerms } from '@services/business/attendanceWorkspaceService';
 import { useAuth } from '@contexts/AuthContext';
+import { getAcademicTermDisplayName } from '@utils/academicTermUtils';
 
 const STORAGE_TERM_KEY = 'workspace_academic_term_id';
 
@@ -131,7 +132,7 @@ const YearTermSelector = ({ program, onSelect, onBack, showBack = true }) => {
                   ? (isDark ? '#1e3a5f' : '#eff6ff')
                   : (isDark ? '#1e293b' : '#ffffff'),
                 cursor: 'pointer',
-                textAlign: lang === 'ar' ? 'right' : 'left',
+                textAlign: 'center',
                 transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                 boxShadow: isSelected ? '0 8px 24px rgba(59,130,246,0.15)' : 'none',
               }}
@@ -143,13 +144,12 @@ const YearTermSelector = ({ program, onSelect, onBack, showBack = true }) => {
               }}
             >
               <div style={{ fontSize: '16px', fontWeight: 700, color: isDark ? '#f1f5f9' : '#1e293b' }}>
-                {lang === 'ar' && term.nameAr ? term.nameAr : term.nameEn}
+                {getAcademicTermDisplayName(term, lang)}
               </div>
               <div style={{ fontSize: '12px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '6px' }}>
-                {term.code}
                 {term.classCount > 0 && (
-                  <span style={{ marginInlineStart: '8px' }}>
-                    · {term.classCount} {t('workspace_classes')}
+                  <span>
+                    {term.classCount} {t('workspace_classes')}
                   </span>
                 )}
               </div>

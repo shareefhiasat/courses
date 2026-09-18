@@ -27,21 +27,31 @@ const getRequestLanguage = (req) => {
  * Convert Keycloak UUID to database user ID
  * Creates user in database if not found (sync from Keycloak)
  */
-const getDatabaseUserId = async (keycloakId) => {
-  if (!keycloakId) return null;
-  
+const getDatabaseUserId = async (userId) => {
+  if (!userId || userId === 'null' || userId === 'undefined') return null;
+
+  const isDbId = typeof userId === 'number' || /^\d+$/.test(String(userId));
+
+  if (isDbId) {
+    const user = await prisma.user.findUnique({
+      where: { id: Number(userId) },
+      select: { id: true, email: true, firstName: true, lastName: true }
+    });
+    return user?.id || null;
+  }
+
   let user = await prisma.user.findUnique({
-    where: { keycloakId },
+    where: { keycloakId: String(userId) },
     select: { id: true, email: true, firstName: true, lastName: true }
   });
-  
+
   // If user doesn't exist in database, create them (sync from Keycloak)
   if (!user) {
-    console.log('[userImages] User not found in database, creating sync from Keycloak:', keycloakId);
+    console.log('[userImages] User not found in database, creating sync from Keycloak:', userId);
     try {
       user = await prisma.user.create({
         data: {
-          keycloakId,
+          keycloakId: String(userId),
           email: 'pending@example.com', // Will be updated from Keycloak
           firstName: 'Pending',
           lastName: 'Sync',
@@ -55,7 +65,7 @@ const getDatabaseUserId = async (keycloakId) => {
       return null;
     }
   }
-  
+
   return user?.id || null;
 };
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { isOnboardingTourEnabled } from '@utils/tourConfig.js';
 
 /**
  * Shared guided-tour hook.
@@ -11,9 +12,9 @@ import { useState, useEffect, useCallback } from 'react';
 export function useTour(storageKey, steps) {
   const [run, setRun] = useState(false);
 
-  // Listen for global help / joyride events
+  // Listen for global help / joyride events (manual trigger allowed via override)
   useEffect(() => {
-    const start = () => setRun(true);
+    const start = () => { if (isOnboardingTourEnabled()) setRun(true); };
     window.addEventListener('app:joyride', start);
     window.addEventListener('app:help', start);
     return () => {
@@ -24,6 +25,7 @@ export function useTour(storageKey, steps) {
 
   // Auto-start once per language
   useEffect(() => {
+    if (!isOnboardingTourEnabled()) return;
     try {
       if (storageKey && !localStorage.getItem(storageKey)) setRun(true);
     } catch {}

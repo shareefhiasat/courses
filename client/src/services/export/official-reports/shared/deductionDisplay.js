@@ -15,12 +15,13 @@ export function formatDeduction(value) {
 
 export const DEDUCTION_RULES = {
   ATTENDANCE_ABSENT: 0.5,
-  ATTENDANCE_LEAVE: 0.25,
+  ATTENDANCE_LEAVE: 0.5,
   ATTENDANCE_LATE: 0.5,
-  ATTENDANCE_HUMAN_CASE: 0.25,
+  ATTENDANCE_HUMAN_CASE: 0.5,
+  EXCUSED: 0.25,
 };
 
 export function getDeductionForStatus(statusCode, excuseApprovedAt = null) {
-  if (excuseApprovedAt) return DEDUCTION_RULES.ATTENDANCE_LEAVE;
+  if (excuseApprovedAt) return DEDUCTION_RULES.EXCUSED;
   return DEDUCTION_RULES[statusCode] ?? 0;
 }

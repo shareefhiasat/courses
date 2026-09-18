@@ -21,6 +21,7 @@ import {
   getProgramTerms,
 } from '@services/business/attendanceWorkspaceService';
 import { getThemedIcon } from '@constants/iconTypes';
+import { getAcademicTermDisplayName } from '@utils/academicTermUtils';
 
 function labelFor(item, lang, field = 'name') {
   if (!item) return '';
@@ -222,11 +223,11 @@ export default function WelcomeContextSwitcher({
                         }}
                       >
                         <ListItemText
-                          primary={labelFor(term, lang)}
+                          primary={getAcademicTermDisplayName(term, lang)}
                           secondary={
-                            [term.code, term.classCount > 0 && `${term.classCount} ${t('workspace_classes')}`]
-                              .filter(Boolean)
-                              .join(' · ')
+                            term.classCount > 0
+                              ? `${term.classCount} ${t('workspace_classes')}`
+                              : ''
                           }
                           primaryTypographyProps={{ fontWeight: isCurrent ? 700 : 500, fontSize: '0.85rem', textAlign: isRTL ? 'right' : 'left' }}
                           secondaryTypographyProps={{ fontSize: '0.75rem', textAlign: isRTL ? 'right' : 'left' }}
@@ -257,7 +258,7 @@ export default function WelcomeContextSwitcher({
                 <strong>
                   {labelFor(selection.program, lang)}
                   {' · '}
-                  {labelFor(selection.academicTerm, lang)}
+                  {getAcademicTermDisplayName(selection.academicTerm, lang)}
                 </strong>
               </Typography>
             </Box>

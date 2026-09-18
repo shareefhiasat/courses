@@ -37,11 +37,13 @@ const hexToRgba = (hex, alpha) => {
  * Renders tooltips outside the component hierarchy to prevent overflow issues.
  * Uses React Portal to render the tooltip directly under document.body.
  */
+const FADE_MS = 180;
+
 const PortalTooltip = ({ 
   children, 
   content, 
   position = 'top',
-  delay = 200,
+  delay = 350,
   className = '',
   disabled = false,
   textColor = 'white',
@@ -50,35 +52,42 @@ const PortalTooltip = ({
 }) => {
   const { isRTL } = useLang();
   const [isVisible, setIsVisible] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [coords, setCoords] = useState({ x: 0, y: 0 });
   const triggerRef = useRef(null);
   const tooltipRef = useRef(null);
-  let timeout;
+  const showTimeout = useRef(null);
+  const hideTimeout = useRef(null);
 
   const showTooltip = (e) => {
     if (disabled) return;
     
-    clearTimeout(timeout);
-    timeout = setTimeout(() => {
+    clearTimeout(hideTimeout.current);
+    clearTimeout(showTimeout.current);
+    showTimeout.current = setTimeout(() => {
       const rect = triggerRef.current?.getBoundingClientRect();
       if (rect) {
         setCoords({
           x: rect.left + rect.width / 2,
           y: rect.top
         });
-        setIsVisible(true);
+        setIsMounted(true);
+        // Next frame so the opacity transition plays on mount
+        requestAnimationFrame(() => setIsVisible(true));
       }
     }, delay);
   };
 
   const hideTooltip = () => {
-    clearTimeout(timeout);
+    clearTimeout(showTimeout.current);
     setIsVisible(false);
+    // Keep mounted for the fade-out transition, then unmount
+    hideTimeout.current = setTimeout(() => setIsMounted(false), FADE_MS);
   };
 
   // Position calculation based on position prop
   const getTooltipStyle = () => {
-    if (!isVisible) return { display: 'none' };
+    if (!isMounted) return { display: 'none' };
 
     const tooltipHeight = 40; // Approximate height
     const tooltipWidth = 200; // Approximate max width
@@ -122,17 +131,20 @@ const PortalTooltip = ({
       zIndex: 9999,
       opacity: isVisible ? 1 : 0,
       transform: 'translateZ(0)',
-      transition: 'opacity 0.2s ease',
+      transition: `opacity ${FADE_MS}ms ease`,
       pointerEvents: 'none'
     };
   };
 
-  // Clean up timeout on unmount
+  // Clean up timeouts on unmount
   useEffect(() => {
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(showTimeout.current);
+      clearTimeout(hideTimeout.current);
+    };
   }, []);
 
-  const tooltipContent = isVisible && content ? (
+  const tooltipContent = isMounted && content ? (
     <div
       ref={tooltipRef}
       style={{

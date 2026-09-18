@@ -86,7 +86,6 @@ const FileCard = ({ file, selected, onSelect, onOpen, onEdit, onShare, onComment
               onOpen(file);
             }}
             className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors"
-            title={t('drive.hover.preview')}
           >
             <Eye className="w-5 h-5 text-gray-700" />
           </button>
@@ -98,7 +97,6 @@ const FileCard = ({ file, selected, onSelect, onOpen, onEdit, onShare, onComment
                 onEdit(file);
               }}
               className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors"
-              title={t('drive.hover.edit')}
             >
               <Edit3 className="w-5 h-5 text-gray-700" />
             </button>
@@ -110,7 +108,6 @@ const FileCard = ({ file, selected, onSelect, onOpen, onEdit, onShare, onComment
               onShare(file);
             }}
             className="p-2 bg-white rounded-full hover:bg-gray-100 transition-colors"
-            title={t('drive.hover.share')}
           >
             <Share2 className="w-5 h-5 text-gray-700" />
           </button>

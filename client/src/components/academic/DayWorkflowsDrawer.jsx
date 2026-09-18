@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink } from '@utils/icons.jsx';
 import { SimpleLoading } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';

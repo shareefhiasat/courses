@@ -1151,7 +1151,6 @@ const UsersPage = ({ isDashboardTab = false }) => {
                     style={{ color: '#dc2626', opacity: canDelete ? 1 : 0.5 }}
                     onClick={() => canDelete && handleDeleteUser(params.row)}
                     disabled={!canDelete}
-                    title={canDelete ? (t('delete')) : (isStudentRole ? 'Cannot delete this user' : 'Only students can be deleted')}
                   >
                     {t('delete')}
                   </Button>

@@ -90,6 +90,7 @@ const AttendanceViolationsModal = ({
       format: isOfficial ? exportFormat : EXPORT_FORMAT.EXCEL,
       mode,
       preview: isPreviewExport,
+      classId: cls?.id,
     });
     if (!isOfficial) {
       onClose();

@@ -32,6 +32,11 @@ import {
 } from './operationsBoardDisplayUtils.js';
 import { formatDateTime } from '@utils/date-formatter.js';
 import { getLocalizedAttendanceLabel, ATTENDANCE_STATUS } from '@constants/attendanceTypes.js';
+import {
+  CARD_TYPE,
+  ACTIVITY_TYPE,
+  DRAWER_TAB,
+} from './operationsBoardConstants.js';
 
 const { NOT_TAKEN, PRESENT, LATE, ABSENT, EXCUSED, HUMAN_CASE } = ATTENDANCE_BOARD_LANES;
 
@@ -114,13 +119,13 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
     if (!card) return;
     setLoading(true);
     try {
-      if (card.type === 'workflow') {
+      if (card.type === CARD_TYPE.WORKFLOW) {
         const histResult = await fetchWorkflowHistory(card.rawId);
         if (histResult.success) {
           setHistory(histResult.data?.history || []);
           setComments(histResult.data?.comments || card.raw?.comments || []);
         }
-      } else if (card.type === 'attendance') {
+      } else if (card.type === CARD_TYPE.ATTENDANCE) {
         setNotes(card.notes || '');
         if (card.rawId) {
           const histResult = await fetchAttendanceHistory(card.rawId);
@@ -147,7 +152,7 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
   }, [open, card, loadDetail]);
 
   const handleAddComment = async () => {
-    if (!newComment.trim() || !card || card.type !== 'workflow') return;
+    if (!newComment.trim() || !card || card.type !== CARD_TYPE.WORKFLOW) return;
     const result = await addWorkflowBoardComment(card.rawId, newComment.trim());
     if (result.success) {
       setComments((prev) => [...prev, result.data?.comment || result.data]);
@@ -156,13 +161,13 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
   };
 
   const handleSaveNotes = async () => {
-    if (!card || card.type !== 'attendance' || !card.rawId) return;
+    if (!card || card.type !== CARD_TYPE.ATTENDANCE || !card.rawId) return;
     await moveAttendanceCard(card.rawId, card.column, notes);
     onRefresh?.();
   };
 
   const handleAttendanceStatus = async (statusId) => {
-    if (!card || card.type !== 'attendance') return;
+    if (!card || card.type !== CARD_TYPE.ATTENDANCE) return;
     setSavingStatus(statusId);
     try {
       const result = await moveAttendanceCard(
@@ -186,7 +191,7 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
 
   if (!card) return null;
 
-  const statusColumn = (lane === 'attendance' ? ATTENDANCE_COLUMNS : []).find((c) => c.id === card.column);
+  const statusColumn = (lane === CARD_TYPE.ATTENDANCE ? ATTENDANCE_COLUMNS : []).find((c) => c.id === card.column);
   const statusLabel = statusColumn
     ? t(statusColumn.i18nKey) || statusColumn.name
     : card.column;
@@ -224,7 +229,7 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
       }
 
       return {
-        type: 'status',
+        type: ACTIVITY_TYPE.STATUS,
         actor: translatedActorName || t('operations_board_system_actor'),
         isSystem: !actorName,
         from: shortStatus(fromRaw, lang),
@@ -254,7 +259,7 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
       }
 
       return {
-        type: 'comment',
+        type: ACTIVITY_TYPE.COMMENT,
         actor: translatedCommentActor,
         isSystem: false,
         text: c.comment || c.text,
@@ -271,7 +276,7 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
       <DialogContent className="max-w-2xl gap-0 p-0" data-testid="operations-board-drawer">
         <DialogHeader className="space-y-3 border-b border-border px-6 py-4">
           <div className="flex items-start gap-3">
-            {card.type === 'attendance' && (
+            {card.type === CARD_TYPE.ATTENDANCE && (
               <BoardStudentAvatar
                 name={studentName}
                 profileImageUrl={card.profileImageUrl}
@@ -293,7 +298,7 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
                   style={statusColumn ? { borderColor: statusColumn.color, color: statusColumn.color } : undefined}
                   className="w-fit inline-flex"
                 >
-                  {card.type === 'attendance' && statusColumn && (
+                  {card.type === CARD_TYPE.ATTENDANCE && statusColumn && (
                     <span
                       className="inline-block h-2 w-2 rounded-full shrink-0 mr-1"
                       style={{ backgroundColor: statusColumn.color }}
@@ -311,7 +316,7 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
             </div>
           </div>
 
-          {card.type === 'attendance' && (
+          {card.type === CARD_TYPE.ATTENDANCE && (
             <div className="flex flex-wrap gap-2" data-testid="operations-board-attendance-actions">
               {ATTENDANCE_COLUMNS.filter((col) => col.id !== NOT_TAKEN).map((col) => (
                 <Button
@@ -352,7 +357,7 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
             </div>
           )}
 
-          {card.type === 'workflow' && card.fileId && (
+          {card.type === CARD_TYPE.WORKFLOW && card.fileId && (
             <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-2">
               <span className="text-xs font-medium">{t('operations_board_attached_file')}:</span>
               <Button
@@ -385,14 +390,14 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
               }
             }}
           >
-            <Tab value="activity" label={t('operations_board_tab_activity')} data-testid="operations-board-drawer-tab-activity" />
-            <Tab value="notes" label={t('operations_board_tab_notes')} data-testid="operations-board-drawer-tab-notes" />
-            {card.type === 'workflow' && (
-              <Tab value="comments" label={t('operations_board_tab_comments')} data-testid="operations-board-drawer-tab-comments" />
+            <Tab value={DRAWER_TAB.ACTIVITY} label={t('operations_board_tab_activity')} data-testid="operations-board-drawer-tab-activity" />
+            <Tab value={DRAWER_TAB.NOTES} label={t('operations_board_tab_notes')} data-testid="operations-board-drawer-tab-notes" />
+            {card.type === CARD_TYPE.WORKFLOW && (
+              <Tab value={DRAWER_TAB.COMMENTS} label={t('operations_board_tab_comments')} data-testid="operations-board-drawer-tab-comments" />
             )}
           </Tabs>
 
-          {tab === 'activity' && (
+          {tab === DRAWER_TAB.ACTIVITY && (
             <ScrollArea className="max-h-[45vh] pr-2">
               <div data-testid="operations-board-activity-feed">
                 {loading ? (
@@ -409,7 +414,7 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
                       />
                       <div className="flex-1 rounded-lg border border-border bg-muted/20 p-2 text-xs">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          {entry.type === 'status' && (
+                          {entry.type === ACTIVITY_TYPE.STATUS && (
                             <span className="inline-flex items-center gap-0.75 shrink-0">
                               <span style={{ color: entry.fromColor || undefined, fontWeight: 600 }}>{entry.from || '—'}</span>
                               <span
@@ -458,7 +463,7 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
             </ScrollArea>
           )}
 
-          {tab === 'notes' && (
+          {tab === DRAWER_TAB.NOTES && (
             <div>
               <TextField
                 multiline
@@ -469,12 +474,12 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
                 placeholder={t('operations_board_card_notes')}
                 inputProps={{ 'data-testid': 'operations-board-notes-input', style: { fontSize: '0.75rem' } }}
               />
-              {card.type === 'attendance' && card.rawId && (
+              {card.type === CARD_TYPE.ATTENDANCE && card.rawId && (
                 <Button size="sm" className="mt-2" onClick={handleSaveNotes}>
                   {t('operations_board_note_save')}
                 </Button>
               )}
-              {card.type === 'attendance' && history.length > 0 && (
+              {card.type === CARD_TYPE.ATTENDANCE && history.length > 0 && (
                 <div className="mt-3" data-testid="operations-board-notes-history">
                   <p className="text-[0.65rem] font-medium text-muted-foreground mb-1.5">
                     {t('operations_board_notes_history') || 'Notes History'}
@@ -521,7 +526,7 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
             </div>
           )}
 
-          {tab === 'comments' && card.type === 'workflow' && (
+          {tab === DRAWER_TAB.COMMENTS && card.type === CARD_TYPE.WORKFLOW && (
             <div>
               <div className="mb-2 flex flex-col gap-1.5">
                 {comments.map((c, idx) => {

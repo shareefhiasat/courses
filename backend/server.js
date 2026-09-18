@@ -434,6 +434,7 @@ import attendanceWorkspaceRoutes from "./routes/attendance-workspace.js";
 import attendanceLogRoutes from "./routes/attendance-log.js";
 import workflowTypeConfigRoutes from "./routes/workflow-type-configs.js";
 import academicClosureRoutes from "./routes/academic-closure.js";
+import aiQueryRoutes from "./routes/aiQuery.js";
 
 // Mount routes with versioning
 app.use(`/api/${API_VERSION}/programs`, programRoutes);
@@ -516,6 +517,9 @@ app.use(`/api/${API_VERSION}/welcome`, welcomeRoutes);
 
 // Attendance workspace routes
 app.use(`/api/${API_VERSION}/attendance-workspace`, attendanceWorkspaceRoutes);
+
+// AI Assistant query routes
+app.use(`/api/${API_VERSION}/ai`, aiQueryRoutes);
 
 // ==================== ERROR HANDLING ====================
 

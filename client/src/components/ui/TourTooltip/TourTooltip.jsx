@@ -138,7 +138,6 @@ const TourTooltip = ({ tourSeenKey } = {}) => {
               {...closeProps}
               onClick={handleClose}
               aria-label={closeLabel}
-              title={closeLabel}
               style={{
                 background: isDark ? 'rgba(255,255,255,0.1)' : '#f3f4f6',
                 border: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
@@ -201,7 +200,6 @@ const TourTooltip = ({ tourSeenKey } = {}) => {
                 {!isFirstStep && (
                   <button
                     {...backProps}
-                    title={backLabel}
                     style={btnStyle('secondary')}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.15)' : '#f3f4f6';
@@ -219,7 +217,6 @@ const TourTooltip = ({ tourSeenKey } = {}) => {
                   <button
                     {...skipProps}
                     onClick={handleSkip}
-                    title={skipLabel}
                     style={btnStyle('secondary')}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.15)' : '#f3f4f6';
@@ -234,7 +231,6 @@ const TourTooltip = ({ tourSeenKey } = {}) => {
                 <button
                   {...primaryProps}
                   onClick={handlePrimary}
-                  title={isLastStep ? finishLabel : nextLabel}
                   style={btnStyle('primary')}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.opacity = '0.85';

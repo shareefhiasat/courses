@@ -59,7 +59,6 @@ export default function DriveFilterBar({
             flexShrink: 0,
             boxSizing: 'border-box',
           }}
-          title={timelineCollapsed ? t('workflow.expand', 'Expand') : t('workflow.collapse', 'Collapse')}
           aria-label={timelineCollapsed ? t('workflow.expand', 'Expand') : t('workflow.collapse', 'Collapse')}
         >
           {timelineCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}

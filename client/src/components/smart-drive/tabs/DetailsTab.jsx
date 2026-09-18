@@ -184,7 +184,6 @@ export default function DetailsTab({ file }) {
                     border: '1.5px solid var(--panel, white)',
                     boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
                   }}
-                    title={t(`roles.${role}`, role)}
                   >
                     {React.cloneElement(roleIcon, { color: roleColor, size: 8 })}
                   </div>

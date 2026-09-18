@@ -10,6 +10,7 @@ import { useGlobalLoading, GlobalLoadingFallback } from '@contexts/GlobalLoading
 import { Container, Button, Select, UserSelect, Tabs } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { ROLE_STRINGS } from '@constants';
+import { isFeatureEnabledForUser } from '@constants/featureFlags';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { getUsers, getUserById } from '@services/business/userService';
@@ -327,6 +328,8 @@ export default function StudentDashboardPage() {
     return parts.join(' · ') || '—';
   }, [analyticsHook, t]);
 
+  const showMarksTab = isFeatureEnabledForUser('MARKS_TAB', user);
+
   // ─── Memoized tabs configuration (Performance optimization) ─────────────────────
   const dashTabs = useMemo(() => {
     const tabs = [
@@ -334,15 +337,17 @@ export default function StudentDashboardPage() {
       { value: 'attendance',    label: t('tab_attendance_analytics') },
       { value: 'activity',      label: t('tab_activity') },
     ];
-    
-    // Class tab for staff; Marks tab is always last
+
+    // Class tab for staff
     if (permissions.isStaff) {
       tabs.push({ value: 'class', label: lang === 'ar' ? 'تحليلات الفصل' : 'Class' });
     }
-    tabs.push({ value: 'marks', label: t('dashboard.marks') });
-    
+    if (showMarksTab) {
+      tabs.push({ value: 'marks', label: t('dashboard.marks') });
+    }
+
     return tabs;
-  }, [lang, t, permissions.isStaff]);
+  }, [lang, t, permissions.isStaff, showMarksTab]);
 
   if (authLoading) return <GlobalLoadingFallback />;
 
@@ -639,7 +644,7 @@ export default function StudentDashboardPage() {
                   </CollapsibleSection>
                 </div>
               )}
-              {activeTab === 'marks' && (
+              {activeTab === 'marks' && showMarksTab && (
                 <div data-tour="student-marks">
                 <MarksTab
                   marks={dashData.marks}

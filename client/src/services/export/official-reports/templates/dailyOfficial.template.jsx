@@ -1,6 +1,6 @@
 import React from 'react';
 import { OFFICIAL_HEADER } from '../shared/officialHeader.js';
-import { buildWatermarkLines } from '../engine/watermark.js';
+import { buildWatermarkLines, buildStatusWatermark } from '../engine/watermark.js';
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import styles from './officialReport.module.css';
 
@@ -9,7 +9,7 @@ const STATUS_LABELS = {
     present: 'متواجد',
     absent: 'غائب',
     humanCase: 'حالة إنسانية',
-    excusedLeave: 'إجازة معذورة',
+    excusedLeave: 'إجازة بعذر',
   },
   en: {
     present: 'Present',
@@ -20,8 +20,8 @@ const STATUS_LABELS = {
 };
 
 const COLUMN_LABELS = {
-  ar: { serial: 'ت', name: 'اسم الطالب', number: 'الرقم العسكري', notes: 'ملاحظات' },
-  en: { serial: '#', name: 'Student Name', number: 'Military No.', notes: 'Notes' },
+  ar: { serial: 'ت', name: 'اسم الطالب', number: 'الرقم العسكري', notes: 'ملاحظات', participation: 'المشاركة' },
+  en: { serial: '#', name: 'Student Name', number: 'Military No.', notes: 'Notes', participation: 'Participation' },
 };
 
 const META_LABELS = {
@@ -50,7 +50,7 @@ const COUNT_LABELS = {
     present: 'حاضر',
     absent: 'غائب',
     humanCase: 'حالة إنسانية',
-    excusedLeave: 'إجازة معذورة',
+    excusedLeave: 'إجازة بعذر',
     notTaken: 'لم يُسجل',
     late: 'متأخر',
   },
@@ -100,6 +100,7 @@ export function DailyOfficialTemplate({ data, showWatermark = true }) {
   const meta = META_LABELS[lang] || META_LABELS.ar;
   const countLabels = COUNT_LABELS[lang] || COUNT_LABELS.ar;
   const wm = buildWatermarkLines(data.watermarkUser);
+  const statusWm = buildStatusWatermark(data.watermarkStatus, data.approvedByUser, lang, data.approvedAt, data.watermarkUser, data.serial);
   const isAr = lang === 'ar';
 
   const baseEntries = Object.entries(counts.base || {}).map(([key, value]) => ({
@@ -142,16 +143,24 @@ export function DailyOfficialTemplate({ data, showWatermark = true }) {
       className={`${styles.officialPage} ${isAr ? styles.officialPageRtl : ''} ${styles.arabicShapedText}`}
       lang={isAr ? 'ar' : 'en'}
     >
-      {showWatermark && (wm.en || wm.ar || wm.uuid) && (
+      {showWatermark && statusWm && (
+        <div className={`${styles.officialWatermark} ${statusWm.status !== 'approved' ? styles.officialWatermarkDraft : ''} ${statusWm.status === 'approved' ? styles.officialWatermarkApproved : ''}`} style={{ color: statusWm.color }} aria-hidden>
+          <>
+            {statusWm.en && String(statusWm.en).split(' — ').map((line, i) => <div key={`e-${i}`}>{line}</div>)}
+            {statusWm.ar && statusWm.ar !== statusWm.en && String(statusWm.ar).split(' — ').map((line, i) => <div key={`a-${i}`}>{line}</div>)}
+          </>
+        </div>
+      )}
+      {showWatermark && !statusWm && (wm.en || wm.ar || wm.uuid) && (
         <div className={styles.officialWatermark} aria-hidden>
           {wm.en && <div>{wm.en}</div>}
           {wm.ar && wm.ar !== wm.en && <div>{wm.ar}</div>}
-          {wm.uuid && <div style={{ fontSize: '7px', opacity: 0.5, marginTop: '12px' }}>{wm.uuid}</div>}
+          {wm.uuid && <div>{wm.uuid}</div>}
         </div>
       )}
       <div className={styles.officialContentFlex}>
-        <div className={styles.serialLine}>
-          {isAr ? 'الرقم التسلسلي' : 'Serial'}: {serial}
+        <div className={styles.serialLine} dir={isAr ? 'rtl' : 'ltr'}>
+          {isAr ? 'الرقم التسلسلي' : 'Serial'}: <bdi dir="ltr">{serial}</bdi>
         </div>
 
         {/* Bilingual header — always EN left, AR right (LTR band) */}
@@ -204,7 +213,8 @@ export function DailyOfficialTemplate({ data, showWatermark = true }) {
               {statusKeys.map((key) => (
                 <th key={key}>{statusLabels[key]}</th>
               ))}
-              <th>{labels.notes}</th>
+              {data.showNotesColumn !== false && <th>{labels.notes}</th>}
+              {data.showParticipationColumn !== false && <th>{labels.participation}</th>}
             </tr>
           </thead>
           <tbody>
@@ -218,7 +228,8 @@ export function DailyOfficialTemplate({ data, showWatermark = true }) {
                     {row[key] ? '✓' : ''}
                   </td>
                 ))}
-                <td className={styles.notesCell}>{row.notes || ''}</td>
+                {data.showNotesColumn !== false && <td className={styles.notesCell}>{row.notes || ''}</td>}
+                {data.showParticipationColumn !== false && <td className={styles.notesCell}>{row.participation || ''}</td>}
               </tr>
             ))}
           </tbody>
@@ -233,13 +244,22 @@ export function DailyOfficialTemplate({ data, showWatermark = true }) {
             ))}
           </div>
         )}
-        {generatedAt && (
-          <div className={styles.officialFooter}>
+        <div className={styles.officialFooter}>
+          {generatedAt && (
             <span style={{ fontSize: '10px', color: '#6b7280' }}>
               {isAr ? 'تم التوليد' : 'Generated'}: {generatedAt}
             </span>
-          </div>
-        )}
+          )}
+          {statusWm && (
+            <span style={{
+              fontSize: '10px',
+              fontWeight: 700,
+              color: statusWm.color,
+            }}>
+              {isAr ? statusWm.ar : statusWm.en}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
@@ -6,7 +6,7 @@ import ListItemText from '@mui/material/ListItemText';
 import Divider from '@mui/material/Divider';
 import Collapse from '@mui/material/Collapse';
 import Box from '@mui/material/Box';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, ChevronLeft } from 'lucide-react';
 import ColoredTooltip from './ColoredTooltip';
 
 function TrailingActionButton({ action, onClose }) {
@@ -18,16 +18,16 @@ function TrailingActionButton({ action, onClose }) {
         onClick={disabled ? undefined : (e) => {
           e.stopPropagation();
           action.onClick?.();
-          onClose?.();
+          if (!action.keepOpen) onClose?.();
         }}
         sx={{
           cursor: disabled ? 'default' : 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: 28,
-          height: 28,
-          borderRadius: 1,
+          width: 22,
+          height: 22,
+          borderRadius: 0.75,
           opacity: disabled ? 0.4 : 0.75,
           '&:hover': disabled ? {} : { bgcolor: 'action.selected', opacity: 1 },
         }}
@@ -49,9 +49,15 @@ function AppMenuItem({
   action,
   t,
   onClose,
+  closeAll,
   expanded,
   onToggle,
+  cascade,
+  isRTL,
+  flipToFit,
 }) {
+  const itemRef = useRef(null);
+
   if (action.divider) {
     return <Divider />;
   }
@@ -65,24 +71,27 @@ function AppMenuItem({
       onToggle(isExpanded ? null : action.id);
     } else {
       action.onClick?.();
-      onClose?.();
+      (closeAll ?? onClose)?.();
     }
   };
 
   return (
     <>
       <MenuItem
+        ref={itemRef}
         disabled={action.disabled}
         onClick={handleClick}
         sx={{
           color: action.danger ? 'error.main' : 'inherit',
-          pr: 1,
+          minHeight: 28,
+          px: 0.75,
+          py: 0.25,
         }}
       >
         {action.icon && (
           <ListItemIcon
             sx={{
-              minWidth: 32,
+              minWidth: 24,
               color: action.danger ? 'error.main' : 'inherit',
             }}
           >
@@ -92,27 +101,61 @@ function AppMenuItem({
         <ListItemText
           primary={resolveMenuLabel(action, t)}
           secondary={action.hint}
+          primaryTypographyProps={{ sx: { fontSize: '0.85rem' } }}
           secondaryTypographyProps={{ variant: 'caption', sx: { color: 'text.secondary' } }}
         />
         {action.trailingActions && action.trailingActions.length > 0 && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 0.5 }}>
             {action.trailingActions.map((ta, taIdx) => (
-              <TrailingActionButton key={taIdx} action={ta} onClose={onClose} />
+              <TrailingActionButton key={taIdx} action={ta} onClose={closeAll ?? onClose} />
             ))}
           </Box>
         )}
         {hasChildren && (
-          isExpanded
-            ? <ChevronUp size={16} style={{ opacity: 0.6 }} />
-            : <ChevronDown size={16} style={{ opacity: 0.6 }} />
+          cascade
+            ? (isRTL ? <ChevronLeft size={14} style={{ opacity: 0.6 }} /> : <ChevronRight size={14} style={{ opacity: 0.6 }} />)
+            : isExpanded
+              ? <ChevronUp size={14} style={{ opacity: 0.6 }} />
+              : <ChevronDown size={14} style={{ opacity: 0.6 }} />
         )}
       </MenuItem>
-      {hasChildren && (
+      {cascade && hasChildren && (
+        <AppMenu
+          open={isExpanded}
+          anchorEl={itemRef.current}
+          onClose={() => onToggle(null)}
+          closeAll={closeAll ?? onClose}
+          actions={action.children}
+          t={t}
+          isRTL={isRTL}
+          cascade
+          flipToFit={flipToFit}
+          transitionDuration={0}
+          anchorOrigin={{
+            vertical: 'top',
+            horizontal: isRTL ? 'left' : 'right',
+          }}
+          transformOrigin={{
+            vertical: 'top',
+            horizontal: isRTL ? 'right' : 'left',
+          }}
+          slotProps={{
+            root: { style: { pointerEvents: 'none' } },
+            backdrop: {
+              invisible: true,
+              style: { pointerEvents: 'none' },
+            },
+          }}
+          disableAutoFocus
+          disableAutoFocusItem
+        />
+      )}
+      {!cascade && hasChildren && (
         <Collapse in={isExpanded} timeout="auto" unmountOnExit>
           <Box
             sx={{
-              pl: 3.5,
-              pr: 1,
+              pl: 2.5,
+              pr: 0.75,
               bgcolor: 'action.hover',
             }}
           >
@@ -125,19 +168,20 @@ function AppMenuItem({
                   onClick={(e) => {
                     e.stopPropagation();
                     child.onClick?.();
-                    onClose?.();
+                    (closeAll ?? onClose)?.();
                   }}
                   sx={{
                     color: child.danger ? 'error.main' : 'inherit',
-                    minHeight: 36,
+                    minHeight: 26,
+                    px: 0.75,
+                    py: 0.25,
                     borderRadius: 1,
-                    my: 0.25,
                   }}
                 >
                   {child.icon && (
                     <ListItemIcon
                       sx={{
-                        minWidth: 28,
+                        minWidth: 24,
                         color: child.danger ? 'error.main' : 'inherit',
                       }}
                     >
@@ -147,12 +191,13 @@ function AppMenuItem({
                   <ListItemText
                     primary={resolveMenuLabel(child, t)}
                     secondary={child.hint}
+                    primaryTypographyProps={{ sx: { fontSize: '0.85rem' } }}
                     secondaryTypographyProps={{ variant: 'caption', sx: { color: 'text.secondary' } }}
                   />
                   {child.trailingActions && child.trailingActions.length > 0 && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 0.5 }}>
                       {child.trailingActions.map((ta, taIdx) => (
-                        <TrailingActionButton key={taIdx} action={ta} onClose={onClose} />
+                        <TrailingActionButton key={taIdx} action={ta} onClose={closeAll ?? onClose} />
                       ))}
                     </Box>
                   )}
@@ -170,43 +215,103 @@ export default function AppMenu({
   open,
   anchorEl,
   onClose,
+  closeAll,
   actions = [],
   t = (k) => k,
   isRTL: isRTLProp,
-  slotProps,
+  slotProps: slotPropsProp,
+  flipToFit = false,
+  flipThreshold = 250,
+  cascade = false,
   ...menuProps
 }) {
   const [expanded, setExpanded] = useState(null);
   const isRTL = isRTLProp ?? menuProps?.anchorOrigin?.horizontal === 'left';
 
+  const { anchorOrigin: anchorOriginProp, transformOrigin: transformOriginProp, ...restMenuProps } = menuProps;
+  const { paper: paperSlotProps, ...restSlotProps } = slotPropsProp || {};
+
+  const placement = useMemo(() => {
+    if (!flipToFit || !open || !anchorEl || typeof window === 'undefined') {
+      return {
+        anchorOrigin: anchorOriginProp,
+        transformOrigin: transformOriginProp,
+        paperMaxHeight: undefined,
+      };
+    }
+    const resolveEl = () => {
+      if (anchorEl instanceof Element) return anchorEl;
+      if (typeof anchorEl === 'function') return anchorEl();
+      if (anchorEl?.current instanceof Element) return anchorEl.current;
+      return null;
+    };
+    const el = resolveEl();
+    if (!el) {
+      return {
+        anchorOrigin: anchorOriginProp,
+        transformOrigin: transformOriginProp,
+        paperMaxHeight: undefined,
+      };
+    }
+    const rect = el.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const margin = 16;
+    const spaceBelow = Math.max(0, vh - rect.top - margin);
+    const spaceAbove = Math.max(0, rect.top - margin);
+
+    if (spaceBelow < flipThreshold && spaceAbove > spaceBelow) {
+      return {
+        anchorOrigin: { ...anchorOriginProp, vertical: 'top' },
+        transformOrigin: { ...transformOriginProp, vertical: 'bottom' },
+        paperMaxHeight: Math.min(spaceAbove, 0.8 * vh),
+      };
+    }
+
+    return {
+      anchorOrigin: { ...anchorOriginProp, vertical: 'top' },
+      transformOrigin: { ...transformOriginProp, vertical: 'top' },
+      paperMaxHeight: Math.min(spaceBelow, 0.8 * vh),
+    };
+  }, [flipToFit, open, anchorEl, anchorOriginProp, transformOriginProp, flipThreshold]);
+
   useEffect(() => {
     if (!open) setExpanded(null);
   }, [open]);
+
+  const handleItemToggle = useCallback((next) => {
+    setExpanded(next);
+  }, []);
 
   return (
     <Menu
       open={open}
       anchorEl={anchorEl}
       onClose={onClose}
+      anchorOrigin={placement.anchorOrigin}
+      transformOrigin={placement.transformOrigin}
+      transitionDuration={cascade ? 0 : undefined}
       slotProps={{
         paper: {
+          ...paperSlotProps,
           sx: {
-            minWidth: 220,
+            minWidth: 160,
             bgcolor: 'background.paper',
             boxShadow: 3,
-            borderRadius: 1,
-            maxHeight: '80vh',
+            borderRadius: 0.75,
+            maxHeight: placement.paperMaxHeight ? `${placement.paperMaxHeight}px` : '80vh',
             overflow: 'auto',
+            pointerEvents: 'auto',
             '& .MuiMenuItem-root': {
               whiteSpace: 'nowrap',
             },
+            ...paperSlotProps?.sx,
           },
         },
-        ...slotProps,
+        ...restSlotProps,
       }}
       disableAutoFocus
       disableAutoFocusItem
-      {...menuProps}
+      {...restMenuProps}
     >
       {actions.map((action, index) => (
         <AppMenuItem
@@ -214,8 +319,12 @@ export default function AppMenu({
           action={action}
           t={t}
           onClose={onClose}
+          closeAll={closeAll ?? onClose}
           expanded={expanded}
-          onToggle={setExpanded}
+          onToggle={handleItemToggle}
+          cascade={cascade}
+          isRTL={isRTL}
+          flipToFit={flipToFit}
         />
       ))}
     </Menu>

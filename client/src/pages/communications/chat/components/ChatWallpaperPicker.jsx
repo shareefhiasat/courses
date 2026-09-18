@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Image, Check, X } from 'lucide-react';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 
 const STORAGE_KEY = 'chatWallpaper';
 const STORAGE_KEY_BG = 'chatWallpaperBgColor';
@@ -359,7 +360,6 @@ const ChatWallpaperPicker = ({ theme, t, roomId }) => {
         ref={buttonRef}
         type="button"
         onClick={() => setOpen(!open)}
-        title={t('chat_wallpaper')}
         style={{
           background: 'transparent',
           border: '1px solid var(--border)',
@@ -387,7 +387,7 @@ const ChatWallpaperPicker = ({ theme, t, roomId }) => {
           style={{
             position: 'absolute',
             top: '100%',
-            right: 0,
+            insetInlineEnd: 0,
             marginTop: 8,
             background: 'var(--panel)',
             border: '1px solid var(--border)',
@@ -396,6 +396,7 @@ const ChatWallpaperPicker = ({ theme, t, roomId }) => {
             padding: '1rem',
             zIndex: 1000,
             width: 480,
+            maxWidth: 'calc(100vw - 32px)',
             maxHeight: 460,
             overflowY: 'auto',
           }}
@@ -451,7 +452,6 @@ const ChatWallpaperPicker = ({ theme, t, roomId }) => {
                     position: 'relative',
                     transition: 'all 0.2s',
                   }}
-                  title={wp.name}
                 >
                   <div style={{
                     width: '100%',
@@ -528,20 +528,21 @@ const ChatWallpaperPicker = ({ theme, t, roomId }) => {
                     }}
                   />
                   {bgColor && (
-                    <button
-                      onClick={() => { setBgColor(''); storeBgColor('', roomId); fireChangeEvent(); }}
-                      title="Reset"
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--muted)',
-                        padding: 0,
-                        fontSize: '0.7rem',
-                      }}
-                    >
-                      ↺
-                    </button>
+                    <ColoredTooltip title="Reset">
+                      <button
+                        onClick={() => { setBgColor(''); storeBgColor('', roomId); fireChangeEvent(); }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: 'var(--muted)',
+                          padding: 0,
+                          fontSize: '0.7rem',
+                        }}
+                      >
+                        ↺
+                      </button>
+                    </ColoredTooltip>
                   )}
                 </div>
               </div>
@@ -594,20 +595,21 @@ const ChatWallpaperPicker = ({ theme, t, roomId }) => {
                       }}
                     />
                     {patternColor && (
-                      <button
-                        onClick={() => { setPatternColor(''); storePatternColor('', roomId); fireChangeEvent(); }}
-                        title="Reset"
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: 'var(--muted)',
-                          padding: 0,
-                          fontSize: '0.7rem',
-                        }}
-                      >
-                        ↺
-                      </button>
+                      <ColoredTooltip title="Reset">
+                        <button
+                          onClick={() => { setPatternColor(''); storePatternColor('', roomId); fireChangeEvent(); }}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'var(--muted)',
+                            padding: 0,
+                            fontSize: '0.7rem',
+                          }}
+                        >
+                          ↺
+                        </button>
+                      </ColoredTooltip>
                     )}
                   </div>
                 </div>

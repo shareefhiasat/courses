@@ -8,6 +8,7 @@ import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import { useLang } from '@contexts/LangContext';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import styles from './BulkScanDialog.module.css';
 
 const StudentChip = ({
@@ -67,13 +68,13 @@ const StudentChip = ({
           </span>
         )}
       </div>
-      <button
-        onClick={handleMove}
-        className={styles.chipRemove}
-        disabled={disabled}
-        aria-label={`${t('move_to_selected')}: ${studentNumber}`}
-        title={`${isToSelected ? (t('move_to_selected')) : (t('move_to_excluded'))}: ${studentNumber}`}
-        style={{
+      <ColoredTooltip title={`${isToSelected ? (t('move_to_selected')) : (t('move_to_excluded'))}: ${studentNumber}`}>
+        <button
+          onClick={handleMove}
+          className={styles.chipRemove}
+          disabled={disabled}
+          aria-label={`${t('move_to_selected')}: ${studentNumber}`}
+          style={{
           backgroundColor: buttonColor,
           color: 'white',
           cursor: disabled ? 'not-allowed' : 'pointer',
@@ -90,6 +91,7 @@ const StudentChip = ({
       >
         <Icon size={14} />
       </button>
+      </ColoredTooltip>
     </div>
   );
 };

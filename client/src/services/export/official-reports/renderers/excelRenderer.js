@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs';
 import { OFFICIAL_HEADER } from '../shared/officialHeader.js';
 import { formatDateTime } from '@utils/date-formatter.js';
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
+import { buildWatermarkLines, buildStatusWatermark } from '../engine/watermark.js';
 import { MIME_TYPES } from '@constants/exportConfig.js';
 
 function metaDisplayValue(value, lang) {
@@ -11,13 +12,32 @@ function metaDisplayValue(value, lang) {
 }
 
 const STATUS_LABELS = {
-  ar: { present: 'متواجد', absent: 'غائب', humanCase: 'حالة إنسانية', excusedLeave: 'إجازة معذورة' },
+  ar: { present: 'متواجد', absent: 'غائب', humanCase: 'حالة إنسانية', excusedLeave: 'إجازة بعذر' },
   en: { present: 'Present', absent: 'Absent', humanCase: 'Human case', excusedLeave: 'Excused Leave' },
 };
 
 const COLUMN_LABELS = {
   ar: { serial: 'ت', name: 'اسم الطالب', number: 'الرقم العسكري', notes: 'ملاحظات' },
   en: { serial: '#', name: 'Student Name', number: 'Military No.', notes: 'Notes' },
+};
+
+const COUNT_LABELS = {
+  ar: {
+    present: 'حاضر',
+    absent: 'غائب',
+    humanCase: 'حالة إنسانية',
+    excusedLeave: 'إجازة بعذر',
+    notTaken: 'لم يُسجل',
+    late: 'متأخر',
+  },
+  en: {
+    present: 'Present',
+    absent: 'Absent',
+    humanCase: 'Human Case',
+    excusedLeave: 'Excused Leave',
+    notTaken: 'Not Taken',
+    late: 'Late',
+  },
 };
 
 const META_LABELS = {
@@ -56,6 +76,8 @@ function applyThinBorders(cell) {
   };
 }
 
+const ltrEmbed = (text) => `\u202A${text}\u202C`;
+
 function setupA4Worksheet(worksheet, rtl = true) {
   worksheet.pageSetup = {
     paperSize: 9,
@@ -88,7 +110,7 @@ function labelValueRichTextMirrored(label, value, size = 11) {
 }
 
 function writeMetaRow(ws, row, leftLabel, leftValue, rightLabel, rightValue, options = {}) {
-  const { mirrorRight = true } = options;
+  const { mirrorRight = true, rtl = false } = options;
   const leftStart = 'A';
   const leftEnd = 'C';
   const rightStart = 'F';
@@ -97,7 +119,7 @@ function writeMetaRow(ws, row, leftLabel, leftValue, rightLabel, rightValue, opt
   const leftCell = ws.getCell(`${leftStart}${row}`);
   leftCell.value = labelValueRichText(leftLabel, leftValue);
   leftCell.alignment = {
-    horizontal: 'left',
+    horizontal: rtl ? 'right' : 'left',
     vertical: 'middle',
     wrapText: true,
   };
@@ -157,10 +179,10 @@ async function tryAddLogo(workbook, worksheet, headerStartRow, colCount = 8) {
 
     const logoCol =
       colCount >= 12
-        ? 4.35
+        ? 4.5
         : colCount === 8
-          ? 3.0
-          : 2.35;
+          ? 3.5
+          : 2.5;
 
     worksheet.addImage(imageId, {
       tl: { col: logoCol, row: headerStartRow + 0.35 },
@@ -188,15 +210,16 @@ export async function exportDailyOfficialExcel(data) {
   const isAr = lang === 'ar';
   const labels = COLUMN_LABELS[lang] || COLUMN_LABELS.ar;
   const statusLabels = STATUS_LABELS[lang] || STATUS_LABELS.ar;
+  const countLabels = COUNT_LABELS[lang] || COUNT_LABELS.ar;
   const metaLabels = META_LABELS[lang] || META_LABELS.ar;
 
   const workbook = new ExcelJS.Workbook();
-  const ws = workbook.addWorksheet('Daily Official', { views: [{ rightToLeft: false }] });
-  setupA4Worksheet(ws, false);
+  const ws = workbook.addWorksheet('Daily Official', { views: [{ rightToLeft: isAr }] });
+  setupA4Worksheet(ws, isAr);
 
   let row = 1;
 
-  ws.getCell(`A${row}`).value = `${metaLabels.serial}: ${data.serial}`;
+  ws.getCell(`A${row}`).value = `${metaLabels.serial}: ${ltrEmbed(data.serial)}`;
   ws.getCell(`A${row}`).font = { size: 9, color: { argb: 'FF555555' } };
   ws.mergeCells(`A${row}:H${row}`);
   row += 1;
@@ -217,8 +240,8 @@ export async function exportDailyOfficialExcel(data) {
   row += 1;
 
   const yearTerm = [data.header.year, data.header.term].filter(Boolean).join(' / ');
-  const metaOpts = { mirrorRight: true };
-  writeMetaRow(ws, row, metaLabels.date, data.header.date, metaLabels.serial, data.serial, metaOpts);
+  const metaOpts = { mirrorRight: true, rtl: isAr };
+  writeMetaRow(ws, row, metaLabels.date, data.header.date, metaLabels.serial, ltrEmbed(data.serial), metaOpts);
   row += 1;
   writeMetaRow(ws, row, metaLabels.program, data.header.program, metaLabels.subject, data.header.subject || '—', metaOpts);
   row += 1;
@@ -230,12 +253,13 @@ export async function exportDailyOfficialExcel(data) {
   }
   row += 2;
 
+  const showNotes = data.showNotesColumn !== false;
   const headers = [
     labels.serial,
     labels.name,
     labels.number,
     ...data.statusKeys.map((k) => statusLabels[k]),
-    labels.notes,
+    ...(showNotes ? [labels.notes] : []),
   ];
   const headerRow = ws.getRow(row);
   headers.forEach((h, i) => {
@@ -256,7 +280,7 @@ export async function exportDailyOfficialExcel(data) {
       r.studentName,
       r.studentNumber,
       ...data.statusKeys.map((k) => (r[k] ? '✓' : '')),
-      r.notes || '',
+      ...(showNotes ? [r.notes || ''] : []),
     ];
     values.forEach((v, i) => {
       const cell = dataRow.getCell(i + 1);
@@ -274,14 +298,75 @@ export async function exportDailyOfficialExcel(data) {
     row += 1;
   });
 
+  const baseCounts = data.counts?.base || {};
+  const extraCounts = data.counts?.extra || {};
+  const countItems = [
+    ...['present', 'absent', 'humanCase', 'excusedLeave'].map((key) => ({
+      key,
+      label: countLabels[key],
+      value: baseCounts[key] || 0,
+    })),
+    ...['notTaken', 'late']
+      .filter((key) => (extraCounts[key] || 0) > 0)
+      .map((key) => ({ key, label: countLabels[key], value: extraCounts[key] })),
+  ];
+
+  if (countItems.length > 0) {
+    row += 1;
+    const summaryCell = ws.getCell(`A${row}`);
+    summaryCell.value = countItems
+      .map(({ label, value }) => (isAr ? `${value} ${label}` : `${label}: ${value}`))
+      .join('    ');
+    summaryCell.font = { size: 10, bold: true, color: { argb: 'FF374151' } };
+    summaryCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    ws.mergeCells(`A${row}:H${row}`);
+    ws.getRow(row).height = 22;
+    row += 1;
+  }
+
   row += 1;
   const footerSerial = ws.getCell(`A${row}`);
-  footerSerial.value = `${metaLabels.serial}: ${data.serial}`;
+  footerSerial.value = `${metaLabels.serial}: ${ltrEmbed(data.serial)}`;
   footerSerial.font = { size: 9, color: { argb: 'FF555555' } };
   ws.mergeCells(`A${row}:H${row}`);
   row += 1;
 
-  const genDateTime = formatDateTime(new Date(), isAr ? 'ar' : 'en');
+  const statusWm = buildStatusWatermark(
+    data.watermarkStatus,
+    data.approvedByUser,
+    data.lang,
+    data.approvedAt,
+    data.watermarkUser,
+    data.serial
+  );
+
+  if (statusWm) {
+    const statusColor = statusWm.color ? `FF${statusWm.color.replace('#', '').toUpperCase()}` : 'FF6B7280';
+    const statusLines = [statusWm.en, statusWm.ar].filter(Boolean);
+    const uniqueLines = statusLines.filter((t, i, a) => a.indexOf(t) === i);
+    uniqueLines.forEach((line) => {
+      const statusCell = ws.getCell(`A${row}`);
+      statusCell.value = line;
+      statusCell.font = { size: 10, bold: true, color: { argb: statusColor } };
+      statusCell.alignment = { horizontal: isAr ? 'right' : 'left' };
+      ws.mergeCells(`A${row}:H${row}`);
+      row += 1;
+    });
+  } else {
+    const wm = buildWatermarkLines(data.watermarkUser);
+    const wmLines = [wm.en, wm.ar].filter(Boolean);
+    const uniqueWm = wmLines.filter((t, i, a) => a.indexOf(t) === i);
+    uniqueWm.forEach((line) => {
+      const wmCell = ws.getCell(`A${row}`);
+      wmCell.value = line;
+      wmCell.font = { size: 9, color: { argb: 'FF9CA3AF' } };
+      wmCell.alignment = { horizontal: isAr ? 'right' : 'left' };
+      ws.mergeCells(`A${row}:H${row}`);
+      row += 1;
+    });
+  }
+
+  const genDateTime = data.generatedAt || formatDateTime(new Date(), isAr ? 'ar' : 'en');
   const footerGen = ws.getCell(`A${row}`);
   footerGen.value = `${metaLabels.generated}: ${genDateTime}`;
   footerGen.font = { size: 9, color: { argb: 'FF555555' } };
@@ -757,14 +842,7 @@ export async function exportQualitativeCardExcel(data) {
 export async function exportAttendanceWarningExcel(data) {
   const isAr = data.isAr;
   const workbook = new ExcelJS.Workbook();
-  const genDateTime = new Date().toLocaleDateString(isAr ? 'ar-SA' : 'en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+  const genDateTime = formatDateTime(new Date(), isAr ? 'ar' : 'en');
 
   data.pages.forEach((page, idx) => {
     const ws = workbook.addWorksheet(`${page.studentNumber || idx + 1}`.slice(0, 31), { views: [{ rightToLeft: isAr }] });

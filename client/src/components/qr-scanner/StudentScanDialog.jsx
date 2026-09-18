@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, PenaltyIcon, ParticipationIcon, DetailsIcon, ZapIcon } from '@utils/icons.jsx';
+import { Check, Clock, X, Heart, AlertCircle, Trophy, Zap, FileText } from '@utils/icons.jsx';
 import AttendanceActionButtons from './AttendanceActionButtons.jsx';
 import { ATTENDANCE_STATUS, getAttendanceColor, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
@@ -277,7 +277,7 @@ const StudentScanDialog = ({
                 </>
               ) : (
                 <>
-                  <PenaltyIcon style={{ width: '18px', height: '18px' }} />
+                  <AlertCircle size={18} strokeWidth={2.5} />
                   {t('penalty')}
                 </>
               )}
@@ -332,7 +332,7 @@ const StudentScanDialog = ({
                 </>
               ) : (
                 <>
-                  <ParticipationIcon style={{ width: '18px', height: '18px' }} />
+                  <Trophy size={14} />
                   {t('participation')}
                 </>
               )}
@@ -387,7 +387,7 @@ const StudentScanDialog = ({
                 </>
               ) : (
                 <>
-                  <ZapIcon style={{ width: '18px', height: '18px' }} />
+                  <Zap size={18} />
                   {t('behavior')}
                 </>
               )}
@@ -455,7 +455,7 @@ const StudentScanDialog = ({
                 </>
               ) : (
                 <>
-                  <DetailsIcon style={{ width: '18px', height: '18px' }} />
+                  <FileText size={18} strokeWidth={2.5} />
                   {t('details')}
                 </>
               )}
@@ -511,7 +511,7 @@ const StudentScanDialog = ({
                 </>
               ) : (
                 <>
-                  <ZapIcon style={{ width: '18px', height: '18px' }} />
+                  <Zap size={18} />
                   {t('actions')}
                 </>
               )}

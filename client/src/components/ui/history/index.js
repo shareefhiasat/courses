@@ -5,12 +5,12 @@ export { HistoryEntry } from './HistoryEntry';
 export { HistoryDayHeader } from './HistoryDayHeader';
 export { HistorySection } from './HistorySection';
 export { 
-  AttendanceIcon, 
-  ParticipationIcon, 
-  BehaviorIcon, 
-  PenaltyIcon, 
-  UserIcon 
-} from '@utils/icons';
+  UserCheck as AttendanceIcon, 
+  Trophy as ParticipationIcon, 
+  AlertCircle as BehaviorIcon, 
+  AlertCircle as PenaltyIcon, 
+  User as UserIcon 
+} from '@utils/icons.jsx';
 export { default as StudentRosterHistory } from './StudentRosterHistory';
 export { default as DeleteModal } from './DeleteModal';
 export { default as StudentCard } from './StudentCard';

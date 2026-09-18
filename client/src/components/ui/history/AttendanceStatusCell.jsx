@@ -1,6 +1,6 @@
 import React from 'react';
 import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY, getAttendanceColor, getLocalizedAttendanceLabel } from '@constants/attendanceTypes.js';
-import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
+import { Check, Clock, X, Heart, Circle } from '@utils/icons.jsx';
 import { getThemedIcon } from '@constants/iconTypes';
 import { WORKFLOW_STATUS, IN_PROGRESS_STATUSES } from '@constants/workflowStatusTypes.jsx';
 
@@ -20,15 +20,15 @@ const AlibiWorkflowIndicator = ({ workflow, t, lang }) => {
   if (isApproved) {
     iconColor = '#10b981';
     tooltipText = (t('alibi_approved')) + ` — #${workflow.id}`;
-    IconComponent = CheckSmallIcon;
+    IconComponent = Check;
   } else if (isRejected) {
     iconColor = '#ef4444';
     tooltipText = (t('alibi_rejected')) + ` — #${workflow.id}`;
-    IconComponent = XSmallIcon;
+    IconComponent = X;
   } else {
     iconColor = '#f59e0b';
     tooltipText = (t('alibi_in_progress')) + ` — #${workflow.id}`;
-    IconComponent = ClockSmallIcon;
+    IconComponent = Clock;
   }
 
   return (
@@ -37,7 +37,6 @@ const AlibiWorkflowIndicator = ({ workflow, t, lang }) => {
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
-      title={tooltipText}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -47,7 +46,7 @@ const AlibiWorkflowIndicator = ({ workflow, t, lang }) => {
         flexShrink: 0,
       }}
     >
-      <IconComponent style={{ width: '14px', height: '14px', stroke: iconColor }} />
+      <IconComponent size={14} color={iconColor} />
     </a>
   );
 };
@@ -63,7 +62,7 @@ const AttendanceStatusCell = ({ status, type = ATTENDANCE_TYPE_CATEGORY.REGULAR,
     if (!ATTENDANCE_STATUS_LABELS[statusUpper]) {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          <CircleIcon style={{ width: type === ATTENDANCE_TYPE_CATEGORY.REGULAR ? '12px' : '16px', height: type === ATTENDANCE_TYPE_CATEGORY.REGULAR ? '12px' : '16px', stroke: '#9ca3af' }} />
+          <Circle size={type === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 12 : 16} color="#9ca3af" />
           <span style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: 500 }}>{t('none')}</span>
           {linkedWorkflow && <AlibiWorkflowIndicator workflow={linkedWorkflow} t={t} lang={lang} />}
         </div>
@@ -77,21 +76,21 @@ const AttendanceStatusCell = ({ status, type = ATTENDANCE_TYPE_CATEGORY.REGULAR,
       switch(statusUpper) {
         case ATTENDANCE_STATUS.PRESENT:
         case ATTENDANCE_STATUS.STANDUP_PRESENT:
-          return <CheckSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+          return <Check size={16} strokeWidth={3} color={color} />;
         case ATTENDANCE_STATUS.LATE:
         case ATTENDANCE_STATUS.STANDUP_LATE:
-          return <ClockSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+          return <Clock size={16} color={color} />;
         case ATTENDANCE_STATUS.ABSENT_NO_EXCUSE:
         case ATTENDANCE_STATUS.STANDUP_ABSENT:
-          return <XSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+          return <X size={16} color={color} />;
         case ATTENDANCE_STATUS.EXCUSED_LEAVE:
-          return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+          return <Heart size={16} strokeWidth={2.5} color={color} />;
         case ATTENDANCE_STATUS.STANDUP_CLINIC:
-          return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+          return <Heart size={16} strokeWidth={2.5} color={color} />;
         case ATTENDANCE_STATUS.HUMAN_CASE:
-          return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+          return <Heart size={16} strokeWidth={2.5} color={color} />;
         default:
-          return <CircleIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+          return <Circle size={16} color={color} />;
       }
     };
 
@@ -111,9 +110,7 @@ const AttendanceStatusCell = ({ status, type = ATTENDANCE_TYPE_CATEGORY.REGULAR,
 
   return status ? getAttendanceDisplay(status) : (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-      <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-      </svg>
+      <Circle size={iconSize} color="#9ca3af" />
       <span style={{ fontSize: fontSize, color: '#9ca3af', fontWeight: 500 }}>{t('none')}</span>
       {linkedWorkflow && <AlibiWorkflowIndicator workflow={linkedWorkflow} t={t} lang={lang} />}
     </div>

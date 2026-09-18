@@ -64,7 +64,11 @@ export function formatWeekDayCodes(days, t) {
 }
 
 export function getLocalizedInstructorName(instructor, lang, fallback = '') {
-  return getLocalizedUserName(instructor, lang, fallback || 'Unknown User');
+  const name = getLocalizedUserName(instructor, lang, fallback || 'Unknown User');
+  const rank = lang === 'ar'
+    ? (instructor?.rankAr || instructor?.rankEn)
+    : (instructor?.rankEn || instructor?.rankAr);
+  return rank ? `${rank} ${name}` : name;
 }
 
 export function getLocalizedClassroomName(classroom, lang) {

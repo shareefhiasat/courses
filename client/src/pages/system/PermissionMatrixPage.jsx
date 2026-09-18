@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { getAuthToken } from '@utils/authHelpers';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import {
@@ -474,9 +475,11 @@ const PermissionMatrixPage = () => {
           >
             {roleDisplayNames[role]}
             {role === ROLE_STRINGS.SUPER_ADMIN && (
-              <span style={{ marginLeft: '0.35rem', fontSize: '0.65rem', opacity: 0.85 }} title="Bypasses matrix at runtime">
-                (System)
-              </span>
+              <ColoredTooltip title="Bypasses matrix at runtime">
+                <span style={{ marginLeft: '0.35rem', fontSize: '0.65rem', opacity: 0.85 }}>
+                  (System)
+                </span>
+              </ColoredTooltip>
             )}
           </button>
         ))}

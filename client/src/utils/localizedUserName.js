@@ -43,6 +43,8 @@ export function getArabicUserName(user, fallback = null) {
   if (!user) return fallback;
 
   if (user.displayNameAr?.trim()) return user.displayNameAr.trim();
+  if (user.nameAr?.trim()) return user.nameAr.trim();
+  if (user.realNameAr?.trim()) return user.realNameAr.trim();
   if (user.studentNameAr?.trim()) return user.studentNameAr.trim();
   if (user.firstNameAr && user.lastNameAr) {
     return `${user.firstNameAr} ${user.lastNameAr}`.trim();

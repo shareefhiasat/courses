@@ -827,7 +827,6 @@ export default function QuizBuilderPage() {
                 variant="outline"
                 size="sm"
                 onClick={addQuestion}
-                title={t('add_question_btn')}
               >
                 <Plus size={14} />
               </Button>
@@ -1008,7 +1007,6 @@ export default function QuizBuilderPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => addOption(activeQuestionIndex)}
-                              title={t('add_option')}
                             >
                               <Plus size={14} />
                             </Button>

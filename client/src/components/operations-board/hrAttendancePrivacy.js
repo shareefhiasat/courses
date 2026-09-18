@@ -41,7 +41,18 @@ export function shouldHideNotesCommentsOnly(roleContext = {}) {
   return isInstructorOnlyViewer(roleContext);
 }
 
+/** Participation is instructor-only by default; admins and superadmins can also view it. */
+export function canViewParticipation(roleContext = {}) {
+  return isInstructorOnlyViewer(roleContext) || Boolean(roleContext.isAdmin) || Boolean(roleContext.isSuperAdmin);
+}
+
 export function filterActivityEntriesForHR(entries, roleContext = {}) {
-  if (!isHROnlyViewer(roleContext)) return entries;
-  return entries.filter((entry) => entry.type !== 'participation' && entry.type !== 'note');
+  let result = entries;
+  if (!canViewParticipation(roleContext)) {
+    result = result.filter((entry) => entry.type !== ACTIVITY_TYPE.PARTICIPATION);
+  }
+  if (isHROnlyViewer(roleContext)) {
+    result = result.filter((entry) => entry.type !== ACTIVITY_TYPE.NOTE);
+  }
+  return result;
 }

@@ -69,8 +69,9 @@
 .statusLegend {
   display: flex;
   align-items: center;
-  gap: 1.25em;
-  font-size: calc(0.78rem * var(--schedule-font-scale, 1) * var(--ops-font-scale, 1));
+  column-gap: 1.25em;
+  row-gap: 0.6em;
+  font-size: calc(0.85rem * var(--schedule-font-scale, 1) * var(--ops-font-scale, 1));
   flex-wrap: wrap;
 }
 
@@ -98,14 +99,14 @@
 }
 
 .legendLabel {
-  font-size: calc(0.78rem * var(--schedule-font-scale, 1) * var(--ops-font-scale, 1));
+  font-size: calc(0.75rem * var(--schedule-font-scale, 1) * var(--ops-font-scale, 1));
   font-weight: 600;
   line-height: 1.2;
 }
 
 .legendDot {
-  width: 10px;
-  height: 10px;
+  width: calc(11px * var(--schedule-font-scale, 1) * var(--ops-font-scale, 1));
+  height: calc(11px * var(--schedule-font-scale, 1) * var(--ops-font-scale, 1));
   border-radius: 50%;
   border: 1.5px solid #fff;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
@@ -178,7 +179,7 @@
 .statusLegendBottom {
   padding: 2px 8px;
   border-top: 1px solid var(--border, #e2e8f0);
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .wrapDark .statusLegendBottom {
@@ -191,6 +192,38 @@
   background: rgba(148, 163, 184, 0.35);
   margin: 0 0.25em;
   flex-shrink: 0;
+}
+
+.legendGroup {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4em;
+  row-gap: 0.3em;
+  padding: 3px 8px;
+  border: 1px solid rgba(100, 116, 139, 0.55);
+  border-radius: 10px;
+  background: rgba(241, 245, 249, 0.65);
+}
+
+.wrapDark .legendGroup {
+  border-color: rgba(148, 163, 184, 0.6);
+  background: rgba(30, 41, 59, 0.75);
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.wrapDark .legendDot {
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.wrapDark .legendLabel {
+  filter: brightness(1.2) saturate(1.05);
+}
+
+.wrapDark .legendItem svg {
+  filter: brightness(1.15) saturate(1.05);
 }
 
 .wrapDark .legendDivider {
@@ -634,7 +667,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.85;
+  opacity: 1;
   flex-shrink: 0;
   cursor: default !important;
 }
@@ -696,6 +729,25 @@
 
 .statusDot_submitted {
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
+}
+
+.statusDot_under_admin_review {
+  box-shadow: 0 0 0 1px rgba(92, 64, 51, 0.4);
+}
+
+.statusDot_under_review,
+.statusDot_under_hr_review {
+  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.4);
+}
+
+.statusDot_approved,
+.statusDot_admin_approved {
+  box-shadow: 0 0 0 1px rgba(22, 101, 52, 0.4);
+}
+
+.statusDot_rejected,
+.statusDot_amended {
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.4);
 }
 
 .statusDotTooltip {
@@ -907,6 +959,12 @@
   line-height: 1.1 !important;
 }
 
+.scalableTable :global(.scheduleInstructorCell) :global(.scheduleCellInner) {
+  min-height: 28px !important;
+  padding: 6px 4px 8px !important;
+  line-height: 1.35 !important;
+}
+
 .scalableTable :global(.scheduleDayRow) :global(td.scheduleDataCell) {
   vertical-align: middle;
   line-height: 1.1;
@@ -1065,3 +1123,17 @@
   color: #60a5fa;
 }
 
+.messageButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  color: var(--color-primary, #3b82f6);
+  line-height: 1;
+  outline: none;
+}

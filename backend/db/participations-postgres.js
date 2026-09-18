@@ -7,7 +7,11 @@
 
 import prisma from './prismaClient.js';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
-import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
+import {
+  USER_NAME_SELECT_WITH_ID,
+  USER_NAME_SELECT_WITH_IMAGE,
+  normalizeProfileImageUrl,
+} from '../utils/userNameFields.js';
 
 
 /**
@@ -92,7 +96,7 @@ export const getAllParticipations = async (params = {}, user = null) => {
         where,
         include: {
           user: {
-            select: USER_NAME_SELECT_WITH_ID
+            select: USER_NAME_SELECT_WITH_IMAGE
           },
           class: {
             select: {
@@ -110,10 +114,10 @@ export const getAllParticipations = async (params = {}, user = null) => {
             }
           },
           creator: {
-            select: USER_NAME_SELECT_WITH_ID
+            select: USER_NAME_SELECT_WITH_IMAGE
           },
           updater: {
-            select: USER_NAME_SELECT_WITH_ID
+            select: USER_NAME_SELECT_WITH_IMAGE
           }
         },
         orderBy,
@@ -123,9 +127,16 @@ export const getAllParticipations = async (params = {}, user = null) => {
       prisma.participation.count({ where })
     ]);
 
+    const normalizedParticipations = participations.map((p) => ({
+      ...p,
+      user: p.user ? normalizeProfileImageUrl(p.user) : p.user,
+      creator: p.creator ? normalizeProfileImageUrl(p.creator) : p.creator,
+      updater: p.updater ? normalizeProfileImageUrl(p.updater) : p.updater,
+    }));
+
     return {
       success: true,
-      data: participations,
+      data: normalizedParticipations,
       total,
       page: parseInt(page),
       limit: parseInt(limit),
@@ -167,11 +178,7 @@ export const getParticipationById = async (id, user = null) => {
       },
       include: {
         user: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+          select: USER_NAME_SELECT_WITH_IMAGE
         },
         class: {
           select: {
@@ -189,18 +196,10 @@ export const getParticipationById = async (id, user = null) => {
           }
         },
         creator: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+          select: USER_NAME_SELECT_WITH_IMAGE
         },
         updater: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+          select: USER_NAME_SELECT_WITH_IMAGE
         }
       }
     });
@@ -215,7 +214,12 @@ export const getParticipationById = async (id, user = null) => {
 
     return {
       success: true,
-      data: participation
+      data: {
+        ...participation,
+        user: participation.user ? normalizeProfileImageUrl(participation.user) : participation.user,
+        creator: participation.creator ? normalizeProfileImageUrl(participation.creator) : participation.creator,
+        updater: participation.updater ? normalizeProfileImageUrl(participation.updater) : participation.updater,
+      }
     };
   } catch (error) {
     console.error('[Participations DB] Error getting participation by ID:', error);
@@ -295,11 +299,7 @@ export const createParticipation = async (participationData, user = null) => {
       },
       include: {
         user: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+          select: USER_NAME_SELECT_WITH_IMAGE
         },
         class: {
           select: {
@@ -317,25 +317,22 @@ export const createParticipation = async (participationData, user = null) => {
           }
         },
         creator: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+          select: USER_NAME_SELECT_WITH_IMAGE
         },
         updater: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+          select: USER_NAME_SELECT_WITH_IMAGE
         }
       }
     });
 
     return {
       success: true,
-      data: participation,
+      data: {
+        ...participation,
+        user: participation.user ? normalizeProfileImageUrl(participation.user) : participation.user,
+        creator: participation.creator ? normalizeProfileImageUrl(participation.creator) : participation.creator,
+        updater: participation.updater ? normalizeProfileImageUrl(participation.updater) : participation.updater,
+      },
       message: 'Participation created successfully'
     };
   } catch (error) {
@@ -417,11 +414,7 @@ export const updateParticipation = async (id, updateData, user = null) => {
       },
       include: {
         user: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+          select: USER_NAME_SELECT_WITH_IMAGE
         },
         class: {
           select: {
@@ -439,25 +432,22 @@ export const updateParticipation = async (id, updateData, user = null) => {
           }
         },
         creator: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+          select: USER_NAME_SELECT_WITH_IMAGE
         },
         updater: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+          select: USER_NAME_SELECT_WITH_IMAGE
         }
       }
     });
 
     return {
       success: true,
-      data: participation,
+      data: {
+        ...participation,
+        user: participation.user ? normalizeProfileImageUrl(participation.user) : participation.user,
+        creator: participation.creator ? normalizeProfileImageUrl(participation.creator) : participation.creator,
+        updater: participation.updater ? normalizeProfileImageUrl(participation.updater) : participation.updater,
+      },
       message: 'Participation updated successfully'
     };
   } catch (error) {

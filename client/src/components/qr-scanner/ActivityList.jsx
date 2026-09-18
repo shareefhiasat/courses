@@ -1,12 +1,11 @@
 import React from 'react';
 import PortalTooltip from '@ui/PortalTooltip';
-import { DeleteIcon, ChevronDownIcon } from '@utils/icons.jsx';
 import QuickActionButtons from './QuickActionButtons.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { formatDate, formatTime, getQatarDateParts } from '@utils/date-formatter.js';
 import { getLocalizedNoteText } from '@constants/noteTypes';
 import { getUserRoleDisplay, ROLE_DISPLAY_NAMES } from '@utils/userUtils';
-import { Shield, GraduationCap, UserCog, Crown, Heart } from 'lucide-react';
+import { Shield, GraduationCap, UserCog, Crown, Heart, Trash2, ChevronDown } from '@utils/icons.jsx';
 
 const ActivityList = ({
   recentActivity,
@@ -156,15 +155,14 @@ const ActivityList = ({
                         borderRadius: '0.25rem'
                       }}
                     >
-                      <DeleteIcon style={{ width: '14px', height: '14px' }} />
+                      <Trash2 size={14} />
                     </button>
                   </PortalTooltip>
                   </div>
                 )}
-                <ChevronDownIcon
+                <ChevronDown
+                  size={16}
                   style={{
-                    width: '16px',
-                    height: '16px',
                     transform: expandedActivities.has(activity.id) ? (isRTL ? 'rotate(180deg)' : 'rotate(180deg)') : (isRTL ? 'rotate(90deg)' : 'rotate(0deg)'),
                     transition: 'transform 0.2s',
                     color: '#6b7280'

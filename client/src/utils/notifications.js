@@ -314,6 +314,9 @@ class NotificationManager {
 
     // Always play sound if enabled
     if (settings.sound && this.permissions.sound) {
+      if (!this.audioContext) {
+        await this.initializeAudio();
+      }
       this.playNotificationSound(type);
     }
 

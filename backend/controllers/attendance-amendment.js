@@ -5,7 +5,7 @@
  * ARCHITECTURE: HTTP Requests → Controllers → Business Services → DB Services → PostgreSQL
  */
 
-import { amendAttendance, getAmendmentsForAttendance, getAllAmendments } from '../services/attendanceAmendmentService.js';
+import { amendAttendance, approveAttendanceExcuse, getAmendmentsForAttendance, getAllAmendments } from '../services/attendanceAmendmentService.js';
 import { logPermissionDenial } from '../services/permissionDenialAuditService.js';
 
 /**
@@ -168,8 +168,54 @@ export const getAllAttendanceAmendmentsController = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/v1/attendance-amendment/approve
+ * Approve an attendance excuse (reduces deduction from 0.5 to 0.25)
+ */
+export const approveAttendanceExcuseController = async (req, res) => {
+  try {
+    const { attendanceId, reason, attachmentUrl, attachmentName, attachmentType } = req.body;
+    const { user } = req;
+
+    const canApprove = user?.roles?.some((r) => ['hr', 'admin'].includes(r));
+    if (!canApprove) {
+      await logPermissionDenial({
+        userId: user?.id,
+        action: 'approveAttendanceExcuse',
+        resource: `attendance/${attendanceId}`,
+        reason: 'HR or Admin role required',
+        userRole: user?.roles?.join(',') || 'none'
+      });
+      return res.status(403).json({ success: false, error: 'Access denied. HR or Admin role required.' });
+    }
+
+    if (!attendanceId || !reason) {
+      return res.status(400).json({ success: false, error: 'attendanceId and reason are required' });
+    }
+
+    const result = await approveAttendanceExcuse({
+      attendanceId: parseInt(attendanceId),
+      reason,
+      attachmentUrl,
+      attachmentName,
+      attachmentType,
+      amendedBy: user.dbId
+    });
+
+    if (result.success) {
+      res.status(200).json({ success: true, data: result.data });
+    } else {
+      res.status(400).json({ success: false, error: result.error });
+    }
+  } catch (error) {
+    console.error('Error in approveAttendanceExcuseController:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+};
+
 export default {
   amendAttendanceController,
+  approveAttendanceExcuseController,
   getAttendanceAmendmentsController,
   getAllAttendanceAmendmentsController
 };

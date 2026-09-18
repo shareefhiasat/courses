@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, memo, useLayoutEffect, useCallback } from 'react';
 import Joyride from 'react-joyride';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { usePageTour } from '@hooks/usePageTour';
 import { getJoyrideBaseProps, getTourStyles } from '@utils/tourConfig';
 import { useAuth } from '@contexts/AuthContext';
@@ -172,6 +173,10 @@ const ChatPage = memo(() => {
   const [classInfoRoomId, setClassInfoRoomId] = useState(null);
 
   const isStaffRole = isAdmin || isSuperAdmin || isHR || isInstructor;
+  // Instructors without elevated staff roles can only see admins in the members list
+  const instructorAdminOnlyView = isInstructor && !isAdmin && !isSuperAdmin && !isHR;
+  // Instructors cannot post to the global chat — disable the composer there
+  const composerDisabled = instructorAdminOnlyView && (selectedClass === 'global' || selectedClass === CHAT_TYPES.GLOBAL);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -1343,11 +1348,11 @@ const ChatPage = memo(() => {
       <div data-tour="chat-sidebar" className="chat-sidebar" style={{
         width: isSidebarCollapsed ? 0 : sidebarWidth,
         background: 'var(--panel)',
-        borderRight: isSidebarCollapsed ? 'none' : '1px solid var(--border)',
+        borderInlineEnd: isSidebarCollapsed ? 'none' : '1px solid var(--border)',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
-        transition: 'width 0.3s ease, border-right 0.3s ease',
+        transition: 'width 0.3s ease, border-inline-end 0.3s ease',
         minWidth: isSidebarCollapsed ? 0 : 280,
         maxWidth: 500
       }}>
@@ -1488,7 +1493,6 @@ const ChatPage = memo(() => {
                           await updateUser(user.uid, { archivedClasses: next });
                         } catch {}
                       }}
-                      title={archivedClasses[cls.docId] ? t('unarchive') : t('archive')}
                       style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)' }}
                     >{archivedClasses[cls.docId] ? getThemedIcon('ui', 'upload', 16, theme) : getThemedIcon('ui', 'download', 16, theme)}</button>
                   </div>
@@ -1563,7 +1567,6 @@ const ChatPage = memo(() => {
         <div
           onMouseDown={onDividerDragStart}
           onDoubleClick={() => { setSidebarDividerHeight(null); try { localStorage.removeItem(LOCAL_STORAGE_KEYS.SIDEBAR_DIVIDER_HEIGHT); } catch {} }}
-          title={t('drag_to_resize_reset')}
           style={{
             height: 6,
             flexShrink: 0,
@@ -1611,7 +1614,6 @@ const ChatPage = memo(() => {
                   {isStaffRole && (
                     <button
                       onClick={() => setShowGroupModal(true)}
-                      title={t('chat_create_group')}
                       style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand)', fontSize: '1.1rem', padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}
                     >
                       +
@@ -1667,22 +1669,24 @@ const ChatPage = memo(() => {
               onChange={(e) => setDmSearch(e.target.value)}
               style={{ flex: 1, padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 6, fontSize: '0.8rem', minWidth: 0 }}
             />
-            <button
-              onClick={createSelfDM}
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand)', fontSize: '1.1rem', padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}
-              title={t('message_yourself')}
-            >
-              {getThemedIcon('ui', 'edit', 16, theme)}
-            </button>
-            {isStaffRole && (
+            <ColoredTooltip title={t('message_yourself')}>
               <button
-                data-tour="chat-new-dm"
-                onClick={openNewDMPicker}
+                onClick={createSelfDM}
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand)', fontSize: '1.1rem', padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}
-                title={t('start_new_conversation')}
               >
-                +
+                {getThemedIcon('ui', 'edit', 16, theme)}
               </button>
+            </ColoredTooltip>
+            {isStaffRole && (
+              <ColoredTooltip title={t('start_new_conversation')}>
+                <button
+                  data-tour="chat-new-dm"
+                  onClick={openNewDMPicker}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand)', fontSize: '1.1rem', padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}
+                >
+                  +
+                </button>
+              </ColoredTooltip>
             )}
           </div>
           {directRooms.length === 0 && (
@@ -1755,9 +1759,11 @@ const ChatPage = memo(() => {
                               {selfInitial}
                             </div>
                           )}
-                          <div style={{ position: 'absolute', bottom: -2, insetInlineEnd: -2, width: 14, height: 14, borderRadius: '50%', background: 'var(--panel)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--panel)', boxShadow: '0 0 0 1px var(--border)' }} title={t('your_notes')}>
-                            {getIconWithColor('ui', 'star', 8, '#ef4444')}
-                          </div>
+                          <ColoredTooltip title={t('your_notes')}>
+                            <div style={{ position: 'absolute', bottom: -2, insetInlineEnd: -2, width: 14, height: 14, borderRadius: '50%', background: 'var(--panel)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--panel)', boxShadow: '0 0 0 1px var(--border)' }}>
+                              {getIconWithColor('ui', 'star', 8, '#ef4444')}
+                            </div>
+                          </ColoredTooltip>
                         </div>
                       );
                     }
@@ -1778,13 +1784,17 @@ const ChatPage = memo(() => {
                           <div style={{ width: 28, height: 28, borderRadius: '50%', background: showIndicator ? 'var(--muted)' : 'linear-gradient(135deg,var(--brand),var(--brand2))', color: 'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 'var(--font-size-sm)', fontWeight: 700, opacity: showIndicator ? 0.5 : 1 }}>{initial}</div>
                         )}
                         {showIndicator ? (
-                          <div style={{ position: 'absolute', top: -2, insetInlineEnd: -2, width: 12, height: 12, borderRadius: '50%', background: '#dc2626', border: '2px solid var(--panel)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={indicatorTitle}>
-                            <span style={{ fontSize: 8, color: 'white' }}>✕</span>
-                          </div>
+                          <ColoredTooltip title={indicatorTitle}>
+                            <div style={{ position: 'absolute', top: -2, insetInlineEnd: -2, width: 12, height: 12, borderRadius: '50%', background: '#dc2626', border: '2px solid var(--panel)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: 8, color: 'white' }}>✕</span>
+                            </div>
+                          </ColoredTooltip>
                         ) : roleIcon ? (
-                          <div style={{ position: 'absolute', bottom: -2, insetInlineEnd: -2, width: 14, height: 14, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', boxShadow: 'none' }} title={primaryRole}>
-                            {React.cloneElement(roleIcon, { color: '#ffffff', fill: roleColor, size: 8 })}
-                          </div>
+                          <ColoredTooltip title={primaryRole}>
+                            <div style={{ position: 'absolute', bottom: -2, insetInlineEnd: -2, width: 14, height: 14, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+                              {React.cloneElement(roleIcon, { color: '#ffffff', fill: roleColor, size: 8 })}
+                            </div>
+                          </ColoredTooltip>
                         ) : null}
                       </div>
                     );
@@ -1833,7 +1843,6 @@ const ChatPage = memo(() => {
             data-tour="chat-sidebar-footer"
             onClick={() => setShowArchived(!showArchived)}
             style={{ display:'flex', alignItems:'center', gap:4, fontSize:'0.85rem', cursor:'pointer', color: showArchived ? 'var(--brand)' : 'var(--muted)', transition: 'color 0.2s', userSelect: 'none' }}
-            title={t('show_archived')}
           >
             {showArchived ? getIconWithColor('ui', 'archive', 14, 'var(--brand)') : getThemedIcon('ui', 'archive', 14, theme)}
             {t('show_archived')}
@@ -1841,7 +1850,6 @@ const ChatPage = memo(() => {
           <div
             onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
             style={{ display:'flex', alignItems:'center', gap:4, fontSize:'0.85rem', cursor:'pointer', color: showFavoritesOnly ? 'var(--brand)' : 'var(--muted)', transition: 'color 0.2s', userSelect: 'none' }}
-            title={t('favorites_only')}
           >
             {showFavoritesOnly ? getIconWithColor('ui', 'star', 14, 'var(--brand)') : getThemedIcon('ui', 'star', 14, theme)}
             {t('favorites_only')}
@@ -1852,8 +1860,8 @@ const ChatPage = memo(() => {
           onClick={toggleSidebar}
           style={{
             position: 'absolute',
-            left: isSidebarCollapsed ? 12 : 'auto',
-            right: isSidebarCollapsed ? 'auto' : -3,
+            insetInlineStart: isSidebarCollapsed ? 12 : 'auto',
+            insetInlineEnd: isSidebarCollapsed ? 'auto' : -3,
             top: '50%',
             transform: 'translateY(-50%)',
             background: 'var(--panel)',
@@ -1866,7 +1874,7 @@ const ChatPage = memo(() => {
             justifyContent: 'center',
             cursor: 'pointer',
             zIndex: 10,
-            transition: 'left 0.3s ease, right 0.3s ease, transform 0.2s ease',
+            transition: 'inset-inline-start 0.3s ease, inset-inline-end 0.3s ease, transform 0.2s ease',
             boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
           }}
           onMouseEnter={(e) => {
@@ -1879,14 +1887,16 @@ const ChatPage = memo(() => {
           }}
           title={isSidebarCollapsed ? t('expand_sidebar') : t('collapse_sidebar')}
         >
-          {getThemedIcon('ui', isSidebarCollapsed ? 'chevron_right' : 'chevron_left', 14, theme)}
+          {getThemedIcon('ui', isSidebarCollapsed
+            ? (lang === 'ar' ? 'chevron_left' : 'chevron_right')
+            : (lang === 'ar' ? 'chevron_right' : 'chevron_left'), 14, theme)}
         </button>
 
         {/* Drag handle (only show when not collapsed) */}
         {!isSidebarCollapsed && (
           <div
             onMouseDown={onDragStart}
-            style={{ position:'absolute', right: -3, top:0, bottom:0, width:6, cursor:'col-resize' }}
+            style={{ position:'absolute', insetInlineEnd: -3, top:0, bottom:0, width:6, cursor:'col-resize' }}
             aria-label={t('resize_sidebar')}
           />
         )}
@@ -1938,7 +1948,6 @@ const ChatPage = memo(() => {
                     <span
                       onClick={() => setShowParticipantModal(true)}
                       style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', textDecoration: 'underline' }}
-                      title={t('chat_manage_participants')}
                     >
                       {getThemedIcon('ui', 'users', 14, theme)}
                       {participantCount} {t('chat_members')}
@@ -1953,7 +1962,6 @@ const ChatPage = memo(() => {
                       }}
                       onMouseEnter={(e) => { e.target.style.borderColor = 'var(--brand)'; e.target.style.color = 'var(--brand)'; }}
                       onMouseLeave={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--muted)'; }}
-                      title={t('chat_group_info')}
                     >
                       {getThemedIcon('ui', 'info', 12, theme)}
                       {t('chat_group_info')}
@@ -2066,7 +2074,6 @@ const ChatPage = memo(() => {
                       }}
                       onMouseEnter={(e) => { e.target.style.borderColor = 'var(--brand)'; e.target.style.color = 'var(--brand)'; }}
                       onMouseLeave={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--muted)'; }}
-                      title={t('chat_group_info')}
                     >
                       {getThemedIcon('ui', 'info', 12, theme)}
                       {t('chat_group_info')}
@@ -2103,7 +2110,6 @@ const ChatPage = memo(() => {
               data-tour="chat-search"
               type="button"
               onClick={() => { setShowSearch(!showSearch); if (!showSearch) setTimeout(() => document.getElementById('msg-search')?.focus(), 100); }}
-              title={t('search_messages')}
               style={{ 
                 background:'transparent', 
                 border:'1px solid var(--border)',
@@ -2127,7 +2133,6 @@ const ChatPage = memo(() => {
             <button
               type="button"
               onClick={() => setShowStarredOnly(!showStarredOnly)}
-              title={t('starred_messages')}
               style={{ 
                 background: showStarredOnly ? 'rgba(250,204,21,0.15)' : 'transparent', 
                 border: showStarredOnly ? '1px solid #facc15' : '1px solid var(--border)',
@@ -2466,7 +2471,7 @@ const ChatPage = memo(() => {
                             alignItems: 'center',
                             justifyContent: 'center',
                             lineHeight: 1
-                          }} title={senderUser?.deleted ? t('deleted_user') : t('disabled_user')}>✕</span>
+                          }} aria-label={senderUser?.deleted ? t('deleted_user') : t('disabled_user')}>✕</span>
                         )}
                       </div>
                     )}
@@ -2687,7 +2692,6 @@ const ChatPage = memo(() => {
                         return (
                           <span
                             style={tickStyle}
-                            title={tooltip}
                             onClick={(e)=>{
                               e.stopPropagation();
                               const list = (recips||[]).map(uid => ({
@@ -2784,7 +2788,6 @@ const ChatPage = memo(() => {
                                     }
                                   } catch {}
                                 }}
-                                title={`${count} ${t('reactions')}`}
                                 style={{ 
                                   background: active ? `${reactionColor}20` : 'transparent',
                                   border: active ? `1px solid ${reactionColor}` : 'none',
@@ -3129,7 +3132,6 @@ const ChatPage = memo(() => {
         {showJump && (
           <button
             onClick={() => { try { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); } catch {} }}
-            title={t('chat_jump_to_bottom')}
             style={{ position:'fixed', right: 24, bottom: 110, background:'var(--panel)', border:'1px solid var(--border)', borderRadius: 20, padding:'8px 10px', boxShadow:'0 4px 12px rgba(0,0,0,0.15)', cursor:'pointer', zIndex: 20 }}
           >
             {getThemedIcon('ui', 'download', 16, theme)}
@@ -3305,8 +3307,8 @@ const ChatPage = memo(() => {
                 autoComplete="off"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder={t('chat_type_a_message')}
-                disabled={isUploading}
+                placeholder={composerDisabled ? t('chat_global_send_disabled') : t('chat_type_a_message')}
+                disabled={isUploading || composerDisabled}
                 style={{
                   flex: 1,
                   padding: '0.6rem 0.75rem',
@@ -3373,7 +3375,6 @@ const ChatPage = memo(() => {
                     height: 32,
                     transition: 'all 0.2s'
                   }}
-                  title={t('create_poll')}
                   onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.borderColor='var(--brand)';}}
                   onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.borderColor='var(--border)';}}
                 >
@@ -3453,7 +3454,7 @@ const ChatPage = memo(() => {
             )}
             
             {/* File Attachment */}
-            {!audioBlob && !attachedFile && (
+            {!audioBlob && !attachedFile && !composerDisabled && (
               <label data-tour="chat-file-attach" style={{
                 padding: '0.6rem',
                 background: 'transparent',
@@ -3485,7 +3486,7 @@ const ChatPage = memo(() => {
                   }
                 }
               }}
-              disabled={isUploading}
+              disabled={isUploading || composerDisabled}
               className={!newMessage.trim() && !audioBlob && !attachedFile && isRecording ? 'recording-blink' : ''}
               style={{
                 marginLeft: '0.5rem',
@@ -3498,11 +3499,11 @@ const ChatPage = memo(() => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: isUploading ? 'not-allowed' : 'pointer',
+                cursor: (isUploading || composerDisabled) ? 'not-allowed' : 'pointer',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                 transition: 'all 0.2s ease',
                 position: 'relative',
-                opacity: isUploading ? 0.7 : 1
+                opacity: (isUploading || composerDisabled) ? 0.7 : 1
               }}
               title={isUploading ? t('uploading') : ((newMessage.trim() || audioBlob || attachedFile) ? t('send') : (isRecording ? t('stop_recording') : t('record_voice')))}
             >
@@ -3716,7 +3717,6 @@ const ChatPage = memo(() => {
                       style={{ width:28, height:28, background:'transparent', color:'var(--muted)', border:'1px solid var(--border)', borderRadius:'50%', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.9rem', flexShrink:0, transition:'all 0.2s' }}
                       onMouseEnter={(e)=>{e.target.style.background='#ef4444'; e.target.style.color='white'; e.target.style.borderColor='#ef4444';}}
                       onMouseLeave={(e)=>{e.target.style.background='transparent'; e.target.style.color='var(--muted)'; e.target.style.borderColor='var(--border)';}}
-                      title={t('remove')}
                     >
                       ✕
                     </button>
@@ -3974,14 +3974,18 @@ const ChatPage = memo(() => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                           {role && <RoleBadge user={u} size={10} />}
                           {role === ROLE_STRINGS.STUDENT && u.enrollmentCount > 0 && (
-                            <span title={t('enrolled_classes')} style={{ fontSize: '0.65rem', background: 'var(--bg)', color: 'var(--muted)', padding: '1px 5px', borderRadius: 8, fontWeight: 500, whiteSpace: 'nowrap' }}>
-                              {u.enrollmentCount} {t('classes')}
-                            </span>
+                            <ColoredTooltip title={t('enrolled_classes')}>
+                              <span style={{ fontSize: '0.65rem', background: 'var(--bg)', color: 'var(--muted)', padding: '1px 5px', borderRadius: 8, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                {u.enrollmentCount} {t('classes')}
+                              </span>
+                            </ColoredTooltip>
                           )}
                           {role === ROLE_STRINGS.INSTRUCTOR && u.classCount > 0 && (
-                            <span title={t('teaching_classes')} style={{ fontSize: '0.65rem', background: 'var(--bg)', color: 'var(--muted)', padding: '1px 5px', borderRadius: 8, fontWeight: 500, whiteSpace: 'nowrap' }}>
-                              {u.classCount} {t('classes')}
-                            </span>
+                            <ColoredTooltip title={t('teaching_classes')}>
+                              <span style={{ fontSize: '0.65rem', background: 'var(--bg)', color: 'var(--muted)', padding: '1px 5px', borderRadius: 8, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                {u.classCount} {t('classes')}
+                              </span>
+                            </ColoredTooltip>
                           )}
                           <span style={{ fontWeight: 600, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
                         </div>
@@ -4015,8 +4019,8 @@ const ChatPage = memo(() => {
             )}
             <button onClick={()=>setShowMembers(false)} style={{ background: 'transparent', border: 'none', fontSize: 'var(--font-size-lg)', cursor: 'pointer', color: 'var(--text)', flexShrink: 0, padding: '4px 8px' }}>✕</button>
           </div>
-          {/* role filter chips - only show for class chats */}
-          {!selectedClass?.startsWith('dm:') && (
+          {/* role filter chips - only show for class chats (hidden for instructor admin-only view) */}
+          {!selectedClass?.startsWith('dm:') && !instructorAdminOnlyView && (
             <>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
                 {(isStaffRole
@@ -4104,6 +4108,17 @@ const ChatPage = memo(() => {
                     });
                   }
                   
+                  // Layer 3b: Instructors can only see admins in the members list
+                  if (instructorAdminOnlyView && Array.isArray(filtered) && filtered.length > 0) {
+                    filtered = filtered.filter(m => {
+                      if (!m || typeof m !== 'object') return false;
+                      const roles = getUserRoles(m);
+                      const role = (m.role || '').toString().toLowerCase();
+                      return roles.includes(ROLE_STRINGS.ADMIN) || roles.includes(ROLE_STRINGS.SUPER_ADMIN)
+                        || role === ROLE_STRINGS.ADMIN || role === ROLE_STRINGS.SUPER_ADMIN;
+                    });
+                  }
+
                   // Layer 4: Apply students only filter if needed
                   if (studentsOnly && Array.isArray(filtered) && filtered.length > 0) {
                     filtered = filtered.filter(m => {
@@ -4163,9 +4178,11 @@ const ChatPage = memo(() => {
                         </div>
                       )}
                       {showIndicator && (
-                        <div style={{ position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: '#dc2626', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={indicatorTitle}>
-                          <span style={{ fontSize: 8, color: 'white' }}>✕</span>
-                        </div>
+                        <ColoredTooltip title={indicatorTitle}>
+                          <div style={{ position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: '#dc2626', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: 8, color: 'white' }}>✕</span>
+                          </div>
+                        </ColoredTooltip>
                       )}
                     </div>
                     <div>

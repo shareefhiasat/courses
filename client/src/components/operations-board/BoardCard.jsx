@@ -4,6 +4,7 @@ import { Badge } from '@/components/kibo/ui/badge';
 import { cn } from '@/lib/utils';
 import { User, Calendar } from 'lucide-react';
 import { ATTENDANCE_COLUMNS } from '@services/business/operationsBoardService.js';
+import { CARD_TYPE } from './operationsBoardConstants.js';
 
 const STATUS_COLORS = {
   DRAFT: 'bg-gray-500/15 text-gray-700 dark:text-gray-300 border-gray-500/30',
@@ -22,7 +23,7 @@ const STATUS_COLORS = {
 
 export default function BoardCard({ item, onClick, t }) {
   const statusColor = STATUS_COLORS[item.column] || 'bg-muted text-muted-foreground border-border';
-  const attendanceColumn = item.type === 'attendance' ? ATTENDANCE_COLUMNS.find((c) => c.id === item.column) : null;
+  const attendanceColumn = item.type === CARD_TYPE.ATTENDANCE ? ATTENDANCE_COLUMNS.find((c) => c.id === item.column) : null;
   const statusLabel = attendanceColumn ? (t(attendanceColumn.i18nKey) || attendanceColumn.name) : item.column;
 
   return (
@@ -40,7 +41,7 @@ export default function BoardCard({ item, onClick, t }) {
               {item.name}
             </h3>
             
-            {item.type === 'workflow' && (
+            {item.type === CARD_TYPE.WORKFLOW && (
               <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                 {item.assignee && (
                   <div className="flex items-center gap-2">
@@ -54,7 +55,7 @@ export default function BoardCard({ item, onClick, t }) {
               </div>
             )}
             
-            {item.type === 'attendance' && (
+            {item.type === CARD_TYPE.ATTENDANCE && (
               <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                 {item.className && (
                   <div className="flex items-center gap-2">
@@ -76,7 +77,7 @@ export default function BoardCard({ item, onClick, t }) {
             variant="outline"
             className={cn('text-xs font-medium whitespace-nowrap', statusColor)}
           >
-            {item.type === 'attendance' && attendanceColumn && (
+            {item.type === CARD_TYPE.ATTENDANCE && attendanceColumn && (
               <span
                 className="inline-block h-2 w-2 rounded-full shrink-0"
                 style={{ backgroundColor: attendanceColumn.color }}

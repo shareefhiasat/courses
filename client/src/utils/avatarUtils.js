@@ -5,10 +5,17 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
  * Extracted for DRY principle and reusability
  */
 
-export const normalizeProfileImageUrl = (url) => {
+export const normalizeProfileImageUrl = (url, cacheBuster) => {
   if (!url) return url;
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/')) return url;
-  return `/${url}`;
+  let normalized = url;
+  if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('/')) {
+    normalized = `/${url}`;
+  }
+  if (cacheBuster) {
+    const separator = normalized.includes('?') ? '&' : '?';
+    normalized = `${normalized}${separator}v=${encodeURIComponent(String(cacheBuster))}`;
+  }
+  return normalized;
 };
 
 export const getAvatarColor = (name) => {

@@ -1075,7 +1075,6 @@ export default function StudentQuizPage() {
                     key={q.id}
                     className={`${styles.paletteBtn} ${isCurrent ? styles.paletteCurrent : ''} ${isAnswered ? styles.paletteAnswered : ''} ${isMarked ? styles.paletteMarked : ''}`}
                     onClick={() => goToQuestionIndex(idx)}
-                    title={`Question ${idx + 1}${isAnswered ? ' (Answered)' : ''}${isMarked ? ' (Marked)' : ''}`}
                   >
                     {idx + 1}
                   </button>
@@ -1129,7 +1128,6 @@ export default function StudentQuizPage() {
                       variant={markedForReview.has(currentQuestion.id) ? 'primary' : 'outline'}
                       size="sm"
                       onClick={() => toggleMarkForReview(currentQuestion.id)}
-                      title={markedForReview.has(currentQuestion.id) ? 'Unmark for review' : 'Mark for review'}
                       className={styles.iconMarkButton}
                     >
                       {getThemedIcon('ui', 'bookmark_check', 16, theme)}

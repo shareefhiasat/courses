@@ -8,13 +8,16 @@ import { ROLE_STRINGS, resolveUserRole } from '@utils/userUtils';
 import useResizableDrawer from '@hooks/useResizableDrawer';
 import { getLectureLog, getRecordHistory } from '@services/business/attendanceLogService';
 import { formatDate, formatDateTime, getQatarDateParts } from '@utils/date-formatter.js';
-import { getAttendanceColor } from '@constants/attendanceTypes.js';
+import { getAttendanceColor, getStatusCodeFromRecord, getLocalizedAttendanceLabel } from '@constants/attendanceTypes.js';
+import GridQuickFilterChips from '@components/ui/GridQuickFilterChips';
 import { getWorkflowStatusColor } from '@constants/workspaceStatusColors.js';
-import { getDateGroup, getGroupLabel } from '@utils/notificationHelpers.js';
-import { Workflow as WorkflowIcon } from 'lucide-react';
+import { getDateGroup, getGroupLabel, getLocalizedWorkflowName } from '@utils/notificationHelpers.js';
+import { Workflow as WorkflowIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import chatSocket from '@services/realtime/chatSocket.js';
 import DriveUserAvatar from '@components/ui/DriveTimeline/DriveUserAvatar.jsx';
 import { WORKFLOW_COLUMNS } from '@services/business/operationsBoardService.js';
 import { getLocalizedUserName } from '@utils/localizedUserName';
+import { getLocalizedNoteText } from '@constants/noteTypes';
 
 const WORKFLOW_STATUS_LABEL_KEYS = Object.fromEntries(
   WORKFLOW_COLUMNS.map((col) => [col.id, col.i18nKey]),
@@ -53,29 +56,46 @@ function localizeLogStatus(status, t, lang, localizedAr) {
 }
 
 const TABS = {
-  LECTURE_LOG: 'lecture_log',
-  RECORD_HISTORY: 'record_history',
+  HISTORY: 'history',
 };
 
-const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }) => {
+function matchesDateFilter(entry, filterKey) {
+  if (filterKey === 'all') return true;
+  const nowParts = getQatarDateParts(new Date());
+  if (!nowParts) return true;
+  const today = Date.UTC(nowParts.year, nowParts.month - 1, nowParts.day);
+  const oneDay = 24 * 60 * 60 * 1000;
+  const ts = entry.timestamp?.seconds ? new Date(entry.timestamp.seconds * 1000) : new Date(entry.timestamp);
+  const entryParts = getQatarDateParts(ts);
+  if (!entryParts) return false;
+  const entryDay = Date.UTC(entryParts.year, entryParts.month - 1, entryParts.day);
+  if (filterKey === 'today') return entryDay === today;
+  if (filterKey === 'yesterday') return entryDay === today - oneDay;
+  const days = { last7days: 7, last14days: 14, last30days: 30 }[filterKey];
+  if (days) return entryDay >= today - (days - 1) * oneDay && entryDay <= today;
+  return true;
+}
+
+const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false, studentId = null, workflowId = null }) => {
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
   const { width: drawerWidth, resizeHandleProps } = useResizableDrawer({
     storageKey: 'lecture_log_drawer_width',
-    defaultWidth: 520,
+    defaultWidth: 720,
     minWidth: 360,
     maxWidth: 900,
     isRTL,
   });
 
-  const [activeTab, setActiveTab] = useState(TABS.LECTURE_LOG);
+  const activeTab = TABS.HISTORY;
   const [lectureLog, setLectureLog] = useState([]);
   const [recordHistory, setRecordHistory] = useState([]);
   const [selectedAttendanceId, setSelectedAttendanceId] = useState(null);
   const [expandedGroups, setExpandedGroups] = useState({});
-  const [dateFilter, setDateFilter] = useState('all');
+  const [groupStatusFilters, setGroupStatusFilters] = useState({});
+  const [globalStatusFilter, setGlobalStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -83,7 +103,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
   const classId = classInfo?.id;
   const dateStr = date ? new Date(date).toISOString().split('T')[0] : null;
 
-  useEffect(() => {
+  const fetchLectureLog = useCallback(() => {
     if (!isOpen || !classId || !dateStr) return;
     setLoading(true);
     setError(null);
@@ -99,6 +119,28 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
       .finally(() => setLoading(false));
   }, [isOpen, classId, dateStr, t]);
 
+  useEffect(() => {
+    fetchLectureLog();
+  }, [fetchLectureLog]);
+
+  useEffect(() => {
+    const handleBoardUpdate = (payload) => {
+      const eventDate = payload?.date ? new Date(payload.date).toISOString().slice(0, 10) : null;
+      if (
+        String(payload?.classId) === String(classId) &&
+        eventDate === dateStr
+      ) {
+        fetchLectureLog();
+      }
+    };
+    chatSocket.on('board:attendance_updated', handleBoardUpdate);
+    chatSocket.on('board:workflow_updated', handleBoardUpdate);
+    return () => {
+      chatSocket.off('board:attendance_updated', handleBoardUpdate);
+      chatSocket.off('board:workflow_updated', handleBoardUpdate);
+    };
+  }, [classId, dateStr, fetchLectureLog]);
+
   const handleRecordHistoryFetch = useCallback(async (attendanceId) => {
     setSelectedAttendanceId(attendanceId);
     setLoading(true);
@@ -112,43 +154,41 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
     setLoading(false);
   }, [t]);
 
-  const handleTabChange = useCallback((tab) => {
-    setActiveTab(tab);
-    setError(null);
-    if (tab === TABS.LECTURE_LOG) {
-      setRecordHistory([]);
-      setSelectedAttendanceId(null);
-    }
-  }, []);
-
   const formatTimestamp = useCallback((ts) => {
     if (!ts) return '';
     return formatDateTime(ts, lang);
   }, [lang]);
 
-  const filteredLectureLog = useMemo(() => {
-    if (dateFilter === 'all') return lectureLog;
-    const nowParts = getQatarDateParts(new Date());
-    if (!nowParts) return lectureLog;
-    const today = Date.UTC(nowParts.year, nowParts.month - 1, nowParts.day);
-    const oneDay = 24 * 60 * 60 * 1000;
-    const days = { last7days: 7, last14days: 14, last30days: 30 }[dateFilter];
-    const startOffset = dateFilter === 'yesterday' ? 1 : days ? days - 1 : 0;
-    const start = today - startOffset * oneDay;
-    return lectureLog.filter((entry) => {
-      const ts = entry.timestamp?.seconds ? new Date(entry.timestamp.seconds * 1000) : new Date(entry.timestamp);
-      const entryParts = getQatarDateParts(ts);
-      if (!entryParts) return false;
-      const entryDay = Date.UTC(entryParts.year, entryParts.month - 1, entryParts.day);
-      if (dateFilter === 'yesterday') return entryDay === start;
-      return entryDay >= start && entryDay <= today;
-    });
-  }, [lectureLog, dateFilter]);
+  const statusFilters = useMemo(() => [
+    { id: 'all', label: t('all') || 'All', color: '#800020', match: () => true },
+    { id: 'ATTENDANCE_PRESENT', label: getLocalizedAttendanceLabel('ATTENDANCE_PRESENT', lang), color: getAttendanceColor('ATTENDANCE_PRESENT'), match: (code) => code === 'ATTENDANCE_PRESENT' || code === 'STANDUP_PRESENT' },
+    { id: 'ATTENDANCE_LATE', label: getLocalizedAttendanceLabel('ATTENDANCE_LATE', lang), color: getAttendanceColor('ATTENDANCE_LATE'), match: (code) => code === 'ATTENDANCE_LATE' || code === 'STANDUP_LATE' },
+    { id: 'ATTENDANCE_ABSENT', label: getLocalizedAttendanceLabel('ATTENDANCE_ABSENT', lang), color: getAttendanceColor('ATTENDANCE_ABSENT'), match: (code) => code === 'ATTENDANCE_ABSENT' || code === 'STANDUP_ABSENT' },
+    { id: 'ATTENDANCE_HUMAN_CASE', label: getLocalizedAttendanceLabel('ATTENDANCE_HUMAN_CASE', lang), color: getAttendanceColor('ATTENDANCE_HUMAN_CASE'), match: (code) => code === 'ATTENDANCE_HUMAN_CASE' },
+    { id: 'ATTENDANCE_LEAVE', label: getLocalizedAttendanceLabel('ATTENDANCE_LEAVE', lang), color: getAttendanceColor('ATTENDANCE_LEAVE'), match: (code) => code === 'ATTENDANCE_LEAVE' },
+    { id: 'NOT_TAKEN', label: t('operations_board_lane_not_taken') || 'Not yet', color: getAttendanceColor('NOT_TAKEN'), match: (code) => code === 'NOT_TAKEN' },
+  ], [t, lang]);
 
-  const searchedLectureLog = useMemo(() => {
+  const searchFilteredLectureLog = useMemo(() => {
+    let data = lectureLog;
+    if (studentId) {
+      const targetStudent = String(studentId);
+      data = data.filter((entry) =>
+        String(entry.userId) === targetStudent ||
+        String(entry.student?.id) === targetStudent
+      );
+    }
+    if (workflowId) {
+      const targetWorkflow = String(workflowId);
+      data = data.filter((entry) =>
+        String(entry.id) === targetWorkflow ||
+        String(entry.workflowId) === targetWorkflow ||
+        String(entry.workflowDocumentId) === targetWorkflow
+      );
+    }
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return filteredLectureLog;
-    return filteredLectureLog.filter((entry) => {
+    if (!term) return data;
+    return data.filter((entry) => {
       const text = [
         getLocalizedUserName(entry.student, lang, entry.student?.displayName || ''),
         entry.actor,
@@ -164,10 +204,29 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
         .toLowerCase();
       return text.includes(term);
     });
-  }, [filteredLectureLog, searchTerm, lang, t]);
+  }, [lectureLog, studentId, workflowId, searchTerm, lang, t]);
+
+  const getEntryResultStatus = useCallback((entry) => {
+    if (!entry) return null;
+    const isWorkflow = entry.type === 'workflow_status_change';
+    const isAttendanceChange = entry.type === 'attendance_status_change';
+    const isAttendanceMarked = !isWorkflow && !isAttendanceChange;
+    const raw = isAttendanceMarked ? entry.status : (entry.toStatus || entry.status);
+    if (!raw) return null;
+    return getStatusCodeFromRecord({ status: raw });
+  }, []);
+
+  const typeFilteredLectureLog = useMemo(() => {
+    if (globalStatusFilter === 'all') return searchFilteredLectureLog;
+    const filter = statusFilters.find((f) => f.id === globalStatusFilter);
+    if (!filter) return searchFilteredLectureLog;
+    return searchFilteredLectureLog.filter((entry) => filter.match(getEntryResultStatus(entry)));
+  }, [searchFilteredLectureLog, globalStatusFilter, statusFilters, getEntryResultStatus]);
+
+  const filteredLectureLog = typeFilteredLectureLog;
 
   const groupedLectureLog = useMemo(() => {
-    const sorted = [...searchedLectureLog].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const sorted = [...filteredLectureLog].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     const groups = {};
     sorted.forEach((entry) => {
       const group = getDateGroup(entry.timestamp);
@@ -180,7 +239,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
       label: getGroupLabel(g, t),
       items: groups[g],
     }));
-  }, [searchedLectureLog, t]);
+  }, [filteredLectureLog, t]);
 
   useEffect(() => {
     setExpandedGroups((prev) => {
@@ -219,8 +278,8 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
   const cardStyle = useMemo(() => ({
     padding: '8px 12px',
     borderRadius: '8px',
-    border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#e5e7eb'}`,
-    background: isDark ? 'rgba(255,255,255,0.02)' : '#fafafa',
+    border: `1px solid ${isDark ? 'rgba(255,255,255,0.18)' : '#d1d5db'}`,
+    background: isDark ? '#111827' : '#ffffff',
     marginBottom: '6px',
   }), [isDark]);
 
@@ -259,11 +318,20 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
             user={entry.user || { displayName }}
             displayName={displayName}
             size="sm"
-            showRoleBadge={false}
+            showRoleBadge={true}
           />
         </span>
         {showRoleLabelFor(entry) && (
-          <ColoredTooltip title={actorRoleFor(entry)} color={actorRoleColorFor(entry)} placement="top">
+          <ColoredTooltip
+            title={(
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                {React.cloneElement(getUserRoleIcon(actorRoleFor(entry)), { size: 12, color: '#ffffff' })}
+                {actorRoleFor(entry)}
+              </span>
+            )}
+            color={actorRoleColorFor(entry)}
+            placement="top"
+          >
             <span
               style={{
                 display: 'inline-flex',
@@ -294,7 +362,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
             user={student || { displayName }}
             displayName={displayName}
             size="sm"
-            showRoleBadge={false}
+            showRoleBadge={true}
           />
         </span>
         <span style={{ ...valueStyle, fontSize: '12px', fontWeight: 600 }}>{displayName}</span>
@@ -302,12 +370,21 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
     );
   };
 
-  const formatTransitionTitle = (entry, fallbackStatus) => {
+  const renderWorkflowTransition = (entry, fallbackStatus) => {
     const fromRaw = entry.fromStatus;
     const toRaw = entry.toStatus || fallbackStatus;
-    const from = localizeLogStatus(fromRaw, t, lang, lang === 'ar' ? entry.fromStatusAr : null);
-    const to = localizeLogStatus(toRaw, t, lang, lang === 'ar' ? entry.toStatusAr : null);
-    return t('lecture_log_status_transition', { from, to });
+    const fromLabel = localizeLogStatus(fromRaw, t, lang, lang === 'ar' ? entry.fromStatusAr : null);
+    const toLabel = localizeLogStatus(toRaw, t, lang, lang === 'ar' ? entry.toStatusAr : null);
+    const fromColor = getWorkflowStatusColor(fromRaw);
+    const toColor = getWorkflowStatusColor(toRaw);
+    const arrowColor = isDark ? '#6b7280' : '#9ca3af';
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', direction: isRTL ? 'rtl' : 'ltr' }}>
+        <span style={{ color: fromColor }}>{fromLabel || '—'}</span>
+        <span style={{ color: arrowColor }}>{isRTL ? '←' : '→'}</span>
+        <span style={{ color: toColor }}>{toLabel || '—'}</span>
+      </span>
+    );
   };
 
   const renderAttendanceTransition = (fromRaw, toRaw, fallbackTo, fromLocalizedAr, toLocalizedAr) => {
@@ -323,9 +400,9 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
     const toColor = getAttendanceColor(toRaw || fallbackTo);
     const arrowColor = isDark ? '#6b7280' : '#9ca3af';
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', direction: isRTL ? 'rtl' : 'ltr' }}>
         <span style={{ color: fromColor }}>{fromLabel || '—'}</span>
-        <span style={{ color: arrowColor }}>→</span>
+        <span style={{ color: arrowColor }}>{isRTL ? '←' : '→'}</span>
         <span style={{ color: toColor }}>{toLabel || fallbackTo || '—'}</span>
       </span>
     );
@@ -341,7 +418,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
       ? getWorkflowStatusColor(entry.toStatus)
       : getAttendanceColor(rawStatus);
     const titleNode = isWorkflow ? (
-      <span style={{ color: iconColor }}>{formatTransitionTitle(entry, statusRaw)}</span>
+      renderWorkflowTransition(entry, statusRaw)
     ) : (
       renderAttendanceTransition(
         isAttendanceMarked ? (entry.fromStatus || 'NOT_TAKEN') : entry.fromStatus,
@@ -352,13 +429,28 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
       )
     );
 
+    const attendanceId = entry.attendanceId || entry.recordId || entry.id;
+    const canShowHistory = isAttendanceMarked || isAttendanceChange;
+
     return (
       <motion.div
         key={`${entry.id || idx}-${entry.timestamp}`}
         initial={{ opacity: 0, x: isRTL ? -10 : 10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.2, delay: idx * 0.03 }}
-        style={cardStyle}
+        style={{
+          ...cardStyle,
+          cursor: canShowHistory && attendanceId ? 'pointer' : 'default',
+          ...(canShowHistory && selectedAttendanceId === attendanceId ? {
+            borderColor: 'var(--color-primary, #800020)',
+            background: isDark ? 'rgba(128,0,32,0.08)' : 'rgba(128,0,32,0.04)',
+          } : {}),
+        }}
+        onClick={() => {
+          if (canShowHistory && attendanceId) {
+            handleRecordHistoryFetch(attendanceId);
+          }
+        }}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
           <div style={{
@@ -397,7 +489,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
               </span>
               <span style={{
                 fontSize: '11px',
-                color: isDark ? '#6b7280' : '#9ca3af',
+                color: isDark ? '#e5e7eb' : '#000000',
               }}>
                 {formatTimestamp(entry.timestamp)}
               </span>
@@ -406,11 +498,16 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '2px' }}>
                   {renderLogActor(entry)}
-                  {entry.student && renderLogStudent(entry.student)}
+                  {entry.student && (
+                    <>
+                      <span style={{ fontSize: '12px', color: 'var(--muted)' }}>{isRTL ? '←' : '→'}</span>
+                      {renderLogStudent(entry.student)}
+                    </>
+                  )}
                 </div>
                 {entry.reason && (
                   <div style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '2px', fontStyle: 'italic' }}>
-                    "{entry.reason}"
+                    "{getLocalizedNoteText(entry.reason, t)}"
                   </div>
                 )}
               </>
@@ -418,16 +515,30 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '2px' }}>
                   {renderLogActor(entry)}
-                  {entry.student && renderLogStudent(entry.student)}
+                  {entry.student && (
+                    <>
+                      <span style={{ fontSize: '12px', color: 'var(--muted)' }}>{isRTL ? '←' : '→'}</span>
+                      {renderLogStudent(entry.student)}
+                    </>
+                  )}
                 </div>
                 {entry.reason && (
                   <div style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '2px', fontStyle: 'italic' }}>
-                    "{entry.reason}"
+                    "{getLocalizedNoteText(entry.reason, t)}"
                   </div>
                 )}
                 {entry.documentTitle && (
                   <div style={{ fontSize: '11px', color: isDark ? '#6b7280' : '#9ca3af', marginTop: '2px' }}>
-                    {t('log_drawer_document') || 'Document'}: {entry.documentTitle}
+                    {(() => {
+                      const raw = entry.documentTitle || '';
+                      const parts = raw.split(/\s+[—–-]\s+/).map((s) => s.trim()).filter(Boolean);
+                      const typeLabel = getLocalizedWorkflowName(raw, t).split(' — ')[0] || parts[0] || '';
+                      const docDate = parts.length > 1 ? parts[parts.length - 1] : '';
+                      if (parts.length >= 2 && className) {
+                        return `${typeLabel} — ${className} — ${docDate}`;
+                      }
+                      return raw;
+                    })()}
                   </div>
                 )}
               </>
@@ -440,20 +551,31 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
 
   const groupHeaderStyle = useMemo(() => ({
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
     width: '100%',
-    padding: '8px 12px',
-    marginBottom: '8px',
+    marginBottom: '12px',
+    paddingBottom: '8px',
+    gap: '8px',
+    borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}`,
+  }), [isDark]);
+
+  const groupToggleBtnStyle = useMemo(() => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '6px 10px',
     borderRadius: '8px',
     border: 'none',
-    background: isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6',
-    color: isDark ? '#f1f5f9' : '#1e293b',
+    background: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9',
+    color: isDark ? '#e2e8f0' : '#334155',
     fontSize: '13px',
     fontWeight: 600,
     cursor: 'pointer',
-    textAlign: 'start',
+    transition: 'all 0.2s ease',
   }), [isDark]);
+
+  const showStatusFilters = activeTab === TABS.HISTORY;
 
   const renderLectureLog = () => {
     if (loading) {
@@ -464,22 +586,12 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
       );
     }
 
-    const filterOptions = [
-      { key: 'yesterday', label: t('yesterday') || 'Yesterday' },
-      { key: 'last7days', label: `7 ${t('common.days') || 'days'}` },
-      { key: 'last14days', label: `14 ${t('common.days') || 'days'}` },
-      { key: 'last30days', label: `30 ${t('common.days') || 'days'}` },
-      { key: 'all', label: t('all') || 'All' },
-    ];
-
     const emptyMessage = searchTerm.trim()
       ? (t('log_drawer_no_search_results') || 'No matching entries')
-      : dateFilter === 'all'
-        ? (t('log_drawer_no_entries') || 'No log entries found for this lecture')
-        : (t('log_drawer_no_filtered_entries') || 'No log entries for the selected period');
+      : (t('log_drawer_no_entries') || 'No log entries found for this lecture');
 
     const emptyIconColor = isDark ? '#94a3b8' : '#64748b';
-    const listContent = searchedLectureLog.length === 0 ? (
+    const listContent = filteredLectureLog.length === 0 ? (
       <div style={{ textAlign: 'center', padding: '40px', color: emptyIconColor }}>
         {getThemedIcon('ui', 'inbox', 48, emptyIconColor)}
         <p style={{ marginTop: '12px', fontSize: '14px' }}>
@@ -490,21 +602,84 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
       <>
         {groupedLectureLog.map((group) => {
           const expanded = expandedGroups[group.key] !== false;
+          const groupFilter = showStatusFilters ? (groupStatusFilters[group.key] || 'all') : 'all';
+          const visibleItems = groupFilter !== 'all'
+            ? group.items.filter((entry) => {
+                const filter = statusFilters.find((f) => f.id === groupFilter);
+                return filter ? filter.match(getEntryResultStatus(entry)) : true;
+              })
+            : group.items;
+          const statusCounts = showStatusFilters ? statusFilters.reduce((acc, f) => {
+            if (f.id === 'all') {
+              acc[f.id] = group.items.length;
+            } else {
+              acc[f.id] = group.items.filter((entry) => f.match(getEntryResultStatus(entry))).length;
+            }
+            return acc;
+          }, {}) : { all: group.items.length };
           return (
             <div key={group.key} style={{ marginBottom: '12px' }}>
-              <button
-                type="button"
-                onClick={() => toggleGroup(group.key)}
-                style={groupHeaderStyle}
-              >
-                <span>{group.label} ({group.items.length})</span>
-                <span style={{ fontSize: '11px', opacity: 0.7 }}>{expanded ? '▲' : '▼'}</span>
-              </button>
-              {expanded && (
-                <AnimatePresence initial={false}>
-                  {group.items.map((entry, idx) => renderEntryCard(entry, idx))}
-                </AnimatePresence>
-              )}
+              <div style={groupHeaderStyle}>
+                <button
+                  type="button"
+                  style={groupToggleBtnStyle}
+                  onClick={() => toggleGroup(group.key)}
+                  aria-expanded={expanded}
+                >
+                  <span>{group.label}</span>
+                  <span style={{
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                    color: isDark ? '#94a3b8' : '#64748b',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                  }}>
+                    {visibleItems.length}
+                  </span>
+                  {getThemedIcon('ui', expanded ? 'chevron_up' : 'chevron_down', 16, theme)}
+                </button>
+                {showStatusFilters && (
+                  <GridQuickFilterChips
+                    chips={statusFilters
+                      .filter((f) => f.id === 'all' || (statusCounts[f.id] || 0) > 0)
+                      .map((f) => ({
+                        id: f.id,
+                        label: f.label,
+                        count: statusCounts[f.id] || 0,
+                        color: f.color,
+                        icon: f.id !== 'all'
+                          ? <span style={{ width: 8, height: 8, borderRadius: '50%', background: f.color, flexShrink: 0 }} />
+                          : undefined,
+                      }))}
+                    activeId={groupFilter}
+                    onChange={(id) => {
+                      setGroupStatusFilters((prev) => ({
+                        ...prev,
+                        [group.key]: id,
+                      }));
+                    }}
+                    compact
+                    style={{ width: '100%', justifyContent: 'flex-start' }}
+                  />
+                )}
+              </div>
+              <AnimatePresence initial={false}>
+                {expanded && (
+                  <motion.div
+                    key="group-content"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeInOut' }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <AnimatePresence initial={false}>
+                      {visibleItems.map((entry, idx) => renderEntryCard(entry, idx))}
+                    </AnimatePresence>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           );
         })}
@@ -513,9 +688,12 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
 
     return (
       <div style={{ padding: '12px' }}>
+        {date && lectureLog.length > 0 && (
+          <DayFilterBanner date={date} lang={lang} t={t} isDark={isDark} />
+        )}
         {lectureLog.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', padding: '6px 10px', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff' }}>
-            {getThemedIcon('ui', 'search', 14, theme)}
+            {getThemedIcon('ui', 'search', 17, theme)}
             <input
               type="text"
               value={searchTerm}
@@ -526,36 +704,38 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
                 border: 'none',
                 background: 'transparent',
                 outline: 'none',
-                fontSize: '13px',
+                fontSize: '16px',
                 color: isDark ? '#f1f5f9' : '#1e293b',
               }}
             />
           </div>
         )}
-        {lectureLog.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-            {filterOptions.map((f) => {
-              const active = dateFilter === f.key;
-              return (
-                <button
-                  key={f.key}
-                  type="button"
-                  onClick={() => setDateFilter(f.key)}
-                  style={{
-                    padding: '5px 11px',
-                    borderRadius: '16px',
-                    border: `1px solid ${active ? 'var(--color-primary, #800020)' : (isDark ? '#334155' : '#e2e8f0')}`,
-                    background: active ? (isDark ? 'rgba(128,0,32,0.18)' : 'rgba(128,0,32,0.08)') : 'transparent',
-                    color: active ? 'var(--color-primary, #800020)' : (isDark ? '#94a3b8' : '#64748b'),
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                  }}
-                >
-                  {f.label}
-                </button>
-              );
-            })}
+        {showStatusFilters && searchFilteredLectureLog.length > 0 && (
+          <div style={{ marginBottom: '12px' }}>
+            <GridQuickFilterChips
+              chips={(() => {
+                const counts = statusFilters.reduce((acc, f) => {
+                  if (f.id === 'all') acc[f.id] = searchFilteredLectureLog.length;
+                  else acc[f.id] = searchFilteredLectureLog.filter((entry) => f.match(getEntryResultStatus(entry))).length;
+                  return acc;
+                }, {});
+                return statusFilters
+                  .filter((f) => f.id === 'all' || (counts[f.id] || 0) > 0)
+                  .map((f) => ({
+                    id: f.id,
+                    label: f.label,
+                    count: counts[f.id] || 0,
+                    color: f.color,
+                    icon: f.id !== 'all'
+                      ? <span style={{ width: 8, height: 8, borderRadius: '50%', background: f.color, flexShrink: 0 }} />
+                      : undefined,
+                  }));
+              })()}
+              activeId={globalStatusFilter}
+              onChange={(id) => setGlobalStatusFilter(id)}
+              compact
+              style={{ width: '100%', justifyContent: 'flex-start' }}
+            />
           </div>
         )}
         {listContent}
@@ -565,12 +745,154 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
 
   const renderRecordHistory = () => {
     if (!selectedAttendanceId) {
+      const attendanceEntries = lectureLog.filter((e) => {
+        const type = e.type;
+        return type === 'attendance_status_change' || (type && !type.includes('workflow'));
+      });
+      const workflowEntries = lectureLog.filter((e) => e.type === 'workflow_status_change');
+      const uniqueStudentIds = new Set();
+      attendanceEntries.forEach((e) => {
+        const sid = e.student?.id || e.userId || e.studentId;
+        if (sid) uniqueStudentIds.add(String(sid));
+      });
+      const uniqueStudents = uniqueStudentIds.size;
+      const statusCounts = attendanceEntries.reduce((acc, entry) => {
+        const code = getEntryResultStatus(entry);
+        if (code) acc[code] = (acc[code] || 0) + 1;
+        return acc;
+      }, {});
+      const workflowCount = workflowEntries.length;
+      const attendanceCount = attendanceEntries.length;
+      const totalChanges = lectureLog.length;
+      const lastChange = lectureLog[0]?.timestamp ? formatTimestamp(lectureLog[0].timestamp) : null;
+
+      const recentRecords = [];
+      const seen = new Set();
+      for (const e of attendanceEntries) {
+        const id = e.attendanceId || e.recordId || e.id;
+        if (id && e.student && !seen.has(id)) {
+          seen.add(id);
+          recentRecords.push({
+            attendanceId: id,
+            student: e.student,
+            status: getEntryResultStatus(e),
+          });
+        }
+      }
+
+      const chipBase = {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '3px 8px',
+        borderRadius: '6px',
+        fontSize: '12px',
+        background: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
+        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}`,
+        color: isDark ? '#e2e8f0' : '#334155',
+      };
+
       return (
-        <div style={{ textAlign: 'center', padding: '40px', color: isDark ? '#94a3b8' : '#64748b' }}>
-          {getThemedIcon('ui', 'search', 48, theme)}
-          <p style={{ marginTop: '12px', fontSize: '14px' }}>
-            {t('log_drawer_select_record') || 'Select an attendance record from the lecture log to view its change history'}
-          </p>
+        <div style={{ padding: '12px' }}>
+          <div style={{
+            marginBottom: '12px',
+            padding: '10px 12px',
+            borderRadius: '8px',
+            background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
+            border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: isDark ? '#f1f5f9' : '#1e293b' }}>
+                {t('log_drawer_daily_summary') || 'Daily Summary'}
+              </div>
+              {lastChange && (
+                <div style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#64748b' }}>
+                  {lastChange}
+                </div>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <span style={chipBase}>
+                {getThemedIcon('ui', 'users', 12, theme)}
+                {t('log_drawer_unique_students') || 'Students'}: <strong>{uniqueStudents}</strong>
+              </span>
+              <span style={chipBase}>
+                {t('log_drawer_total_events') || 'Total'}: <strong>{totalChanges}</strong>
+              </span>
+              <span style={chipBase}>
+                {getThemedIcon('ui', 'check_circle', 12, theme)}
+                {t('log_drawer_attendance_records') || 'Attendance'}: <strong>{attendanceCount}</strong>
+              </span>
+              <span style={chipBase}>
+                {getThemedIcon('ui', 'file', 12, theme)}
+                {t('log_drawer_workflow_changes') || 'Workflow'}: <strong>{workflowCount}</strong>
+              </span>
+              {Object.entries(statusCounts).map(([code, count]) => {
+                const label = getLocalizedAttendanceLabel(code, lang) || code.replace(/_/g, ' ');
+                const color = getAttendanceColor(code);
+                return (
+                  <span key={code} style={{
+                    ...chipBase,
+                    color,
+                    background: `${color}14`,
+                    border: `1px solid ${color}30`,
+                  }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+                    {label} {count}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+
+          {recentRecords.length > 0 && (
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: isDark ? '#94a3b8' : '#64748b', marginBottom: '8px' }}>
+                {t('log_drawer_recent_records') || 'Recent records'}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {recentRecords.map((record) => {
+                  const color = getAttendanceColor(record.status) || '#94a3b8';
+                  const label = getLocalizedAttendanceLabel(record.status, lang) || record.status;
+                  return (
+                    <button
+                      key={record.attendanceId}
+                      type="button"
+                      onClick={() => handleRecordHistoryFetch(record.attendanceId)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}`,
+                        background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        width: '100%',
+                      }}
+                    >
+                      <span style={{ transform: 'scale(0.72)', transformOrigin: 'center', flexShrink: 0, lineHeight: 0 }}>
+                        <DriveUserAvatar
+                          user={record.student}
+                          displayName={getLocalizedUserName(record.student, lang)}
+                          size="sm"
+                          showRoleBadge={true}
+                        />
+                      </span>
+                      <span style={{ flex: 1, fontSize: '13px', color: isDark ? '#f1f5f9' : '#1e293b' }}>
+                        {getLocalizedUserName(record.student, lang)}
+                      </span>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                      <span style={{ fontSize: '12px', color, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        {label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -617,7 +939,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
         {recordHistory.map((change, idx) => {
           const fromName = lang === 'ar' ? change.fromStatus?.nameAr : change.fromStatus?.nameEn;
           const toName = lang === 'ar' ? change.toStatus?.nameAr : change.toStatus?.nameEn;
-          const actorName = change.changedByUser?.displayName
+          const actorName = getLocalizedUserName(change.changedByUser, lang)
             || `${change.changedByUser?.firstName || ''} ${change.changedByUser?.lastName || ''}`.trim()
             || t('operations_board_system_actor') || 'System';
 
@@ -671,10 +993,10 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
-                <span style={{ fontSize: '12px', color: isDark ? '#94a3b8' : '#64748b' }}>
+                <span style={{ fontSize: '12px', color: isDark ? '#e5e7eb' : '#000000' }}>
                   {t('log_drawer_by') || 'By'}: {actorName}
                 </span>
-                <span style={{ fontSize: '11px', color: isDark ? '#6b7280' : '#9ca3af' }}>
+                <span style={{ fontSize: '11px', color: isDark ? '#e5e7eb' : '#000000' }}>
                   {formatTimestamp(change.changedAt)}
                 </span>
               </div>
@@ -785,26 +1107,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
             </button>
           </div>
 
-          {/* Tabs */}
-          <div style={{ display: 'flex', gap: '4px' }}>
-            <button
-              style={activeTab === TABS.LECTURE_LOG ? activeTabStyle : tabBtnStyle}
-              onClick={() => handleTabChange(TABS.LECTURE_LOG)}
-            >
-              {t('log_drawer_tab_lecture') || 'Lecture Log'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {embedded && (
-        <div style={{ display: 'flex', gap: '4px', padding: '8px 12px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb'}` }}>
-          <button
-            style={activeTab === TABS.LECTURE_LOG ? activeTabStyle : tabBtnStyle}
-            onClick={() => handleTabChange(TABS.LECTURE_LOG)}
-          >
-            {t('log_drawer_tab_lecture') || 'Lecture Log'}
-          </button>
+          {/* History */}
         </div>
       )}
 
@@ -835,7 +1138,8 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              {activeTab === TABS.LECTURE_LOG && renderLectureLog()}
+              {selectedAttendanceId && renderRecordHistory()}
+              {renderLectureLog()}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -860,5 +1164,175 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
     </>
   );
 };
+
+export function DateGroupedList({
+  items = [],
+  getTimestamp = (item) => item.createdAt || item.timestamp,
+  filterDefs = [],
+  renderItem,
+  emptyMessage,
+  isDark,
+  t,
+}) {
+  const { theme } = useTheme();
+  const [expandedGroups, setExpandedGroups] = useState({});
+  const [groupFilters, setGroupFilters] = useState({});
+
+  useEffect(() => {
+    setExpandedGroups((prev) => {
+      const next = { ...prev };
+      items.forEach((item) => {
+        const g = getDateGroup(getTimestamp(item));
+        if (!(g in next)) next[g] = true;
+      });
+      return next;
+    });
+  }, [items, getTimestamp]);
+
+  const toggleGroup = useCallback((key) => {
+    setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  const grouped = useMemo(() => {
+    const sorted = [...items].sort((a, b) => new Date(getTimestamp(b) || 0) - new Date(getTimestamp(a) || 0));
+    const groups = {};
+    sorted.forEach((item) => {
+      const g = getDateGroup(getTimestamp(item));
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(item);
+    });
+    const order = ['Today', 'Yesterday', 'This Week', 'Earlier'];
+    return order.filter((g) => groups[g]).map((g) => ({
+      key: g,
+      label: getGroupLabel(g, t),
+      items: groups[g],
+    }));
+  }, [items, getTimestamp, t]);
+
+  const groupHeaderStyle = useMemo(() => ({
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    width: '100%',
+    marginBottom: '8px',
+    paddingBottom: '6px',
+    gap: '6px',
+    borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}`,
+  }), [isDark]);
+
+  const groupToggleBtnStyle = useMemo(() => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '4px 8px',
+    borderRadius: '8px',
+    border: 'none',
+    background: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9',
+    color: isDark ? '#e2e8f0' : '#334155',
+    fontSize: '12px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+  }), [isDark]);
+
+  if (items.length === 0) return null;
+
+  return (
+    <div>
+      {grouped.map((group) => {
+        const groupFilter = groupFilters[group.key] || 'all';
+        const filterDef = filterDefs.find((f) => f.id === groupFilter);
+        const visibleItems = groupFilter === 'all' ? group.items : group.items.filter((item) => filterDef?.match(item));
+        const counts = filterDefs.reduce((acc, f) => {
+          if (f.id === 'all') acc[f.id] = group.items.length;
+          else acc[f.id] = group.items.filter((item) => f.match(item)).length;
+          return acc;
+        }, {});
+        const chips = filterDefs
+          .filter((f) => f.id === 'all' || (counts[f.id] || 0) > 0)
+          .map((f) => ({
+            id: f.id,
+            label: f.label,
+            count: counts[f.id] || 0,
+            color: f.color,
+            icon: f.icon,
+          }));
+        const expanded = expandedGroups[group.key] !== false;
+
+        return (
+          <div key={group.key} style={{ marginBottom: '12px' }}>
+            <div style={groupHeaderStyle}>
+              <button
+                type="button"
+                style={groupToggleBtnStyle}
+                onClick={() => toggleGroup(group.key)}
+                aria-expanded={expanded}
+              >
+                <span>{group.label}</span>
+                <span style={{ padding: '1px 6px', borderRadius: '999px', background: isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0', color: isDark ? '#94a3b8' : '#64748b', fontSize: '11px', fontWeight: 700 }}>
+                  {visibleItems.length}
+                </span>
+                {getThemedIcon('ui', expanded ? 'chevron_up' : 'chevron_down', 14, theme)}
+              </button>
+              {chips.length > 0 && (
+                <GridQuickFilterChips
+                  chips={chips}
+                  activeId={groupFilter}
+                  onChange={(id) => setGroupFilters((prev) => ({ ...prev, [group.key]: id }))}
+                  compact
+                  style={{ width: '100%', justifyContent: 'flex-start' }}
+                />
+              )}
+            </div>
+            <AnimatePresence initial={false}>
+              {expanded && (
+                <motion.div
+                  key="group-content"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: '8px' }}
+                >
+                  <AnimatePresence initial={false}>
+                    {visibleItems.map((item, idx) => (
+                      <React.Fragment key={item.id ?? idx}>
+                        {renderItem(item, idx)}
+                      </React.Fragment>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function DayFilterBanner({ date, lang, t, isDark }) {
+  if (!date) return null;
+  const dateValue = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(dateValue.getTime())) return null;
+  const dateStr = dateValue.toISOString().split('T')[0];
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      marginBottom: '12px',
+      padding: '8px 14px',
+      borderRadius: '8px',
+      border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+      background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
+      fontSize: '16px',
+      color: isDark ? '#94a3b8' : '#64748b',
+    }}>
+      {getThemedIcon('ui', 'calendar', 18, isDark ? 'inverse' : 'primary')}
+      <span>{t('showing_history_for') || 'Showing history for'}: <strong style={{ color: isDark ? '#f1f5f9' : '#1e293b' }}>{formatDate(dateStr, lang)}</strong></span>
+    </div>
+  );
+}
 
 export default LectureLogDrawer;

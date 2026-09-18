@@ -9,7 +9,7 @@
 
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
-import { createUser, setUserRoles, getUserByEmail } from './backend/services/keycloakAdminService.js';
+import { createUser, setUserRoles, getUserByEmail } from '../../backend/services/keycloakAdminService.js';
 
 const prisma = new PrismaClient();
 

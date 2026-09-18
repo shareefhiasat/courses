@@ -338,7 +338,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap'
-          }} title={value}>
+          }}>
             {value || '—'}
           </div>
         );
@@ -357,7 +357,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap'
-          }} title={value}>
+          }}>
             {value || '—'}
           </div>
         );
@@ -436,7 +436,6 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               onClick={() => handleEdit(row)}
               disabled={hideActions}
               icon={getThemedIcon('ui', 'edit', 16, theme)}
-              title={t('edit_category')}
             >
               {t('edit')}
             </Button>
@@ -447,7 +446,6 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               disabled={hideActions}
               style={{ color: '#dc2626' }}
               icon={getThemedIcon('ui', 'trash', 16, theme)}
-              title={t('delete_category')}
             >
               {t('delete')}
             </Button>

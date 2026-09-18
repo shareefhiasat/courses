@@ -1,4 +1,5 @@
 import prisma from '../db/prismaClient.js';
+import { USER_NAME_SELECT } from '../utils/userNameFields.js';
 import {
   isPresentStatus,
   isLateStatus,
@@ -28,6 +29,8 @@ const SESSION_INCLUDE = {
       displayNameAr: true,
       firstNameAr: true,
       lastNameAr: true,
+      rankEn: true,
+      rankAr: true,
     },
   },
   classroom: {
@@ -230,7 +233,7 @@ export const getProgramTerms = async ({ programId, instructorId }) => {
 export const getWeeklySchedule = async ({ programId, academicTermId, instructorId }) => {
   try {
     const pid = parseInt(programId);
-    const classes = await getClassesForProgramTerm({ programId: pid, academicTermId, instructorId: null });
+    const classes = await getClassesForProgramTerm({ programId: pid, academicTermId, instructorId });
     const classIds = classes.map((c) => c.id);
 
     const extrasPromise = Promise.all([
@@ -292,7 +295,7 @@ export const getWeeklySchedule = async ({ programId, academicTermId, instructorI
     }
 
     const termFilteredClasses = academicTermId
-      ? await getClassesForProgramTerm({ programId: pid, academicTermId, instructorId: null })
+      ? await getClassesForProgramTerm({ programId: pid, academicTermId, instructorId })
       : classes;
     const termClassIds = termFilteredClasses.map((c) => c.id);
 
@@ -348,7 +351,7 @@ export const getScheduleGrid = async ({ programId, instructorId, academicTermId,
     const classes = await getClassesForProgramTerm({
       programId,
       academicTermId,
-      instructorId: null,
+      instructorId,
     });
     const classIds = classes.map((c) => c.id);
     if (classIds.length === 0) {
@@ -398,6 +401,23 @@ function getQatarDayRange(dateInput) {
   return { dayStart, dayEnd };
 }
 
+function getQatarWeekRange(dateInput) {
+  const d = new Date(dateInput);
+  const qatarTime = new Date(d.getTime() + QATAR_OFFSET_MS);
+  const dayOfWeek = qatarTime.getUTCDay();
+  const weekStart = new Date(qatarTime);
+  weekStart.setUTCDate(qatarTime.getUTCDate() - dayOfWeek);
+  weekStart.setUTCHours(0, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setUTCDate(weekStart.getUTCDate() + 7);
+  const y = weekStart.getUTCFullYear();
+  const m = weekStart.getUTCMonth();
+  const day = weekStart.getUTCDate();
+  const weekStartUtc = new Date(Date.UTC(y, m, day, -3, 0, 0));
+  const weekEndUtc = new Date(Date.UTC(y, m, day + 7, -3, 0, 0));
+  return { weekStart: weekStartUtc, weekEnd: weekEndUtc };
+}
+
 export const getScheduleStatus = async ({ classIds, date }) => {
   try {
     if (!classIds || classIds.length === 0) {
@@ -408,7 +428,9 @@ export const getScheduleStatus = async ({ classIds, date }) => {
 
     const ids = classIds.map((id) => parseInt(id));
 
-    const [attendances, workflowDocs, participationGroups, notesGroups] = await Promise.all([
+    const { weekStart, weekEnd } = getQatarWeekRange(date);
+
+    const [attendances, workflowDocs, weeklyWorkflowDocs, participationRecords, classEnrollments] = await Promise.all([
       prisma.attendance.findMany({
         where: {
           classId: { in: ids },
@@ -417,10 +439,14 @@ export const getScheduleStatus = async ({ classIds, date }) => {
         select: {
           id: true,
           classId: true,
+          userId: true,
           statusId: true,
           createdAt: true,
+          updatedAt: true,
+          notes: true,
           createdBy: true,
           status: { select: { code: true, nameEn: true } },
+          user: { select: USER_NAME_SELECT },
           creator: {
             select: {
               displayName: true,
@@ -447,7 +473,10 @@ export const getScheduleStatus = async ({ classIds, date }) => {
           status: true,
           updatedAt: true,
           fileId: true,
-          file: { select: { id: true, name: true } },
+          file: { select: { id: true, name: true, mimeType: true } },
+          snapshotFile: { select: { id: true, name: true, mimeType: true } },
+          signedFileId: true,
+          signedFile: { select: { id: true, name: true, mimeType: true } },
           _count: { select: { comments: true } },
           statusHistory: {
             orderBy: { createdAt: 'desc' },
@@ -472,24 +501,91 @@ export const getScheduleStatus = async ({ classIds, date }) => {
           },
         },
       }),
-      prisma.participation.groupBy({
-        by: ['classId'],
+      prisma.workflowDocument.findMany({
+        where: {
+          workflowCategory: 'ATTENDANCE',
+          attendanceSubtype: 'WEEKLY_SUMMARY',
+          classId: { in: ids },
+          date: { gte: weekStart, lt: weekEnd },
+        },
+        select: {
+          id: true,
+          classId: true,
+          status: true,
+          date: true,
+          dateFrom: true,
+          dateTo: true,
+          updatedAt: true,
+          fileId: true,
+          file: { select: { id: true, name: true, mimeType: true } },
+          snapshotFile: { select: { id: true, name: true, mimeType: true } },
+          signedFileId: true,
+          signedFile: { select: { id: true, name: true, mimeType: true } },
+          _count: { select: { comments: true } },
+          statusHistory: {
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              fromStatus: true,
+              toStatus: true,
+              createdAt: true,
+              actor: {
+                select: {
+                  id: true,
+                  displayName: true,
+                  displayNameAr: true,
+                  firstName: true,
+                  lastName: true,
+                  firstNameAr: true,
+                  lastNameAr: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      prisma.participation.findMany({
         where: {
           classId: { in: ids },
           isActive: true,
           createdAt: { gte: dayStart, lt: dayEnd },
         },
-        _count: { id: true },
+        select: {
+          id: true,
+          classId: true,
+          points: true,
+          comment: true,
+          descriptionEn: true,
+          descriptionAr: true,
+          createdAt: true,
+          user: {
+            select: USER_NAME_SELECT,
+          },
+          participationType: {
+            select: {
+              id: true,
+              nameEn: true,
+              nameAr: true,
+              isPositive: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
       }),
-      prisma.attendance.groupBy({
-        by: ['classId'],
+      prisma.enrollment.findMany({
         where: {
           classId: { in: ids },
-          date: { gte: dayStart, lt: dayEnd },
-          notes: { not: null },
-          NOT: { notes: '' },
+          status: {
+            code: {
+              notIn: ['dropped', 'DROPPED', 'withdrawn', 'WITHDRAWN', 'completed', 'COMPLETED', 'transferred', 'TRANSFERRED'],
+            },
+          },
         },
-        _count: { id: true },
+        select: {
+          classId: true,
+          userId: true,
+        },
       }),
     ]);
 
@@ -506,17 +602,91 @@ export const getScheduleStatus = async ({ classIds, date }) => {
       };
     };
 
+    const APPROVED_STATUSES = new Set(['APPROVED', 'ADMIN_APPROVED']);
+    const resolveWorkflowApprover = (history = []) => {
+      const approved = [...history]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .find((entry) => APPROVED_STATUSES.has(entry.toStatus));
+      if (!approved) return null;
+      const names = resolveUserName(approved.actor);
+      return {
+        approvedByNameEn: names.actorNameEn,
+        approvedByNameAr: names.actorNameAr,
+        approvedAt: approved.createdAt,
+      };
+    };
+
+    const participationRecordsByClass = {};
+    for (const record of participationRecords || []) {
+      const classId = record.classId;
+      if (!participationRecordsByClass[classId]) {
+        participationRecordsByClass[classId] = [];
+      }
+      const user = record.user;
+      const type = record.participationType;
+      participationRecordsByClass[classId].push({
+        id: record.id,
+        firstName: user?.firstName || null,
+        lastName: user?.lastName || null,
+        firstNameAr: user?.firstNameAr || null,
+        lastNameAr: user?.lastNameAr || null,
+        studentName: user?.displayName
+          || [user?.firstName, user?.lastName].filter(Boolean).join(' ')
+          || null,
+        studentNameAr: user?.displayNameAr
+          || [user?.firstNameAr, user?.lastNameAr].filter(Boolean).join(' ')
+          || null,
+        typeName: type?.nameEn || null,
+        typeNameAr: type?.nameAr || null,
+        isPositive: type?.isPositive ?? true,
+        points: record.points,
+        comment: record.comment || null,
+        descriptionEn: record.descriptionEn || null,
+        descriptionAr: record.descriptionAr || null,
+        createdAt: record.createdAt,
+      });
+    }
+
     const participationCountByClass = Object.fromEntries(
-      (participationGroups || []).map((row) => [row.classId, row._count.id]),
+      Object.entries(participationRecordsByClass).map(([classId, records]) => [classId, records.length]),
     );
+
+    const notesRecordsByClass = {};
+    for (const record of attendances || []) {
+      if (!record.notes || !record.notes.trim()) continue;
+      const classId = record.classId;
+      if (!notesRecordsByClass[classId]) {
+        notesRecordsByClass[classId] = [];
+      }
+      const user = record.user;
+      notesRecordsByClass[classId].push({
+        id: record.id,
+        firstName: user?.firstName || null,
+        lastName: user?.lastName || null,
+        firstNameAr: user?.firstNameAr || null,
+        lastNameAr: user?.lastNameAr || null,
+        studentName: user?.displayName
+          || [user?.firstName, user?.lastName].filter(Boolean).join(' ')
+          || null,
+        studentNameAr: user?.displayNameAr
+          || [user?.firstNameAr, user?.lastNameAr].filter(Boolean).join(' ')
+          || null,
+        note: record.notes,
+        createdAt: record.createdAt,
+      });
+    }
+
     const notesCountByClass = Object.fromEntries(
-      (notesGroups || []).map((row) => [row.classId, row._count.id]),
+      Object.entries(notesRecordsByClass).map(([classId, records]) => [classId, records.length]),
     );
 
     const statusMap = {};
     for (const id of ids) {
       const classAttendances = attendances.filter((a) => a.classId === id);
       const classWorkflow = workflowDocs.find((w) => w.classId === id);
+      const classWeeklyWorkflow = weeklyWorkflowDocs.find((w) => w.classId === id);
+      const dailyApprover = resolveWorkflowApprover(classWorkflow?.statusHistory || []);
+      const weeklyApprover = resolveWorkflowApprover(classWeeklyWorkflow?.statusHistory || []);
 
       let presentCount = 0;
       let lateCount = 0;
@@ -524,11 +694,26 @@ export const getScheduleStatus = async ({ classIds, date }) => {
       let excusedCount = 0;
       let humanCaseCount = 0;
 
+      const latestByUser = {};
       for (const att of classAttendances) {
+        const uid = att.userId;
+        const existing = latestByUser[uid];
+        if (!existing || new Date(att.updatedAt || att.createdAt) > new Date(existing.updatedAt || existing.createdAt)) {
+          latestByUser[uid] = att;
+        }
+      }
+      const classAttendancesForCount = Object.values(latestByUser);
+
+      const activeEnrollmentUserIds = new Set((classEnrollments || [])
+        .filter((e) => e.classId === id)
+        .map((e) => e.userId));
+      const takenUserIds = new Set(classAttendancesForCount.map((att) => att.userId));
+      const notTakenCount = Math.max(0, activeEnrollmentUserIds.size - takenUserIds.size);
+
+      for (const att of classAttendancesForCount) {
         const code = att.status?.code;
         if (isLateStatus(code)) {
           lateCount += 1;
-          presentCount += 1;
         } else if (isPresentStatus(code)) {
           presentCount += 1;
         } else if (isHumanCaseStatus(code)) {
@@ -571,8 +756,11 @@ export const getScheduleStatus = async ({ classIds, date }) => {
         absentCount,
         excusedCount,
         humanCaseCount,
+        notTakenCount,
         notesCount: notesCountByClass[id] || 0,
+        notesRecords: notesRecordsByClass[id] || [],
         participationCount: participationCountByClass[id] || 0,
+        participationRecords: participationRecordsByClass[id] || [],
         workflowCommentsCount: classWorkflow?._count?.comments || 0,
         attendanceSummary: {
           present: presentCount,
@@ -580,10 +768,26 @@ export const getScheduleStatus = async ({ classIds, date }) => {
           absent: absentCount,
           excused: excusedCount,
           humanCase: humanCaseCount,
-          notTaken: 0,
+          notTaken: notTakenCount,
         },
         workflowStatus: classWorkflow?.status || null,
         workflowDocumentId: classWorkflow?.id || null,
+        workflowUpdatedAt: classWorkflow?.updatedAt || null,
+        workflowFile: classWorkflow?.file || null,
+        workflowSnapshotFile: classWorkflow?.snapshotFile || null,
+        workflowSignedFile: classWorkflow?.signedFile || null,
+        workflowApprovedByName: dailyApprover?.approvedByNameEn || null,
+        workflowApprovedByNameAr: dailyApprover?.approvedByNameAr || null,
+        workflowApprovedAt: dailyApprover?.approvedAt || null,
+        weeklyWorkflowStatus: classWeeklyWorkflow?.status || null,
+        weeklyWorkflowDocumentId: classWeeklyWorkflow?.id || null,
+        weeklyWorkflowUpdatedAt: classWeeklyWorkflow?.updatedAt || null,
+        weeklyWorkflowFile: classWeeklyWorkflow?.file || null,
+        weeklyWorkflowSnapshotFile: classWeeklyWorkflow?.snapshotFile || null,
+        weeklyWorkflowSignedFile: classWeeklyWorkflow?.signedFile || null,
+        weeklyWorkflowApprovedByName: weeklyApprover?.approvedByNameEn || null,
+        weeklyWorkflowApprovedByNameAr: weeklyApprover?.approvedByNameAr || null,
+        weeklyWorkflowApprovedAt: weeklyApprover?.approvedAt || null,
         statusHistory,
       };
     }

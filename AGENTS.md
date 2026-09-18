@@ -2,13 +2,13 @@
 
 ## Project Overview
 - **Type**: Full-stack LMS application (Node.js/Express backend + React frontend)
-- **Tech Stack**: PostgreSQL, Keycloak, MinIO, Redis, Docker
-- **Port**: Backend 8001, Frontend 5174 (HTTPS)
+- **Tech Stack**: PostgreSQL, Keycloak, MinIO, Redis, Docker, Ollama (offline LLM)
+- **Port**: Backend 8001, Frontend 5174 (HTTPS), Ollama 11434
 
 ## Quick Start
 
 ### Prerequisites
-- Docker running with containers: `lms-qaf-app-db`, `lms-qaf-keycloak`, `lms-qaf-minio`, `lms-qaf-redis`
+- Docker running with containers: `lms-qaf-app-db`, `lms-qaf-keycloak`, `lms-qaf-minio`, `lms-qaf-redis`, `lms-qaf-ollama`
 - Node.js 22.x with pnpm
 
 ### Starting the Application
@@ -54,6 +54,7 @@ docker logs lms-qaf-keycloak
 | Keycloak | http://localhost:8080 | admin/admin123 |
 | MinIO | http://localhost:9000 | minioadmin/minioadmin |
 | App DB | localhost:5432 | military_lms/military_lms123 |
+| Ollama LLM | http://localhost:11434 | - (model: qwen3:14b) |
 
 ## Common Tasks
 

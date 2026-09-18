@@ -16,36 +16,16 @@ function workflowStatusToKey(status) {
     code = status;
   }
   if (!code) return 'not_taken';
-  const normalized = String(code).toUpperCase().replace(/\s+/g, '_');
-  return normalized;
+  // Use lowercase keys that match SCHEDULE_WORKFLOW_STATUS and CSS class names
+  return String(code).toLowerCase().replace(/\s+/g, '_');
 }
 
 function getWorkflowStatusColorByKey(key) {
   if (!key) return '#6b7280';
-  
-  // Try exact match first
-  if (SCHEDULE_WORKFLOW_COLORS[key]) {
-    return SCHEDULE_WORKFLOW_COLORS[key];
-  }
-  if (WORKFLOW_STATUS_COLORS[key]) {
-    return WORKFLOW_STATUS_COLORS[key];
-  }
-  
-  // Try case-insensitive match
-  const lowerKey = key.toLowerCase();
-  const scheduleKeys = Object.keys(SCHEDULE_WORKFLOW_COLORS);
-  const matchingScheduleKey = scheduleKeys.find(k => k.toLowerCase() === lowerKey);
-  if (matchingScheduleKey) {
-    return SCHEDULE_WORKFLOW_COLORS[matchingScheduleKey];
-  }
-  
-  const workflowKeys = Object.keys(WORKFLOW_STATUS_COLORS);
-  const matchingWorkflowKey = workflowKeys.find(k => k.toLowerCase() === lowerKey);
-  if (matchingWorkflowKey) {
-    return WORKFLOW_STATUS_COLORS[matchingWorkflowKey];
-  }
-  
-  return '#6b7280';
+  const lowerKey = String(key).toLowerCase();
+  return SCHEDULE_WORKFLOW_COLORS[lowerKey]
+    || WORKFLOW_STATUS_COLORS[key]
+    || '#6b7280';
 }
 
 function resolveActorName(entry, lang) {
@@ -82,7 +62,7 @@ function StatusHistoryEntry({ entry, lang, t }) {
   if (!dateLabel && !actor) return null;
 
   return (
-    <div className={gridStyles.statusHistoryRow}>
+    <div className={gridStyles.statusHistoryRow} style={{ color }}>
       <span
         className={`${gridStyles.statusHistoryDot} ${gridStyles[`statusDot_${entry.key}`] || ''}`}
         style={{ '--dot-color': color, backgroundColor: color }}
@@ -98,14 +78,15 @@ function StatusHistoryEntry({ entry, lang, t }) {
   );
 }
 
-export default function ScheduleStatusHistoryTooltip({ status, lang, fallbackDate, children, t, currentColor }) {
+export default function ScheduleStatusHistoryTooltip({ status, lang, fallbackDate, children, t, currentColor, header }) {
   const entries = buildHistoryEntries(status, fallbackDate);
   const accent = currentColor || '#6b7280';
 
-  if (entries.length === 0) return children;
+  if (entries.length === 0 && !header) return children;
 
   const title = (
     <div className={gridStyles.statusHistoryTooltip}>
+      {header}
       {entries.map((entry, index) => (
         <StatusHistoryEntry key={`${entry.key}-${entry.createdAt || index}`} entry={entry} lang={lang} t={t} />
       ))}

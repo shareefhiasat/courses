@@ -17,6 +17,7 @@ import {
   getClassStats
 } from '../services/participations.js';
 import { applyListScope } from '../utils/applyListScope.js';
+import { assertClassInScope } from '../utils/scopeAccess.js';
 
 /**
  * GET /api/v1/participations
@@ -24,8 +25,23 @@ import { applyListScope } from '../utils/applyListScope.js';
  */
 export const getAllParticipationsController = async (req, res) => {
   try {
-    const result = await applyListScope(req, await getAllParticipations(req.query, req.user), 'classLinked');
-    
+    const rawResult = await getAllParticipations(req.query, req.user);
+
+    // When querying by classId, check that the user can access that class.
+    // If they can, bypass the array-level scope filter so they see all records
+    // for the class (the DB query already filters by classId).
+    let result = rawResult;
+    if (req.query?.classId && req.user) {
+      const { ok } = await assertClassInScope(req, req.query.classId);
+      if (ok) {
+        result = rawResult;
+      } else {
+        result = await applyListScope(req, rawResult, 'classLinked');
+      }
+    } else {
+      result = await applyListScope(req, rawResult, 'classLinked');
+    }
+
     if (result.success) {
       res.status(200).json(result);
     } else {

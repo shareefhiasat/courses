@@ -9,6 +9,7 @@ import {
   requestTourStart,
   releaseTour,
 } from '@utils/tourScheduler';
+import { isOnboardingTourEnabled } from '@utils/tourConfig.js';
 
 /**
  * Standard page-level tour hook.
@@ -40,6 +41,7 @@ export function usePageTour(id, keyPrefix, stepsOrBuilder, options = {}) {
   const getStepCount = useCallback(() => resolveSteps().length, [resolveSteps]);
 
   const startTour = useCallback(() => {
+    if (!isOnboardingTourEnabled()) return;
     const built = resolveSteps();
     if (!built.length) return;
     requestTourStart(id, () => {

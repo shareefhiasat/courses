@@ -10,6 +10,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
 import { useQRPermissions } from '@hooks/useQRPermissions';
 import { useMobileDetect } from '@hooks/useMobileDetect';
+import useResizableDrawer from '@hooks/useResizableDrawer.js';
 // OLD: import { PENALTY_TYPES } from '@constants/penaltyTypes';
 // OLD: import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 // OLD: import { PARTICIPATION_TYPES } from '@constants/participationTypes';
@@ -48,7 +49,8 @@ import {
   exportAttendanceOfficialReport,
   EXPORT_FORMAT,
 } from '@services/export/official-reports/index.jsx';
-import { useToast } from '@ui/ToastProvider.jsx';
+import { useToast } from '@ui';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import ConfirmModal from '@ui/Modal/ConfirmModal.jsx';
 import { persistAndLogExport, mimeTypeForFormat } from '@services/business/exportDriveService.js';
 import { extractExportFileId, extractExportFolderId } from '@utils/exportSuccessUrls';
@@ -467,6 +469,11 @@ const QRScannerPage = () => {
     }
   }, [highlightEnabled]);
 
+  // Keep track of the last regular subject/class selection so it can be restored
+  // when switching back from standup mode.
+  const lastRegularClassId = useRef('');
+  const lastRegularSubjectId = useRef('');
+
   // DEBUG: Track attendanceMode changes
   useEffect(() => {
     info('🔍 [DEBUG] attendanceMode changed:', {
@@ -474,12 +481,26 @@ const QRScannerPage = () => {
       constants: ATTENDANCE_TYPE_CATEGORY
     });
 
-    // Reset subject selection to 'all' when switching to standup mode
     if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+      // Remember the last meaningful subject/class before resetting for standup
+      if (selectedClassId && selectedClassId !== 'all' && selectedClassId !== '') {
+        lastRegularClassId.current = selectedClassId;
+      }
+      if (selectedSubjectId && selectedSubjectId !== 'all' && selectedSubjectId !== '') {
+        lastRegularSubjectId.current = selectedSubjectId;
+      }
       setSelectedSubjectId('all');
       setSelectedClassId('all');
+    } else {
+      // Restore the last regular subject/class when switching back from standup
+      if (lastRegularClassId.current && lastRegularClassId.current !== 'all' && (selectedClassId === 'all' || selectedClassId === '')) {
+        setSelectedClassId(lastRegularClassId.current);
+      }
+      if (lastRegularSubjectId.current && lastRegularSubjectId.current !== 'all' && (selectedSubjectId === 'all' || selectedSubjectId === '')) {
+        setSelectedSubjectId(lastRegularSubjectId.current);
+      }
     }
-  }, [attendanceMode]);
+  }, [attendanceMode, selectedClassId, selectedSubjectId]);
 
   // Fetch performed by fields when user is available
   useEffect(() => {
@@ -541,6 +562,14 @@ const QRScannerPage = () => {
   const [showScanner, setShowScanner] = useState(true); // Show QR scanner by default
   const [sendNotifications, setSendNotifications] = useState(false);
   const { isMobile } = useMobileDetect();
+  const { width: scannerPanelWidth, resizeHandleProps } = useResizableDrawer({
+    storageKey: 'qr_scanner_panel_width',
+    defaultWidth: 320,
+    minWidth: 240,
+    maxWidth: 600,
+    maxVwPercent: 45,
+    isRTL: true, // right-edge resize handle for left sidebar
+  });
   const [isScannerMinimized, setIsScannerMinimized] = useState(() => {
     try { return localStorage.getItem('qr_scanner_minimized') !== 'false'; } catch { return true; }
   });
@@ -1003,7 +1032,7 @@ const QRScannerPage = () => {
   useEffect(() => {
     if (urlParamsAppliedRef.current) return;
     const urlClassId = searchParams.get('classId');
-    if (!urlClassId || programs.length === 0 || classes.length === 0) return;
+    if (programs.length === 0 || classes.length === 0) return;
 
     urlParamsAppliedRef.current = true;
 
@@ -1013,20 +1042,22 @@ const QRScannerPage = () => {
     const urlMode = searchParams.get('mode');
     const urlManual = searchParams.get('manual');
 
-    const targetClass = classes.find(
-      (c) => String(c.id) === String(urlClassId)
-    );
+    if (urlClassId) {
+      const targetClass = classes.find(
+        (c) => String(c.id) === String(urlClassId)
+      );
 
-    if (targetClass) {
-      const programId = urlProgramId || targetClass.programId || targetClass.program?.id;
-      const subjectId = urlSubjectId || targetClass.subjectId || targetClass.subject?.id;
-      if (programId) saveSelectedProgramId(String(programId));
-      if (subjectId) saveSelectedSubjectId(String(subjectId));
-      saveSelectedClassId(String(targetClass.id));
-    } else {
-      saveSelectedClassId(String(urlClassId));
-      if (urlProgramId) saveSelectedProgramId(String(urlProgramId));
-      if (urlSubjectId) saveSelectedSubjectId(String(urlSubjectId));
+      if (targetClass) {
+        const programId = urlProgramId || targetClass.programId || targetClass.program?.id;
+        const subjectId = urlSubjectId || targetClass.subjectId || targetClass.subject?.id;
+        if (programId) saveSelectedProgramId(String(programId));
+        if (subjectId) saveSelectedSubjectId(String(subjectId));
+        saveSelectedClassId(String(targetClass.id));
+      } else {
+        saveSelectedClassId(String(urlClassId));
+        if (urlProgramId) saveSelectedProgramId(String(urlProgramId));
+        if (urlSubjectId) saveSelectedSubjectId(String(urlSubjectId));
+      }
     }
 
     if (urlDate) {
@@ -1035,10 +1066,8 @@ const QRScannerPage = () => {
 
     if (urlMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
       setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.STANDUP);
-      setIsModeLocked(true);
     } else if (urlMode === ATTENDANCE_TYPE_CATEGORY.REGULAR) {
       setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.REGULAR);
-      setIsModeLocked(true);
     } else if (urlManual === '1' || urlManual === 'true') {
       setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.REGULAR);
     }
@@ -1186,6 +1215,17 @@ const QRScannerPage = () => {
           }));
         }
       }
+
+      // A student can have multiple enrollments (different subjects/classes)
+      // in the same program, so the fallback path (and even some getUsers
+      // responses) can contain the same user object more than once. Keep the
+      // first occurrence so the roster has exactly one row per student.
+      const seenStudentIds = new Set();
+      studentUsers = studentUsers.filter(u => {
+        if (!u?.id || seenStudentIds.has(u.id)) return false;
+        seenStudentIds.add(u.id);
+        return true;
+      });
 
       setEnrollments(filteredEnrollments);
 
@@ -1606,7 +1646,10 @@ const QRScannerPage = () => {
             realName: student.realName,
             name: student.displayName || student.realName || student.name || student.email,
             email: student.email,
-            studentOrder: student.studentOrder, // Add student order field
+            profileImageUrl: student.profileImageUrl || null,
+            studentOrder: student.sequence ?? student.studentOrder, // sequence from users API
+            rankEn: student.rankEn || null,
+            rankAr: student.rankAr || null,
             attendance: todayAttendanceStatus, // Regular attendance
             standupStatus: todayStandupStatus, // Standup attendance (null if none)
             participation: participationTotal,
@@ -3139,7 +3182,7 @@ const QRScannerPage = () => {
           classId: selectedClassId,
           subjectId: selectedSubjectId,
           programId: selectedProgramId,
-          reportDate: formattedDate,
+          reportDate: formatForDateInput(selectedDate),
           onSaved: () => showSuccess(t('export_saved_to_drive')),
         }).catch((e) => console.warn('Failed to log export history:', e));
       }
@@ -3281,7 +3324,7 @@ const QRScannerPage = () => {
         classId: selectedClassId,
         subjectId: selectedSubjectId,
         programId: selectedProgramId,
-        reportDate: formattedDate,
+        reportDate: formatForDateInput(selectedDate),
       });
       setDailyOfficialExportSuccess({
         filename: persisted?.filename || filename,
@@ -3554,7 +3597,7 @@ const QRScannerPage = () => {
           exportType: 'official_attendance',
           format,
           programId: selectedProgramId,
-          reportDate: `${dateFrom}_${dateTo}`,
+          reportDate: dateFrom,
         });
         setAttendanceOfficialExportSuccess({
           filename: persisted?.filename || officialFilename,
@@ -3592,7 +3635,7 @@ const QRScannerPage = () => {
           exportType: 'behavioral',
           format: 'excel',
           programId: selectedProgramId,
-          reportDate: `${dateFrom}_${dateTo}`,
+          reportDate: dateFrom,
           onSaved: () => showSuccess(t('export_saved_to_drive')),
         }).catch((e) => console.warn('Failed to log export history:', e));
       }
@@ -5275,7 +5318,8 @@ const QRScannerPage = () => {
           margin: '0 auto',
           flexWrap: 'wrap'
         }}>
-              {/* Mode toggle */}
+              {/* Mode toggle — hidden when mode is locked via URL param */}
+              {!isModeLocked && (
               <div data-tour="qr-mode-toggle" style={{
                 display: 'flex',
                 gap: '0.5rem',
@@ -5283,10 +5327,11 @@ const QRScannerPage = () => {
                 padding: '0.25rem',
                 borderRadius: '0.5rem',
                 border: '1px solid var(--border, #e5e7eb)',
-                flex: '0 0 auto'
+                flex: '0 0 auto',
+                position: 'relative',
+                zIndex: 1
               }}>
                 <button
-                  disabled={isModeLocked}
                   onClick={() => {
                     info('🔍 [DEBUG] Regular mode clicked', {
                       currentMode: attendanceMode,
@@ -5301,8 +5346,7 @@ const QRScannerPage = () => {
                       color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : 'var(--text-muted, #6b7280)',
                       border: 'none',
                       borderRadius: '0.375rem',
-                      cursor: isModeLocked ? 'not-allowed' : 'pointer',
-                      opacity: isModeLocked ? 0.7 : 1,
+                      cursor: 'pointer',
                       transition: 'all 0.2s',
                       display: 'flex',
                       alignItems: 'center',
@@ -5319,7 +5363,6 @@ const QRScannerPage = () => {
                   </button>
                 {canSeeStandupMode && (
                   <button
-                    disabled={isModeLocked}
                     onClick={() => {
                       info('🔍 [DEBUG] Standup mode clicked', {
                         currentMode: attendanceMode,
@@ -5334,8 +5377,7 @@ const QRScannerPage = () => {
                       color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : 'var(--text-muted, #6b7280)',
                       border: 'none',
                       borderRadius: '0.375rem',
-                      cursor: isModeLocked ? 'not-allowed' : 'pointer',
-                      opacity: isModeLocked ? 0.7 : 1,
+                      cursor: 'pointer',
                       transition: 'all 0.2s',
                       display: 'flex',
                       alignItems: 'center',
@@ -5352,6 +5394,7 @@ const QRScannerPage = () => {
                   </button>
                 )}
               </div>
+              )}
 
               {/* Date picker — only show when program/class is selected */}
               <div data-tour="qr-date-picker" style={{ width: '260px', display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
@@ -5367,28 +5410,29 @@ const QRScannerPage = () => {
                       theme={theme}
                       showIcon={true}
                     />
-                    <button
-                      onClick={() => {
-                        const qatarNow = getQatarNow();
-                        setSelectedDate(formatForDateInput(qatarNow));
-                      }}
-                      title={t('go_to_today')}
-                      style={{
-                        height: '42px',
-                        width: '42px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.375rem',
-                        background: theme === 'dark' ? '#1f2937' : 'white',
-                        color: theme === 'dark' ? '#9ca3af' : '#6b7280',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0
-                      }}
-                    >
-                      {getThemedIcon('ui', 'calendar', 16, theme === 'dark' ? '#9ca3af' : '#6b7280')}
-                    </button>
+                    <ColoredTooltip title={t('go_to_today')} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} borderColor="#d1d5db" arrow>
+                      <button
+                          onClick={() => {
+                            const qatarNow = getQatarNow();
+                            setSelectedDate(formatForDateInput(qatarNow));
+                          }}
+                          style={{
+                            height: '42px',
+                            width: '42px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '0.375rem',
+                            background: theme === 'dark' ? '#1f2937' : 'white',
+                            color: theme === 'dark' ? '#9ca3af' : '#6b7280',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0
+                          }}
+                        >
+                          {getThemedIcon('ui', 'calendar', 16, theme === 'dark' ? '#9ca3af' : '#6b7280')}
+                        </button>
+                    </ColoredTooltip>
                   </>
                 )}
                 {gridLoading && (
@@ -5459,26 +5503,28 @@ const QRScannerPage = () => {
                 instructorInfo={{ name: classInstructorInfo?.name, loading: classInstructorLoading }}
               >
                 {classInstructorInfo?.name && canMessageClassInstructor && (
-                  <button
-                    type="button"
-                    onClick={handleMessageClassInstructor}
-                    title={t('message_instructor')}
-                    style={{
-                      marginInlineStart: '0.25rem',
-                      padding: '0.25rem 0.5rem',
-                      border: '1px solid var(--border, #e5e7eb)',
-                      borderRadius: '0.375rem',
-                      background: 'var(--panel, #fff)',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      fontSize: 'var(--font-size-xs)',
-                    }}
-                  >
-                    {getThemedIcon('ui', 'message_square', 14, theme)}
-                    <span>{t('message_instructor')}</span>
-                  </button>
+                  <ColoredTooltip title={t('message_instructor')}>
+                    <button
+                      type="button"
+                      onClick={handleMessageClassInstructor}
+                      style={{
+                        marginInlineStart: '0.25rem',
+                        padding: '0.25rem 0.5rem',
+                        border: '1px solid var(--border, #e5e7eb)',
+                        borderRadius: '0.375rem',
+                        background: 'var(--panel, #fff)',
+                        color: '#810C29',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        fontSize: 'var(--font-size-xs)',
+                      }}
+                    >
+                      {getThemedIcon('ui', 'message_square', 14, theme)}
+                      <span>{t('message_instructor')}</span>
+                    </button>
+                  </ColoredTooltip>
                 )}
               </ClassInfoBar>
             )}
@@ -5678,7 +5724,8 @@ const QRScannerPage = () => {
           display: 'flex',
           flexDirection: 'column',
           gap: '1.5rem',
-          width: isMobile ? '100%' : (isScannerMinimized || !showScanner ? '60px' : '20%'), // Fixed 25% width for QR scanner
+          width: isMobile ? '100%' : (isScannerMinimized || !showScanner ? '60px' : `${scannerPanelWidth}px`),
+          position: 'relative',
           flexShrink: 0,
           transition: 'width 0.3s ease',
           overflow: 'hidden'
@@ -5744,12 +5791,24 @@ const QRScannerPage = () => {
               initialShowManualInput={prefillManualInput.show}
             />
           )}
-        </div>
+            {!isScannerMinimized && showScanner && (
+              <div
+                {...resizeHandleProps}
+                style={{
+                  ...resizeHandleProps.style,
+                  right: 0,
+                  left: 'auto',
+                  zIndex: 10
+                }}
+              />
+            )}
+          </div>
 
         {/* Main Content */}
         <div style={{ 
-          width: isMobile ? '100%' : (isScannerMinimized || !showScanner ? 'calc(100% - 60px)' : '75%'), // Fixed 75% width for roster
-          transition: 'width 0.3s ease' // Smooth transition
+          flex: isMobile ? '0 0 auto' : '1 1 0%',
+          minWidth: 0,
+          overflow: 'hidden'
         }}>
           {loading && <GlobalLoadingFallback />}
           

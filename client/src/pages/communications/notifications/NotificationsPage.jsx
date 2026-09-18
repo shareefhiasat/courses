@@ -59,8 +59,6 @@ const NotificationsPage = () => {
   const [filterProgram, setFilterProgram] = useState('all');
   const [filterSubject, setFilterSubject] = useState('all');
   const [filterClass, setFilterClass] = useState('all');
-  const [filterYear, setFilterYear] = useState('all');
-  const [filterSemester, setFilterSemester] = useState('all');
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -125,18 +123,16 @@ const NotificationsPage = () => {
       filterProgram,
       filterSubject,
       filterClass,
-      filterYear,
-      filterSemester,
       subjects,
       classes
     });
-  }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, filterProgram, filterSubject, filterClass, filterYear, filterSemester, searchTerm, showArchived, subjects, classes]);
+  }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, filterProgram, filterSubject, filterClass, searchTerm, showArchived, subjects, classes]);
 
   const archivedCount = notifications.filter(n => n.isArchived).length;
 
   const formatTime = useCallback((timestamp) => {
-    return formatNotificationTime(timestamp, t);
-  }, [t]);
+    return formatNotificationTime(timestamp, t, lang);
+  }, [t, lang]);
 
   const handleMarkAsRead = async (notificationId) => {
     setLoading(true);
@@ -388,41 +384,6 @@ const NotificationsPage = () => {
             searchable
             fullWidth
           />
-          <Select
-            value={filterYear}
-            onChange={(e) => setFilterYear(e.target.value || 'all')}
-            options={[
-              { value: 'all', label: 'All Years' },
-              ...Array.from(new Set((classes || []).map(c => {
-                if (c.year) return String(c.year);
-                if (c.term) {
-                  if (c.term.includes(' ')) {
-                    const parts = c.term.split(' ');
-                    if (parts.length > 1 && !isNaN(parts[parts.length - 1])) {
-                      return parts[parts.length - 1];
-                    }
-                  }
-                  if (c.term.includes('-')) {
-                    const yearPart = c.term.split('-').find(p => !Number.isNaN(Number(p)));
-                    if (yearPart) return yearPart;
-                  }
-                }
-                return null;
-              }).filter(Boolean))).sort((a, b) => Number(b) - Number(a)).map(y => ({ value: y, label: y }))
-            ]}
-            size="small"
-            fullWidth
-          />
-          <Select
-            value={filterSemester}
-            onChange={(e) => setFilterSemester(e.target.value || 'all')}
-            options={[
-              { value: 'all', label: t('all_semesters') },
-              ...Array.from(new Set((classes || []).map(c => c.term ? formatTermDisplay(c.term) : null).filter(Boolean))).map(v => ({ value: v, label: getLocalizedTermDisplay(v, lang) }))
-            ]}
-            size="small"
-            fullWidth
-          />
         </div>
       </div>
 
@@ -536,7 +497,6 @@ const NotificationsPage = () => {
                           e.stopPropagation();
                           handleMarkAsRead(notification.id);
                         }}
-                        title={t('mark_as_read')}
                         style={{
                           background: 'transparent',
                           border: 'none',
@@ -563,7 +523,6 @@ const NotificationsPage = () => {
                           e.stopPropagation();
                           handleMarkAsUnread(notification.id);
                         }}
-                        title={t('mark_as_unread')}
                         style={{
                           background: 'transparent',
                           border: 'none',
@@ -591,7 +550,6 @@ const NotificationsPage = () => {
                           e.stopPropagation();
                           handleArchive(notification.id);
                         }}
-                        title={t('archive')}
                         style={{
                           background: 'transparent',
                           border: 'none',
@@ -618,7 +576,6 @@ const NotificationsPage = () => {
                         e.stopPropagation();
                         handleDelete(notification.id);
                       }}
-                      title={t('delete')}
                       style={{
                         background: 'transparent',
                         border: 'none',

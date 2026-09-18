@@ -179,7 +179,6 @@ const UnifiedFilterSection = ({
           <button
             type="button"
             onClick={onToggleViewMode}
-            title={isMinified ? (t('full_filters') || 'Full Filters') : (t('minified_filters') || 'Minified Filters')}
             aria-label={isMinified ? (t('full_filters') || 'Full Filters') : (t('minified_filters') || 'Minified Filters')}
             style={{
               display: 'inline-flex',

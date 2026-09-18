@@ -12,7 +12,6 @@ export default function DriveIconBadge({
 }) {
   return (
     <div
-      title={title}
       aria-label={title}
       style={{
         width: DRIVE_TIMELINE.ACTION_BTN_SIZE,

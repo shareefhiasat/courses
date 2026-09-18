@@ -9,7 +9,7 @@ import {
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import { buildSerialNumber } from './serialNumber.js';
 import { OFFICIAL_HEADER } from '../shared/officialHeader.js';
-import { formatOfficialReportDate } from '../shared/officialDateFormat.js';
+import { formatOfficialReportDate, formatOfficialReportDateTime } from '../shared/officialDateFormat.js';
 
 const SEMESTERS_PER_PAGE = 2;
 const DEFAULT_CREDITS = 3;
@@ -185,7 +185,7 @@ export function prepareQualitativeCardData({
     students,
     meta: {
       program: metadata.programName || '',
-      generatedAt: formatOfficialReportDate(new Date()),
+      generatedAt: formatOfficialReportDateTime(new Date(), lang),
       serial,
     },
     watermarkUser: metadata.watermarkUser,

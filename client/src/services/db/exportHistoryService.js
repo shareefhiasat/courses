@@ -171,6 +171,7 @@ export const getExportHistory = async (params = {}) => {
   if (params.exportType) query.set('exportType', params.exportType);
   if (params.format) query.set('format', params.format);
   if (params.userId) query.set('userId', params.userId);
+  if (params.classId) query.set('classId', params.classId);
   if (params.search) query.set('search', params.search);
   if (params.startDate) query.set('startDate', params.startDate);
   if (params.endDate) query.set('endDate', params.endDate);

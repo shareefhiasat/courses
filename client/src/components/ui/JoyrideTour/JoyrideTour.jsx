@@ -4,7 +4,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { MODE_TYPES } from '@utils/sharedTypes';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
-import { getJoyrideBaseProps, getTourStyles } from '@utils/tourConfig';
+import { getJoyrideBaseProps, getTourStyles, isOnboardingTourEnabled, endManualTour } from '@utils/tourConfig';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const JoyrideTour = ({ 
@@ -106,6 +106,7 @@ const JoyrideTour = ({
     
     if (data.status === 'finished' || data.status === 'skipped' || data.action === 'close') {
       info('[JoyrideTour] Tour finished/skipped');
+      endManualTour();
       
       // Save to localStorage if key is provided
       if (tourSeenKey) {
@@ -127,7 +128,7 @@ const JoyrideTour = ({
   return (
     <Joyride
       {...getJoyrideBaseProps({ theme: isDark ? 'dark' : 'light', t })}
-      run={run}
+      run={run && isOnboardingTourEnabled()}
       steps={tourSteps}
       tooltipComponent={tooltipComponent}
       locale={{

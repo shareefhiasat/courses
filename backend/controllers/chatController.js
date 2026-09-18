@@ -69,26 +69,27 @@ export const getRooms = async (req, res) => {
     }
 
     // Normalize profileImageUrl for all users in the response
-    const normalizeProfileUrl = (url, keycloakId) => {
+    const normalizeProfileUrl = (url, user) => {
       if (!url) return url;
       if (url.startsWith('http') || url.startsWith('/api/')) return url;
-      if (keycloakId) return `/api/v1/user-images/proxy/${keycloakId}/profile`;
+      const proxyId = user?.keycloakId || user?.id;
+      if (proxyId) return `/api/v1/user-images/proxy/${proxyId}/profile`;
       return url;
     };
     rooms.forEach(room => {
       if (room.userA) {
-        room.userA.profileImageUrl = normalizeProfileUrl(room.userA.profileImageUrl, room.userA.keycloakId);
+        room.userA.profileImageUrl = normalizeProfileUrl(room.userA.profileImageUrl, room.userA);
       }
       if (room.userB) {
-        room.userB.profileImageUrl = normalizeProfileUrl(room.userB.profileImageUrl, room.userB.keycloakId);
+        room.userB.profileImageUrl = normalizeProfileUrl(room.userB.profileImageUrl, room.userB);
       }
       if (room.creator) {
-        room.creator.profileImageUrl = normalizeProfileUrl(room.creator.profileImageUrl, room.creator.keycloakId);
+        room.creator.profileImageUrl = normalizeProfileUrl(room.creator.profileImageUrl, room.creator);
       }
       if (room.participants) {
         room.participants.forEach(p => {
           if (p.user) {
-            p.user.profileImageUrl = normalizeProfileUrl(p.user.profileImageUrl, p.user.keycloakId);
+            p.user.profileImageUrl = normalizeProfileUrl(p.user.profileImageUrl, p.user);
           }
         });
       }
@@ -606,8 +607,26 @@ export const createDM = async (req, res) => {
       });
       const userRoles = user.roleAssignments.map(ra => ra.role.code.toLowerCase());
       const isStudent = userRoles.includes('student');
+      const isInstructor = userRoles.includes('instructor');
+      const isAdminUser = userRoles.some(r => ['admin', 'super_admin', 'superadmin'].includes(r));
+      const dmRestricted = process.env.CHAT_DM_RESTRICTIONS !== 'false';
 
-      if (isStudent) {
+      if (dmRestricted && isInstructor && !isAdminUser) {
+        // Instructors can only DM admins / super_admins
+        const recipientRoles = await prisma.userRoleAssignment.findMany({
+          where: { userId: recipientId },
+          select: { role: { select: { code: true } } }
+        });
+        const recipientIsAdmin = recipientRoles.some(ra =>
+          ['admin', 'super_admin', 'superadmin'].includes(ra.role.code.toLowerCase())
+        );
+        if (!recipientIsAdmin) {
+          return res.status(403).json({
+            success: false,
+            error: 'Instructors can only message admins'
+          });
+        }
+      } else if (isStudent) {
         // Students can only DM their instructors
         const enrollments = await prisma.enrollment.findMany({
           where: { userId },
@@ -753,7 +772,7 @@ export const getAvailableUsers = async (req, res) => {
     const normalizedUsers = users.map(u => ({
       ...u,
       profileImageUrl: u.profileImageUrl && !u.profileImageUrl.startsWith('http') && !u.profileImageUrl.startsWith('/api/')
-        ? `/api/v1/user-images/proxy/${u.keycloakId}/profile`
+        ? `/api/v1/user-images/proxy/${u.keycloakId || u.id}/profile`
         : u.profileImageUrl
     }));
 
@@ -1127,7 +1146,7 @@ export const getRoomStats = async (req, res) => {
           user: p.user ? {
             ...p.user,
             profileImageUrl: p.user.profileImageUrl && !p.user.profileImageUrl.startsWith('http') && !p.user.profileImageUrl.startsWith('/api/')
-              ? `/api/v1/user-images/proxy/${p.user.keycloakId}/profile`
+              ? `/api/v1/user-images/proxy/${p.user.keycloakId || p.user.id}/profile`
               : p.user.profileImageUrl
           } : p.user
         })),
@@ -1411,7 +1430,7 @@ export const getUsersByRole = async (req, res) => {
       .map(u => ({
         ...u,
         profileImageUrl: u.profileImageUrl && !u.profileImageUrl.startsWith('http') && !u.profileImageUrl.startsWith('/api/')
-          ? `/api/v1/user-images/proxy/${u.keycloakId}/profile`
+          ? `/api/v1/user-images/proxy/${u.keycloakId || u.id}/profile`
           : u.profileImageUrl
       }));
 

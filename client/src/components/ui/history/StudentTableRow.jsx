@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { ACTIVITY_COLORS } from '@constants';
@@ -13,9 +14,8 @@ import { RECORD_TYPES } from '@utils/sharedTypes.js';
 import StudentInfoCell from './StudentInfoCell';
 import AttendanceStatusCell from './AttendanceStatusCell';
 import QuickAttendanceButtons from './QuickAttendanceButtons';
-import { TrendingDown } from 'lucide-react';
+import { TrendingDown, Check, Clock, X, Heart, Circle } from '@utils/icons.jsx';
 import StudentStatsRow from './StudentStatsRow';
-import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
 
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { getLocalizedUserName } from '@utils/localizedUserName';
@@ -150,21 +150,21 @@ const StudentTableRow = ({
       switch(statusUpper) {
         case ATTENDANCE_STATUS.PRESENT:
         case ATTENDANCE_STATUS.STANDUP_PRESENT:
-          return <CheckSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+          return <Check size={16} strokeWidth={3} color={color} />;
         case ATTENDANCE_STATUS.LATE:
         case ATTENDANCE_STATUS.STANDUP_LATE:
-          return <ClockSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+          return <Clock size={16} color={color} />;
         case ATTENDANCE_STATUS.ABSENT_NO_EXCUSE:
         case ATTENDANCE_STATUS.STANDUP_ABSENT:
-          return <XSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+          return <X size={16} color={color} />;
         case ATTENDANCE_STATUS.EXCUSED_LEAVE:
-          return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+          return <Heart size={16} strokeWidth={2.5} color={color} />;
         case ATTENDANCE_STATUS.STANDUP_CLINIC:
-          return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+          return <Heart size={16} strokeWidth={2.5} color={color} />;
         case ATTENDANCE_STATUS.HUMAN_CASE:
-          return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+          return <Heart size={16} strokeWidth={2.5} color={color} />;
         default:
-          return <CircleIcon style={{ width: '16px', height: '16px', stroke: color }} />;
+          return <Circle size={16} color={color} />;
       }
     };
 
@@ -597,11 +597,20 @@ const StudentTableRow = ({
       </tr>
       
       {/* Expanded History Row */}
-      {isExpanded && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
-        <tr style={{ background: 'var(--background-secondary, #f9fafb)', borderBottom: '1px solid var(--border, #e5e7eb)' }}>
-          <td colSpan="7" style={{ padding: '0.5rem 1rem', overflow: 'visible' }}>
-            <div style={{ minWidth: '132%' }}>
-            <StudentRosterHistory 
+      {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+        <AnimatePresence initial={false}>
+          {isExpanded && (
+            <motion.tr
+              key="expanded-row"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
+              style={{ background: 'var(--background-secondary, #f9fafb)', borderBottom: '1px solid var(--border, #e5e7eb)', overflow: 'hidden' }}
+            >
+              <td colSpan="7" style={{ padding: '0', overflow: 'visible' }}>
+                <div style={{ minWidth: '132%', padding: '0.5rem 1rem' }}>
+                <StudentRosterHistory 
               student={student}
               studentHistory={studentHistory}
               expandedDays={expandedDays}
@@ -622,9 +631,11 @@ const StudentTableRow = ({
               canDeleteAttendance={canDeleteAttendance}
               theme={theme}
             />
-            </div>
-          </td>
-        </tr>
+                </div>
+              </td>
+            </motion.tr>
+          )}
+        </AnimatePresence>
       )}
 
       {/* Result Modal - Rendered outside table using Portal */}
@@ -670,25 +681,25 @@ const StudentTableRow = ({
                   const iconName = getAttendanceIcon(resultModalData.attendanceStatus);
                   switch (iconName) {
                     case 'CheckCircle':
-                      return <CheckSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
+                      return <Check size={30} strokeWidth={3} color="white" />;
                     case 'Clock':
-                      return <ClockSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
+                      return <Clock size={30} color="white" />;
                     case 'XCircle':
-                      return <XSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
+                      return <X size={30} color="white" />;
                     case 'Heart':
-                      return <HeartIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
+                      return <Heart size={30} strokeWidth={2.5} color="white" />;
                     default:
-                      return <CircleIcon style={{ width: '30px', height: '30px', color: 'white' }} />;
+                      return <Circle size={30} color="white" />;
                   }
                 })()
               ) : resultModalData.type === 'success' ? (
-                <CheckSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />
+                <Check size={30} strokeWidth={3} color="white" />
               ) : resultModalData.type === 'error' ? (
-                <XSmallIcon style={{ width: '30px', height: '30px', color: 'white' }} />
+                <X size={30} color="white" />
               ) : resultModalData.type === 'info' ? (
-                <CircleIcon style={{ width: '30px', height: '30px', color: 'white' }} />
+                <Circle size={30} color="white" />
               ) : (
-                <CircleIcon style={{ width: '30px', height: '30px', color: 'white' }} />
+                <Circle size={30} color="white" />
               )}
             </div>
 

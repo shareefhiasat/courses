@@ -83,7 +83,7 @@ export async function canAccessFile(fileId, actor) {
 
   // Check if user is a workflow participant via WorkflowDocument (simple workflow system)
   const workflowDoc = await prisma.workflowDocument.findFirst({
-    where: { OR: [{ fileId }, { snapshotFileId: fileId }] },
+    where: { OR: [{ fileId }, { snapshotFileId: fileId }, { signedFileId: fileId }] },
     select: {
       submitterId: true,
       currentAssigneeId: true,

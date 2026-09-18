@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Workflow } from 'lucide-react';
+import { Workflow } from '@utils/icons.jsx';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { formatDate } from '@utils/date-formatter.js';
 import { getQatarDateParts, formatForDateInput } from '@utils/date-formatter.js';
@@ -23,7 +23,7 @@ import { useMobileDetect } from '@hooks/useMobileDetect';
 // NOW: Using useLookupTypes hook for all lookup data
 import { RECORD_TYPES, getRecordTypeLabel } from '@utils/sharedTypes';
 import {ParticipationIcon, PenaltyIcon, StudentHistory, DeleteModal} from '@ui/history';
-import {CircleIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, HelpCircleIcon, UserIcon, ZapIcon} from "@utils/icons.jsx";
+import { Circle, Check, Clock, X, Heart, HelpCircle, User, Zap } from '@utils/icons.jsx';
 import PanelHeader from './PanelHeader';
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/attendanceMethods';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_COLORS, ATTENDANCE_TYPE_CATEGORY, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel, DB_CODE_TO_FRONTEND_STATUS, getStatusCodeFromRecord } from '@constants/attendanceTypes';
@@ -1404,7 +1404,7 @@ export default function StudentActionStatsPanel({
                     }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <CheckSmallIcon style={{ width: '16px', height: '16px' }} />
+                    <Check size={16} strokeWidth={3} />
                     {/*{attendanceStats.present && Number(attendanceStats.present) > 0 ? (*/}
                     {/*  <span style={{*/}
                     {/*    fontSize: '0.5rem',*/}
@@ -1455,7 +1455,7 @@ export default function StudentActionStatsPanel({
                     }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <ClockSmallIcon style={{ width: '16px', height: '16px' }} />
+                    <Clock size={16} />
                     {/*{attendanceStats.late && Number(attendanceStats.late) > 0 ? (*/}
                     {/*  <span style={{*/}
                     {/*    fontSize: '0.5rem',*/}
@@ -1505,7 +1505,7 @@ export default function StudentActionStatsPanel({
                     }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <XSmallIcon style={{ width: '16px', height: '16px' }} />
+                    <X size={16} />
                     {/*{attendanceStats.absent_no_excuse && Number(attendanceStats.absent_no_excuse) > 0 ? (*/}
                     {/*  <span style={{*/}
                     {/*    fontSize: '0.5rem',*/}
@@ -1555,7 +1555,7 @@ export default function StudentActionStatsPanel({
                     }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <XSmallIcon style={{ width: '16px', height: '16px' }} />
+                    <X size={16} />
                     {/*{attendanceStats.excused_leave && Number(attendanceStats.excused_leave) > 0 && (*/}
                     {/*  <span style={{*/}
                     {/*    fontSize: '0.5rem',*/}
@@ -1605,7 +1605,7 @@ export default function StudentActionStatsPanel({
                     }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <HeartIcon style={{ width: '16px', height: '16px' }} />
+                    <Heart size={16} strokeWidth={2.5} />
                     {/*{attendanceStats.excused_leave && Number(attendanceStats.excused_leave) > 0 && (*/}
                     {/*  <span style={{*/}
                     {/*    fontSize: '0.5rem',*/}
@@ -1656,7 +1656,7 @@ export default function StudentActionStatsPanel({
                     }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <HeartIcon style={{ width: '16px', height: '16px' }} />
+                    <Heart size={16} strokeWidth={2.5} />
                     {/*{attendanceStats.human_case && Number(attendanceStats.human_case) > 0 && (*/}
                     {/*  <span style={{*/}
                     {/*    fontSize: '0.5rem',*/}
@@ -2447,7 +2447,7 @@ export default function StudentActionStatsPanel({
                         whiteSpace: 'nowrap'
                       }}
                   >
-                    <UserIcon style={{ width: '16px', height: '16px' }} />
+                    <User size={16} />
                     {t('attendance')}
                   </button>
                   <button
@@ -2487,7 +2487,7 @@ export default function StudentActionStatsPanel({
                         whiteSpace: 'nowrap'
                       }}
                   >
-                    <ZapIcon style={{ width: '16px', height: '16px' }} />
+                    <Zap size={16} />
                     {t('behavior')}
                   </button>
                   <button

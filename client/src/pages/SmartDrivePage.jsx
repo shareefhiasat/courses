@@ -1315,7 +1315,6 @@ export default function SmartDrivePage() {
           {!isMobile && (
             <button
               onClick={() => setSidebarMinimized((v) => !v)}
-              title={sidebarMinimized ? t('expand') : t('collapse')}
               style={{
                 padding: '0.5rem',
                 background: 'var(--background-secondary, #f3f4f6)',
@@ -1346,7 +1345,6 @@ export default function SmartDrivePage() {
               alignItems: 'center',
               justifyContent: 'center',
             }}
-            title={t('Pending Approvals')}
           >
             {getThemedIcon('ui', 'bell', 20, theme)}
             {unreadCount > 0 && (
@@ -1702,7 +1700,6 @@ export default function SmartDrivePage() {
                 return (
                   <div
                     key={status}
-                    title={getWorkflowStatusDescription(status)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -1959,7 +1956,6 @@ export default function SmartDrivePage() {
                         transition: 'all 0.15s ease',
                         transform: newColor === c.value ? 'scale(1.1)' : 'scale(1)',
                       }}
-                      title={c.label}
                     >
                       {c.value && getColoredFolderIcon(14, c.value)}
                     </button>

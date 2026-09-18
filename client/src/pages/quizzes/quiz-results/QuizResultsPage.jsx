@@ -423,16 +423,16 @@ const QuizResultsPage = () => {
                 {percentage}%
               </Badge>
               {isOverridden && (
-                <Badge variant="outline" color="warning" size="small" title={t('score_overridden_badge')}>
+                <Badge variant="outline" color="warning" size="small">
                   {getThemedIcon('ui', 'edit', 10, theme)}
                 </Badge>
               )}
               {isApproved ? (
-                <Badge variant="success" size="small" title={t('approved_badge')}>
+                <Badge variant="success" size="small">
                   {getThemedIcon('ui', 'check', 10, theme)}
                 </Badge>
               ) : isReviewed ? (
-                <Badge variant="warning" size="small" title={t('reviewed_not_approved')}>
+                <Badge variant="warning" size="small">
                   {getThemedIcon('ui', 'x', 10, theme)}
                 </Badge>
               ) : null}
@@ -445,7 +445,6 @@ const QuizResultsPage = () => {
                   setEditingResult(row);
                   setOverrideScore(score.toString());
                 }}
-                title={t('override_score_title')}
               >
                 {getThemedIcon('ui', 'edit', 12, theme)}
               </Button>
@@ -489,7 +488,6 @@ const QuizResultsPage = () => {
                     size="sm"
                     variant="success"
                     onClick={() => handleApproveResult(row.id, true)}
-                    title={t('approve_and_notify_student')}
                   >
                     {getThemedIcon('ui', 'check', 12, theme)}
                   </Button>
@@ -498,7 +496,6 @@ const QuizResultsPage = () => {
                   size="sm"
                   variant="outline"
                   onClick={() => handleSendNotification(row)}
-                  title={t('send_notification_title')}
                 >
                   {getThemedIcon('ui', 'send', 12, theme)}
                 </Button>

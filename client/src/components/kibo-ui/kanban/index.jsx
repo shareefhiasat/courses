@@ -69,6 +69,7 @@ export const KanbanCard = (
     className,
     dragColor,
     style: cardStyle,
+    disabled = false,
     ...cardProps
   }
 ) => {
@@ -81,16 +82,24 @@ export const KanbanCard = (
     isDragging,
   } = useSortable({
     id,
+    disabled,
   });
   const { activeCardId } = useContext(KanbanContext);
 
   const style = {
     transition,
     transform: CSS.Transform.toString(transform),
+    marginRight: 3,
+    marginLeft: 3,
   };
 
   const ringColor = dragColor || cardStyle?.['--card-status-color'] || '#6b7280';
   const glowColor = dragColor || cardStyle?.['--card-status-color'] || '#6b7280';
+
+  const cardBorderStyle = {
+    borderColor: ringColor,
+    borderWidth: '2px',
+  };
 
   const dragStyle = isDragging ? {
     '--tw-ring-color': `${ringColor}66`,
@@ -98,6 +107,9 @@ export const KanbanCard = (
 
   const overlayStyle = {
     '--tw-ring-color': ringColor,
+    borderColor: ringColor,
+    borderWidth: '2px',
+    padding: '0.75rem',
     boxShadow: `0 0 18px ${glowColor}99, 0 4px 12px rgba(0,0,0,0.15)`,
   };
 
@@ -106,11 +118,11 @@ export const KanbanCard = (
       <div style={style} {...listeners} {...attributes} ref={setNodeRef}>
         <Card
           className={cn(
-            "cursor-grab gap-4 rounded-md p-1 shadow-sm transition-shadow transition-[box-shadow,border-color]",
+            "cursor-grab gap-4 rounded-md p-2 shadow-sm transition-shadow transition-[box-shadow,border-color]",
             isDragging && "pointer-events-none cursor-grabbing opacity-30",
             className
           )}
-          style={{ ...dragStyle, ...cardStyle }}
+          style={{ ...cardBorderStyle, ...dragStyle, ...cardStyle }}
           {...cardProps}>
           {children ?? <p className="m-0 font-medium text-sm">{name}</p>}
         </Card>
@@ -119,7 +131,7 @@ export const KanbanCard = (
         <t.In>
           <Card
             className={cn(
-              "cursor-grab gap-4 rounded-md p-1 shadow-sm animate-pulse",
+              "cursor-grab gap-4 rounded-md p-1 shadow-sm animate-pulse ring-2",
               isDragging && "cursor-grabbing",
               className
             )}
@@ -170,6 +182,7 @@ export const KanbanProvider = (
     onDragOver,
     onDragCancel,
     className,
+    style,
     columns,
     data,
     onDataChange,
@@ -301,7 +314,8 @@ export const KanbanProvider = (
         sensors={sensors}
         {...props}>
         <div
-          className={cn("grid size-full auto-cols-fr grid-flow-col gap-3", className)}>
+          className={cn("grid size-full auto-cols-fr grid-flow-col gap-3", className)}
+          style={style}>
           {columns.map((column) => children(column))}
         </div>
         {typeof window !== "undefined" &&

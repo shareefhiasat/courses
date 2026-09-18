@@ -9,14 +9,14 @@ import { useLookupTypes } from '@hooks/useLookupTypes.js';
 // NOW: Using useLookupTypes hook for all lookup data
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import {
-  CheckSmallIcon,
-  ClockSmallIcon,
-  XSmallIcon,
-  HeartIcon,
-  HelpCircleIcon,
-  ParticipationIcon,
-  ZapIcon,
-  PenaltyIcon
+  Check,
+  Clock,
+  X,
+  Heart,
+  HelpCircle,
+  Trophy,
+  Zap,
+  AlertCircle
 } from '@utils/icons.jsx';
 
 export const HistorySection = ({
@@ -79,12 +79,12 @@ export const HistorySection = ({
       console.log('🔍 HistorySection - Icon Mapping:', { status, statusValue, iconName, statusColor, colorSource: statusValue === status ? 'direct' : 'code' });
       
       const iconMap = {
-        CheckCircle: <CheckSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
-        Clock: <ClockSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
-        AlertCircle: <XSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
-        XCircle: <XSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
-        Heart: <HeartIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
-        HelpCircle: <HelpCircleIcon style={{ width: '12px', height: '12px', color: statusColor }} />
+        CheckCircle: <Check size={12} strokeWidth={3} color={statusColor} />,
+        Clock: <Clock size={12} color={statusColor} />,
+        AlertCircle: <X size={12} color={statusColor} />,
+        XCircle: <X size={12} color={statusColor} />,
+        Heart: <Heart size={12} strokeWidth={2.5} color={statusColor} />,
+        HelpCircle: <HelpCircle size={12} strokeWidth={2.5} color={statusColor} />
       };
       
       const selectedIcon = iconMap[iconName] || iconMap.HelpCircle;
@@ -96,21 +96,21 @@ export const HistorySection = ({
       info('🔍 HistorySection returning behavior icon');
       const behaviorType = (lookupData['behavior-types'] || []).find(bt => bt.id === log.type);
       const color = behaviorType?.color || '#f59e0b';
-      return <ZapIcon style={{ width: '14px', height: '14px', color }} />;
+      return <Zap size={14} color={color} />;
     }
     
     if (type === RECORD_TYPES.PARTICIPATION) {
       info('🔍 HistorySection returning participation icon');
       const participationType = (lookupData['participation-types'] || []).find(pt => pt.id === log.type);
       const color = participationType?.color || '#10b981';
-      return <ParticipationIcon style={{ width: '14px', height: '14px', color }} />;
+      return <Trophy size={14} color={color} />;
     }
     
     if (type === RECORD_TYPES.PENALTY) {
       info('🔍 HistorySection returning penalty icon');
       const penaltyType = (lookupData['penalty-types'] || []).find(pt => pt.id === log.type);
       const color = penaltyType?.color || '#ef4444';
-      return <PenaltyIcon style={{ width: '14px', height: '14px', color }} />;
+      return <AlertCircle size={14} strokeWidth={2.5} color={color} />;
     }
     
     info('🔍 HistorySection returning fallback icon');

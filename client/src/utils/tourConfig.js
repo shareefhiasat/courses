@@ -1,12 +1,32 @@
 /** Shared Joyride defaults — keeps tooltips below the sticky navbar. */
 
+import { isFeatureGloballyEnabled } from '@constants/featureFlags.js';
+
 export const NAVBAR_SCROLL_OFFSET = 80;
 /** Above app modals (panel z-index 10000) — overlay, spotlight, and tooltip stack together. */
 export const MODAL_TOUR_Z_INDEX = 10200;
 
-/** Check if onboarding tour is globally disabled via environment variable */
+/**
+ * Check if onboarding tours are globally enabled.
+ * Disabled when the JOYRIDE_TOUR feature flag is off for everyone,
+ * or when the VITE_ENABLE_ONBOARDING_TOUR env var is 'false'.
+ * A manual trigger (navbar help icon) sets a session override that
+ * temporarily enables tours until the tour ends.
+ */
 export function isOnboardingTourEnabled() {
+  if (typeof window !== 'undefined' && window.__tourManualOverride) return true;
+  if (!isFeatureGloballyEnabled('JOYRIDE_TOUR')) return false;
   return import.meta.env.VITE_ENABLE_ONBOARDING_TOUR !== 'false';
+}
+
+/** Enable tours for a single manually-triggered session (help icon). */
+export function beginManualTour() {
+  if (typeof window !== 'undefined') window.__tourManualOverride = true;
+}
+
+/** Clear the manual override once the tour finishes/skips/closes. */
+export function endManualTour() {
+  if (typeof window !== 'undefined') window.__tourManualOverride = false;
 }
 
 export function getTourFloaterProps(padding = NAVBAR_SCROLL_OFFSET) {

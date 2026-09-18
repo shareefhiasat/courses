@@ -2,6 +2,7 @@ import React, { useMemo, useState, memo, useEffect, useCallback, useRef } from '
 import { Filter, ZoomIn, ZoomOut, Maximize2, GripVertical } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { getThemedIcon } from '@constants/iconTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import ColumnManager from '../analytics/ColumnManager';
@@ -719,7 +720,7 @@ function ListChart({
         return item.descriptionEn || item.description || item.comment || '—';
 
       case 'points':
-        return item.points ?? '—';
+        return item.points ?? item.score ?? '—';
 
       case 'totalMarks':
         return item.totalMarks != null ? `${item.totalMarks}%` : '—';
@@ -824,15 +825,8 @@ function ListChart({
 
       case 'id':
         return truncateId(item.id || item.docId, 8);
-      
-      case 'penaltyType':
-        return item.penaltyType || item.type || t('not_specified');
-      
-      case 'points':
-        return item.points || item.score || '—';
-      
+
       case 'reason':
-      case 'notes':
       case 'description':
         return item[column.key] || '—';
       
@@ -1197,7 +1191,6 @@ function ListChart({
                     cursor: 'pointer',
                   }}
                   onClick={() => handleHeaderClick(column)}
-                  title={isCollapsed ? `${column.label} — ${t('double_click_expand')}` : `${column.label} — ${t('click_sort')}`}
                 >
                   {isCollapsed ? '*' : column.label}
                   {!isCollapsed && isSorted && (
@@ -1212,7 +1205,6 @@ function ListChart({
                       setOpenFilterCol(isFilterOpen ? null : column.key);
                       setFilterSearch('');
                     }}
-                    title={t('column_filter')}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -1336,9 +1328,11 @@ function ListChart({
                               onChange={() => toggleColumnFilterValue(column.key, val)}
                               style={{ accentColor }}
                             />
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={val}>
-                              {val}
-                            </span>
+                            <ColoredTooltip title={val}>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {val}
+                              </span>
+                            </ColoredTooltip>
                           </label>
                         );
                       })}
@@ -1416,7 +1410,6 @@ function ListChart({
                     flexShrink: 0,
                     textAlign: isCollapsed ? 'center' : 'start',
                   }}
-                  title={isCollapsed ? '' : renderCellValue(item, column)}
                 >
                   {isCollapsed ? '·' : isWfStatus && wfColor ? (
                     <span style={{
@@ -1576,7 +1569,6 @@ function ListChart({
                             fontWeight: column.key === 'type' || column.key === 'status' ? '500' : '400',
                             flexShrink: 0,
                           }}
-                          title={isCollapsed ? '' : renderCellValue(item, column)}
                         >
                           {isCollapsed ? '·' : renderCellValue(item, column)}
                         </div>

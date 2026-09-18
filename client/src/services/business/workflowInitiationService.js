@@ -7,6 +7,7 @@ import { createCustomWorkflowDocument } from '@services/api/workflow-documents-a
 import { apiService } from '@services/api/apiService.js';
 import { getSubjects } from '@services/business/programService.js';
 import { getClasses } from '@services/business/classService.js';
+import { getWeekRange } from '@services/business/workflowSnapshotService.js';
 
 /**
  * Initiate a draft attendance workflow for a class + date.
@@ -20,16 +21,25 @@ import { getClasses } from '@services/business/classService.js';
 /**
  * Look up an in-progress attendance workflow for class + date (before initiating).
  */
-export async function findExistingAttendanceWorkflow(classId, date) {
+export async function findExistingAttendanceWorkflow(classId, date, attendanceSubtype = 'DAILY') {
   if (!classId || !date) return { success: true, data: null };
   try {
-    const params = new URLSearchParams({
+    const query = new URLSearchParams({
       classId: String(classId),
-      date: String(date).slice(0, 10),
       workflowCategory: 'ATTENDANCE',
-      attendanceSubtype: 'DAILY',
+      attendanceSubtype,
+      _t: String(Date.now()),
     });
-    const result = await apiService.get(`/workflow-documents/board?${params.toString()}`);
+
+    if (attendanceSubtype === 'WEEKLY_SUMMARY') {
+      const { weekFrom, weekTo } = getWeekRange(date);
+      query.set('dateFrom', weekFrom);
+      query.set('dateTo', weekTo);
+    } else {
+      query.set('date', String(date).slice(0, 10));
+    }
+
+    const result = await apiService.get(`/workflow-documents/board?${query.toString()}`);
     if (!result.success) return { success: false, data: null, error: result.error };
     const docs = result.data || [];
     if (docs.length === 0) return { success: true, data: null };
@@ -39,6 +49,20 @@ export async function findExistingAttendanceWorkflow(classId, date) {
       !['APPROVED', 'REJECTED'].includes(String(d.status || '').toUpperCase()),
     );
     const existing = inProgress || docs[0];
+
+    // Extract approver info from statusHistory for APPROVED workflows
+    let approvedBy = null;
+    let approvedAt = null;
+    if (String(existing.status || '').toUpperCase() === 'APPROVED' && Array.isArray(existing.statusHistory)) {
+      const approvalEntry = existing.statusHistory.find(
+        (h) => String(h.toStatus || '').toUpperCase() === 'APPROVED'
+      );
+      if (approvalEntry) {
+        approvedAt = approvalEntry.createdAt || null;
+        approvedBy = approvalEntry.actor || null;
+      }
+    }
+
     return {
       success: true,
       data: {
@@ -47,6 +71,8 @@ export async function findExistingAttendanceWorkflow(classId, date) {
         fileId: existing.file?.id || existing.fileId || existing.attachments?.[0]?.fileId || null,
         fileName: existing.file?.name || existing.attachments?.[0]?.fileName || null,
         title: existing.title,
+        approvedBy,
+        approvedAt,
       },
     };
   } catch (err) {
@@ -62,9 +88,11 @@ export async function findExistingAttendanceWorkflow(classId, date) {
 export async function findWeeklySummaryWorkflowStatus(classId, date) {
   if (!classId || !date) return { success: true, data: null };
   try {
+    const { weekFrom, weekTo } = getWeekRange(date);
     const params = new URLSearchParams({
       classId: String(classId),
-      date: String(date).slice(0, 10),
+      dateFrom: weekFrom,
+      dateTo: weekTo,
       workflowCategory: 'ATTENDANCE',
       attendanceSubtype: 'WEEKLY_SUMMARY',
     });
@@ -129,14 +157,15 @@ export async function initiateAttendanceWorkflow({
       const status = err.response?.status;
       const data = err.response?.data;
       if (status === 409) {
-        const existing = data?.existingDraft || data?.existingWorkflow || null;
+        const existing = data?.existingDraft || data?.existingApproved || data?.existingWorkflow || null;
         return {
           success: false,
           code: 409,
-          errorKey: 'workflow_initiation_error_exists',
+          errorKey: data?.errorKey || 'workflow_initiation_error_exists',
           error: data?.error || 'A workflow already exists for this scope',
-          existingDraft: existing,
-          existingDocument: existing,
+          existingDraft: data?.existingDraft || existing,
+          existingApproved: data?.existingApproved || null,
+          existingDocument: data?.existingDocument || existing,
         };
       }
       throw err;
@@ -149,9 +178,10 @@ export async function initiateAttendanceWorkflow({
     return {
       success: false,
       code: workflowResult.code || workflowResult.status,
-      errorKey: 'workflow_initiation_error_create',
+      errorKey: workflowResult.errorKey || 'workflow_initiation_error_create',
       error: workflowResult.error || 'Failed to create workflow document',
       existingDraft: workflowResult.existingDocument || workflowResult.data?.existingDocument,
+      existingApproved: workflowResult.existingApproved || null,
     };
   } catch (err) {
     console.error('[workflowInitiationService] initiateAttendanceWorkflow error:', err);
@@ -160,14 +190,14 @@ export async function initiateAttendanceWorkflow({
 }
 
 /**
- * Initiate a weekly attendance summary workflow.
+ * Initiate weekly attendance summary workflows — one per class.
  *
- * Steps:
+ * Steps per class:
  * 1. Export the weekly attendance violation report as PDF (uploaded to Smart Drive).
- * 2. Create an ATTENDANCE_WEEKLY workflow document with the file attached.
+ * 2. Create an ATTENDANCE/WEEKLY_SUMMARY workflow document with classId set.
  *
  * @param {{ programId: number, programName: string, classIds: number[], weekFrom: string, weekTo: string, lang: string, user: object }} params
- * @returns {Promise<{ success: boolean, data?: object, error?: string }>}
+ * @returns {Promise<{ success: boolean, results: array, errors: array, error?: string, errorKey?: string }>}
  */
 export async function initiateWeeklyWorkflow({
   programId,
@@ -196,12 +226,16 @@ export async function initiateWeeklyWorkflow({
       return { success: false, errorKey: 'workflow_initiation_error_no_subjects', error: 'No subjects found for the program' };
     }
 
-    // Resolve class IDs if not provided
+    // Resolve class IDs and keep class details for instructor
     let resolvedClassIds = classIds;
-    if (resolvedClassIds.length === 0 && programId) {
+    let allClasses = [];
+    if (programId) {
       const classesRes = await getClasses({ programId, isActive: true, limit: 500 });
       if (classesRes?.success) {
-        resolvedClassIds = classesRes.data.map((c) => c.id);
+        allClasses = classesRes.data || [];
+        if (resolvedClassIds.length === 0) {
+          resolvedClassIds = allClasses.map((c) => c.id);
+        }
       }
     }
 
@@ -223,73 +257,110 @@ export async function initiateWeeklyWorkflow({
       humanCase: true,
     };
 
-    const exportResult = await exportAttendanceOfficialForScope({
-      subjectIds,
-      violationTypes,
-      dateFrom: weekFrom,
-      dateTo: weekTo,
-      programId,
-      programName: programName || '',
-      lang,
-      user,
-      format: EXPORT_FORMAT.PDF,
-      classIds: resolvedClassIds,
-    });
+    const results = [];
+    const errors = [];
 
-    const fileId = exportResult?.fileId;
-    if (!fileId) {
-      return {
-        success: false,
-        errorKey: 'workflow_initiation_error_upload_pdf',
-        error: 'Failed to upload weekly report PDF to Smart Drive.',
-      };
-    }
+    for (const classId of resolvedClassIds) {
+      const cls = allClasses.find((c) => String(c.id) === String(classId));
+      const instructorId = cls?.instructor?.id || cls?.instructorId || null;
+      const actorId = user?.id || null;
+      const reviewers = [instructorId || actorId];
+      if (actorId && !reviewers.includes(actorId)) reviewers.push(actorId);
 
-    const title = lang === 'ar'
-      ? `الحضور الأسبوعي - ${programName || ''} - ${weekFrom} → ${weekTo}`
-      : `Weekly Attendance - ${programName || ''} - ${weekFrom} → ${weekTo}`;
+      try {
+        const exportResult = await exportAttendanceOfficialForScope({
+          subjectIds,
+          violationTypes,
+          dateFrom: weekFrom,
+          dateTo: weekTo,
+          programId,
+          programName: programName || '',
+          lang,
+          user,
+          format: EXPORT_FORMAT.PDF,
+          download: false,
+          classIds: [classId],
+          workflowStatus: 'Draft',
+        });
 
-    const weeklyDescription = lang === 'ar'
-      ? `سير عمل الحضور الأسبوعي لـ ${programName || ''} من ${weekFrom} إلى ${weekTo}`
-      : `Weekly attendance workflow for ${programName || ''} from ${weekFrom} to ${weekTo}`;
+        const fileId = exportResult?.fileId;
+        if (!fileId) {
+          errors.push({ classId, error: 'Failed to upload weekly report PDF to Smart Drive.' });
+          continue;
+        }
 
-    const workflowResult = await createCustomWorkflowDocument({
-      workflowCategory: 'ATTENDANCE',
-      attendanceSubtype: 'WEEKLY_SUMMARY',
-      title,
-      description: weeklyDescription,
-      attachFile: true,
-      fileId,
-      dateFrom: weekFrom,
-      dateTo: weekTo,
-      program: String(programId || ''),
-    }).catch((err) => {
-      const status = err.response?.status;
-      const data = err.response?.data;
-      if (status === 409) {
-        const existing = data?.existingDraft || data?.existingWorkflow || null;
-        return {
-          success: false,
-          code: 409,
-          errorKey: 'workflow_initiation_error_weekly_exists',
-          error: data?.error || 'A weekly workflow already exists for this scope',
-          existingDraft: existing,
-          existingDocument: existing,
-        };
+        const title = lang === 'ar'
+          ? `الحضور الأسبوعي - ${programName || ''} - ${weekFrom} → ${weekTo}`
+          : `Weekly Attendance - ${programName || ''} - ${weekFrom} → ${weekTo}`;
+
+        const weeklyDescription = lang === 'ar'
+          ? `سير عمل الحضور الأسبوعي لـ ${programName || ''} من ${weekFrom} إلى ${weekTo}`
+          : `Weekly attendance workflow for ${programName || ''} from ${weekFrom} to ${weekTo}`;
+
+        const workflowResult = await createCustomWorkflowDocument({
+          workflowCategory: 'ATTENDANCE',
+          attendanceSubtype: 'WEEKLY_SUMMARY',
+          title,
+          description: weeklyDescription,
+          attachFile: true,
+          fileId,
+          dateFrom: weekFrom,
+          dateTo: weekTo,
+          program: String(programId || ''),
+          classId,
+          reviewers,
+        }).catch((err) => {
+          const status = err.response?.status;
+          const data = err.response?.data;
+          if (status === 409) {
+            const existing = data?.existingDraft || data?.existingApproved || data?.existingWorkflow || null;
+            return {
+              success: false,
+              code: 409,
+              errorKey: data?.errorKey || 'workflow_initiation_error_weekly_exists',
+              error: data?.error || 'A weekly workflow already exists for this scope',
+              existingDraft: data?.existingDraft || existing,
+              existingApproved: data?.existingApproved || null,
+              existingDocument: data?.existingDocument || existing,
+            };
+          }
+          throw err;
+        });
+
+        if (workflowResult.success) {
+          const document = workflowResult.data?.document || workflowResult.data || {};
+          results.push({ classId, data: { ...document, blobUrl: exportResult?.blobUrl || null } });
+        } else {
+          errors.push({
+            classId,
+            code: workflowResult.code,
+            errorKey: workflowResult.errorKey,
+            error: workflowResult.error,
+            existingDraft: workflowResult.existingDocument || workflowResult.data?.existingDocument,
+            existingApproved: workflowResult.existingApproved || null,
+          });
+        }
+      } catch (err) {
+        console.error(`[workflowInitiationService] initiateWeeklyWorkflow classId=${classId} error:`, err);
+        errors.push({ classId, error: err.message });
       }
-      throw err;
-    });
-
-    if (workflowResult.success) {
-      return { success: true, data: workflowResult.data };
     }
 
+    if (results.length > 0) {
+      return { success: true, results, errors };
+    }
+
+    // All failed — return first error info
+    const firstError = errors[0] || {};
     return {
       success: false,
-      code: workflowResult.code || workflowResult.status,
-      errorKey: 'workflow_initiation_error_create_weekly',
-      error: workflowResult.error || 'Failed to create weekly workflow document',
-      existingDraft: workflowResult.existingDocument || workflowResult.data?.existingDocument,
+      results,
+      errors,
+      code: firstError.code,
+      errorKey: firstError.errorKey || 'workflow_initiation_error_create_weekly',
+      error: firstError.error || 'Failed to create weekly workflow documents',
+      existingDraft: firstError.existingDraft,
+      existingApproved: firstError.existingApproved,
     };
   } catch (err) {
     console.error('[workflowInitiationService] initiateWeeklyWorkflow error:', err);

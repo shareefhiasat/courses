@@ -215,7 +215,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center' 
-          }} title={indicatorTitle}>
+          }} aria-label={indicatorTitle}>
             <span style={{ fontSize: 8, color: 'white' }}>✕</span>
           </div>
         )}
@@ -343,7 +343,6 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
                       e.stopPropagation();
                       await toggleClassArchive(cls);
                     }}
-                    title={archivedClasses[cls.docId] ? t('unarchive') : t('archive')}
                     style={{ 
                       background:'transparent', 
                       border:'none', 
@@ -534,7 +533,6 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
                         e.stopPropagation(); 
                         toggleStar(room); 
                       }}
-                      title={(room.starBy || []).includes(user.uid) ? 
                         t('unfavorite') : 
                         t('favorite')}
                       style={{ 
@@ -555,7 +553,6 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
                         e.stopPropagation();
                         await toggleRoomArchive(room);
                       }}
-                      title={archivedRooms[room.id] ? 
                         t('unarchive') : 
                         t('archive')}
                       style={{ 

@@ -5,7 +5,7 @@ import { Button } from '@ui';
 import { CollapsibleSection, PerformedBy } from '@ui';
 import { formatTime, formatForDateInput, getQatarDateParts } from '@utils/date-formatter.js';
 import DeleteModal from '@ui/history/DeleteModal';
-import { Upload } from 'lucide-react';
+import { Upload, QrCode as QrCodeIcon, Square as StopIcon, Zap as ZapIcon, FileText as DetailsIcon, Minimize2 as MinimizeIcon, Vibrate as VibrationIcon, Volume2 as SoundIcon, FileText as UserInputIcon, RefreshCw as RefreshIcon, Trash2 as DeleteIcon, AlertCircle as PenaltyIcon, Trophy as ParticipationIcon, Check as CheckSmallIcon, Clock as ClockSmallIcon, X as XSmallIcon, Circle as CircleIcon, ChevronDown as ChevronDownIcon, Trash2 as TrashIcon, Heart as HeartIcon, AlertCircle as AlertCircleIcon, HelpCircle as HelpCircleIcon } from '@utils/icons.jsx';
 import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance, rosterQuickAction, markAttendance } from '@services/business/attendanceServiceUnified.js';
 import { deleteStandupAttendance, getStandupAttendanceByUserAndDate, getStandupAttendanceByProgramAndDate } from '@services/business/standupAttendanceService.js';
@@ -56,29 +56,6 @@ import {
   getQRScannerThemeColor,
   QR_SCANNER_ACTIONS
 } from '@constants/qrScannerTypes';
-import {
-  QrCodeIcon,
-  StopIcon,
-  ZapIcon,
-  DetailsIcon,
-  MinimizeIcon,
-  VibrationIcon,
-  SoundIcon,
-  UserInputIcon,
-  RefreshIcon,
-  DeleteIcon,
-  PenaltyIcon,
-  ParticipationIcon,
-  CheckSmallIcon,
-  ClockSmallIcon,
-  XSmallIcon,
-  CircleIcon,
-  ChevronDownIcon,
-  TrashIcon,
-  HeartIcon,
-  AlertCircleIcon,
-  HelpCircleIcon
-} from '@utils/icons.jsx';
 import CameraView from './CameraView.jsx';
 import QuickActionButtons from './QuickActionButtons.jsx';
 import AttendanceActionButtons from './AttendanceActionButtons.jsx';

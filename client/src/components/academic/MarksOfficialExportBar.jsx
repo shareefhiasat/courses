@@ -190,7 +190,6 @@ export default function MarksOfficialExportBar({
           type="button"
           onClick={handleExport}
           disabled={disabled || exporting || !canExport}
-          title={label}
           style={{
             background: 'transparent',
             border: 'none',

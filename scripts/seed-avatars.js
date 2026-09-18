@@ -52,9 +52,9 @@ const MALE_HEADS = ['short1', 'short2', 'short3'];
 const ACCESSORIES = ['glasses', 'glasses2', 'glasses3', 'glasses4', 'glasses5'];
 
 // Avataaars options
-const AVATAAARS_TOPS = ['shortFlat', 'shortRound', 'shortDreads01', 'shortDreads02', 'sidesweptFringe', 'mohawk', 'buzzcut', 'afro', 'afroFade', 'bob', 'bun', 'curlyBun', 'longHair', 'longHairNotTooLong', 'longHairMiaWallace', 'longHairBigHair', 'winterHat01', 'winterHat02', 'winterHat03', 'winterHat04', 'turban', 'hijab'];
+const AVATAAARS_TOPS = ['shortFlat', 'shortRound', 'shortDreads01', 'shortDreads02', 'sidesweptFringe', 'mohawk', 'buzzcut', 'afro', 'afroFade', 'turban'];
 const AVATAAARS_CLOTHES = ['blazerSweater', 'sweater', 'shirtScoopNeck', 'shirtVNeck', 'hoodie', 'overall', 'graphicShirt'];
-const AVATAAARS_FACIAL_HAIR = ['none', 'none', 'none', 'stubbleLight', 'stubbleMed', 'beardLight', 'beardMed', 'beardMajestic'];
+const AVATAAARS_FACIAL_HAIR = ['none', 'stubbleLight', 'stubbleMed', 'beardLight', 'beardMed', 'beardMajestic'];
 const AVATAAARS_ACCESSORIES = ['kurt', 'kurt', 'kurt', 'prescription01', 'prescription02', 'round', 'sunglasses'];
 
 // Micah options
@@ -112,9 +112,8 @@ function isStaff(user) {
 }
 
 function determineGender(user) {
-  // HR users are always female per product requirement.
-  if (hasHrRole(user)) return 'female';
-  return isFemaleName(user.firstName) ? 'female' : 'male';
+  // All users are male officers — always generate male avatars.
+  return 'male';
 }
 
 function pickFromSeed(seed, items) {

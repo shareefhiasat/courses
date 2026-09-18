@@ -9,8 +9,8 @@ import prisma from '../db/prismaClient.js';
 import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
 import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
-import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
-import { checkAttendanceWorkflowLock } from './workflowDocumentService.js';
+import { USER_NAME_SELECT_WITH_IMAGE, normalizeProfileImageUrl } from '../utils/userNameFields.js';
+import { checkAttendanceWorkflowLock, checkWeeklyWorkflowLock } from './workflowDocumentService.js';
 import { createChangeLog } from '../db/attendance-log-postgres.js';
 import { ATTENDANCE_STATUS_CODES } from '../constants/attendanceConstants.js';
 
@@ -52,6 +52,26 @@ const getDatabaseUserId = async (user) => {
     return null;
   }
 };
+
+/**
+ * Validate the note/attachment requirements for an attendance status change.
+ * - Target status ATTENDANCE_LEAVE (excused leave): attachment is mandatory, note optional.
+ * - Target status ATTENDANCE_HUMAN_CASE: note is mandatory, attachment optional.
+ */
+function validateStatusChangeMetadata(statusCode, notes, attachmentUrl) {
+  const normalized = String(statusCode || '').trim().toUpperCase();
+  if (normalized === ATTENDANCE_STATUS_CODES.LEAVE) {
+    if (!attachmentUrl) {
+      return { valid: false, error: 'An attachment is required when marking attendance as excused leave.' };
+    }
+  }
+  if (normalized === ATTENDANCE_STATUS_CODES.HUMAN_CASE) {
+    if (!notes || !String(notes).trim()) {
+      return { valid: false, error: 'A note is required when marking attendance as human case.' };
+    }
+  }
+  return { valid: true };
+}
 
 const QATAR_OFFSET_MS = 3 * 60 * 60 * 1000;
 
@@ -100,7 +120,7 @@ export const getAllAttendance = async (params = {}) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const [attendances, total] = await Promise.all([
+    const [rawAttendances, total] = await Promise.all([
       prisma.attendance.findMany({
         where,
         include: {
@@ -140,10 +160,10 @@ export const getAllAttendance = async (params = {}) => {
             }
           },
           creator: {
-            select: USER_NAME_SELECT_WITH_ID
+            select: USER_NAME_SELECT_WITH_IMAGE
           },
           updater: {
-            select: USER_NAME_SELECT_WITH_ID
+            select: USER_NAME_SELECT_WITH_IMAGE
           }
         },
         orderBy: {
@@ -154,6 +174,12 @@ export const getAllAttendance = async (params = {}) => {
       }),
       prisma.attendance.count({ where })
     ]);
+    
+    const attendances = rawAttendances.map((a) => ({
+      ...a,
+      creator: a.creator ? normalizeProfileImageUrl(a.creator) : a.creator,
+      updater: a.updater ? normalizeProfileImageUrl(a.updater) : a.updater,
+    }));
     
     return {
       success: true,
@@ -217,7 +243,7 @@ export const getAttendanceById = async (id) => {
           }
         },
         creator: {
-          select: USER_NAME_SELECT_WITH_ID
+          select: USER_NAME_SELECT_WITH_IMAGE
         }
       }
     });
@@ -247,8 +273,8 @@ export const getAttendanceById = async (id) => {
 // Create new attendance record
 export const createAttendance = async (attendanceData, user = null) => {
   try {
-    const { userId, classId, status, date, notes, checkInTime, programId, subjectId } = attendanceData;
-    
+    const { userId, classId, status, date, notes, checkInTime, programId, subjectId, attachmentUrl, attachmentName, attachmentType } = attendanceData;
+
     // Validate required fields
     if (!userId || !classId || (!status && !attendanceData.statusId) || !date) {
       return {
@@ -257,9 +283,10 @@ export const createAttendance = async (attendanceData, user = null) => {
         data: null
       };
     }
-    
+
     // Resolve status: prefer statusId if provided, otherwise look up by code
     let statusId = attendanceData.statusId;
+    let resolvedStatusCode = null;
     if (!statusId && status) {
       const attendanceStatus = await prisma.attendanceStatusTypes.findUnique({
         where: { code: status }
@@ -272,15 +299,39 @@ export const createAttendance = async (attendanceData, user = null) => {
         };
       }
       statusId = attendanceStatus.id;
+      resolvedStatusCode = attendanceStatus.code;
     } else if (statusId) {
       statusId = parseInt(statusId);
+      const attendanceStatus = await prisma.attendanceStatusTypes.findUnique({
+        where: { id: statusId }
+      });
+      resolvedStatusCode = attendanceStatus?.code || null;
     }
-    
+
     if (!statusId) {
       return {
         success: false,
         error: `Invalid attendance status: ${status}`,
         data: null
+      };
+    }
+
+    // Validate note/attachment requirements for the target status
+    const validation = validateStatusChangeMetadata(resolvedStatusCode || status, notes, attachmentUrl);
+    if (!validation.valid) {
+      return {
+        success: false,
+        error: validation.error,
+        data: null
+      };
+    }
+
+    const weeklyLock = await checkWeeklyWorkflowLock(date, classId);
+    if (weeklyLock.blocked) {
+      return {
+        success: false,
+        error: 'Attendance is locked because a weekly summary workflow is already in progress for this class this week.',
+        data: null,
       };
     }
     
@@ -349,6 +400,9 @@ export const createAttendance = async (attendanceData, user = null) => {
           changedBy: updatedBy,
           reason: notes || null,
           source: 'manual',
+          attachmentUrl: attachmentUrl || null,
+          attachmentName: attachmentName || null,
+          attachmentType: attachmentType || null,
         });
       }
       
@@ -453,7 +507,24 @@ export const createAttendance = async (attendanceData, user = null) => {
         }
       }
     });
-    
+
+    // Create a change log entry for the new attendance record (initial status)
+    try {
+      await createChangeLog({
+        attendanceId: newAttendance.id,
+        fromStatusId: null,
+        toStatusId: statusId,
+        changedBy: createdBy,
+        reason: notes || null,
+        source: 'manual',
+        attachmentUrl: attachmentUrl || null,
+        attachmentName: attachmentName || null,
+        attachmentType: attachmentType || null,
+      });
+    } catch (logError) {
+      console.error('[Attendance Service] Failed to create initial change log:', logError);
+    }
+
     // Emit notification for attendance creation
     try {
       const statusEventMap = {
@@ -541,8 +612,8 @@ export const createAttendance = async (attendanceData, user = null) => {
 // Update attendance record
 export const updateAttendance = async (id, updateData, user = null) => {
   try {
-    const { status, notes, programId, subjectId } = updateData;
-    
+    const { status, notes, programId, subjectId, attachmentUrl, attachmentName, attachmentType } = updateData;
+
     // Find the attendance record
     const existingAttendance = await prisma.attendance.findUnique({
       where: { id: parseInt(id) }
@@ -556,12 +627,22 @@ export const updateAttendance = async (id, updateData, user = null) => {
       };
     }
 
+    const weeklyLock = await checkWeeklyWorkflowLock(existingAttendance.date, existingAttendance.classId);
+    if (weeklyLock.blocked) {
+      return {
+        success: false,
+        error: 'Attendance is locked because a weekly summary workflow is already in progress for this class this week.',
+        data: null,
+      };
+    }
+
     // Prepare update data
     const data = {
       updatedBy: user?.dbId || (user?.id && !isNaN(parseInt(user.id)) ? parseInt(user.id) : null),
       updatedAt: new Date()
     };
     
+    let toStatusCode = null;
     if (status || updateData.statusId) {
       // Resolve status: prefer statusId if provided, otherwise look up by code
       let statusId = updateData.statusId;
@@ -569,7 +650,7 @@ export const updateAttendance = async (id, updateData, user = null) => {
         const attendanceStatus = await prisma.attendanceStatusTypes.findUnique({
           where: { code: status }
         });
-        
+
         if (!attendanceStatus) {
           return {
             success: false,
@@ -578,10 +659,15 @@ export const updateAttendance = async (id, updateData, user = null) => {
           };
         }
         statusId = attendanceStatus.id;
+        toStatusCode = attendanceStatus.code;
       } else if (statusId) {
         statusId = parseInt(statusId);
+        const attendanceStatus = await prisma.attendanceStatusTypes.findUnique({
+          where: { id: statusId }
+        });
+        toStatusCode = attendanceStatus?.code || null;
       }
-      
+
       if (!statusId) {
         return {
           success: false,
@@ -589,7 +675,19 @@ export const updateAttendance = async (id, updateData, user = null) => {
           data: null
         };
       }
-      
+
+      // Validate note/attachment requirements when status is actually changing
+      if (statusId !== existingAttendance.statusId && toStatusCode) {
+        const validation = validateStatusChangeMetadata(toStatusCode, notes, attachmentUrl);
+        if (!validation.valid) {
+          return {
+            success: false,
+            error: validation.error,
+            data: null
+          };
+        }
+      }
+
       data.statusId = statusId;
     }
     
@@ -648,6 +746,9 @@ export const updateAttendance = async (id, updateData, user = null) => {
         changedBy,
         reason: notes || null,
         source: 'manual',
+        attachmentUrl: attachmentUrl || null,
+        attachmentName: attachmentName || null,
+        attachmentType: attachmentType || null,
       });
     }
 
@@ -720,6 +821,15 @@ export const deleteAttendance = async (id, user = null) => {
         success: false,
         error: 'Attendance record not found',
         data: null
+      };
+    }
+
+    const weeklyLock = await checkWeeklyWorkflowLock(existingAttendance.date, existingAttendance.classId);
+    if (weeklyLock.blocked) {
+      return {
+        success: false,
+        error: 'Attendance is locked because a weekly summary workflow is already in progress for this class this week.',
+        data: null,
       };
     }
 

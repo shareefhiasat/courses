@@ -1,6 +1,6 @@
 import React from 'react';
 import PortalTooltip from '@ui/PortalTooltip';
-import { CheckSmallIcon, ClockSmallIcon } from '@utils/icons.jsx';
+import { Check, Clock } from '@utils/icons.jsx';
 import { getAttendanceColor, ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 
 const QuickActionButtons = ({
@@ -97,7 +97,7 @@ const QuickActionButtons = ({
             }
           }}
         >
-          <CheckSmallIcon style={{ width: '12px', height: '12px' }} />
+          <Check size={12} strokeWidth={3} />
         </button>
       </PortalTooltip>
 
@@ -144,7 +144,7 @@ const QuickActionButtons = ({
             }
           }}
         >
-          <ClockSmallIcon style={{ width: '12px', height: '12px' }} />
+          <Clock size={12} />
         </button>
       </PortalTooltip>
     </div>

@@ -371,7 +371,6 @@ export default function DrivePage() {
                     <button
                       onClick={() => navigate(`/workflow-documents/${file.workflowId}`)}
                       className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                      title={t('drive.actions.viewWorkflow', 'View Workflow')}
                     >
                       <FileText className="w-4 h-4" />
                     </button>
@@ -382,7 +381,6 @@ export default function DrivePage() {
                         <button
                           onClick={() => handleCreateWorkflow(file)}
                           className="p-2 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
-                          title={t('drive.actions.createWorkflow', 'Create Workflow')}
                         >
                           <GitBranch className="w-4 h-4" />
                         </button>

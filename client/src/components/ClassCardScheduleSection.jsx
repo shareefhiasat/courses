@@ -108,7 +108,6 @@ export default function ClassCardScheduleSection({
               <button
                 type="button"
                 onClick={(e) => handleSessionClick(e, session)}
-                title={t('classcard_view_session_on_calendar')}
                 style={{
                   width: '100%',
                   display: 'flex',

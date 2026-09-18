@@ -564,13 +564,24 @@ export const getAvailableDMUsers = async (userId, userRoles = []) => {
     const isAdmin = roles.includes('admin');
     const isSuperAdmin = roles.includes('super_admin') || roles.includes('superadmin');
     const isStaff = isInstructor || isHR || isAdmin || isSuperAdmin;
+    // DM restriction policy: no student↔student chat, instructors → admins only.
+    // Toggle via CHAT_DM_RESTRICTIONS env (default: on).
+    const dmRestricted = process.env.CHAT_DM_RESTRICTIONS !== 'false';
 
     let where = {
       id: { not: userId },
       isActive: true
     };
 
-    if (isStudent) {
+    if (dmRestricted && isInstructor && !isAdmin && !isSuperAdmin) {
+      // Instructors can only DM admins / super_admins
+      const adminAssignments = await prisma.userRoleAssignment.findMany({
+        where: { role: { code: { in: ['admin', 'super_admin', 'superadmin'] } } },
+        select: { userId: true }
+      });
+      const adminIds = [...new Set(adminAssignments.map(a => a.userId))];
+      where.id = { in: adminIds };
+    } else if (isStudent) {
       // Students can only DM their instructors + admins (not HR, super_admin, or other students)
       const enrollments = await prisma.enrollment.findMany({
         where: { userId },

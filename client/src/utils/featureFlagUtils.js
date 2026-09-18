@@ -170,7 +170,8 @@ export const getFeatureFlagStatistics = () => {
   const roleStats = {};
   Object.values(ROLE_STRINGS).forEach(role => {
     roleStats[role] = {
-      enabled: getEnabledFeaturesForRole(role).length, disabled: getDisabledFeaturesForRole(role);.length
+      enabled: getEnabledFeaturesForRole(role).length,
+      disabled: getDisabledFeaturesForRole(role).length
     };
   });
   

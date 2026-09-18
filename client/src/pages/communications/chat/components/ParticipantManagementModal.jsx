@@ -323,7 +323,6 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                         <button
                           className={styles.addButton}
                           onClick={() => onStartDM(user)}
-                          title={t('chat_new_message')}
                           style={{ color: 'var(--brand)' }}
                         >
                           {getThemedIcon('ui', 'message_square', 18, theme)}
@@ -335,7 +334,6 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                             className={styles.addButton}
                             onClick={() => handleAssignAdmin(participant)}
                             disabled={actionLoading === `admin-${participant.userId}`}
-                            title={t('chat_assign_admin')}
                             style={{ color: '#ffc107' }}
                           >
                             {actionLoading === `admin-${participant.userId}` ? t('saving') : getIconWithColor('ui', 'crown', 16, '#ffc107')}
@@ -410,7 +408,6 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                             <button
                               className={styles.addButton}
                               onClick={() => onStartDM(user)}
-                              title={t('chat_new_message')}
                               style={{ color: 'var(--brand)' }}
                             >
                               {getThemedIcon('ui', 'message_square', 18, theme)}

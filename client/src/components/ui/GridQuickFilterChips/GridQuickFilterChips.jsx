@@ -51,61 +51,176 @@ export const CHIP_VARIANTS = {
   },
 };
 
+function isLightColor(hex) {
+  if (!hex) return false;
+  const h = hex.replace('#', '');
+  const bigint = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq > 180;
+}
+
+function colorToRgba(hex, alpha) {
+  if (!hex) return hex;
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  const bigint = parseInt(full, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function resolveChipColors(chip, isDark) {
+  if (chip.colors) {
+    if (chip.colors.activeBg && chip.colors.activeText) return chip.colors;
+    const base = chip.colors.color || chip.colors.bg;
+    const text = base && !isLightColor(base) ? '#ffffff' : '#1f2937';
+    return { activeBg: base, activeText: text, ...chip.colors };
+  }
+  if (chip.color) {
+    const base = chip.color;
+    const text = isLightColor(base) ? '#1f2937' : '#ffffff';
+    return {
+      bg: colorToRgba(base, 0.12),
+      border: colorToRgba(base, 0.35),
+      color: base,
+      activeBg: base,
+      activeText: text,
+    };
+  }
+  const variant = CHIP_VARIANTS[chip.variant] || CHIP_VARIANTS.gray;
+  const palette = isDark ? variant.dark : variant.light;
+  const base = palette.color;
+  const text = isLightColor(base) ? '#1f2937' : '#ffffff';
+  return { ...palette, activeBg: base, activeText: text };
+}
+
+function isDotIcon(icon) {
+  if (!React.isValidElement(icon)) return false;
+  const style = icon.props?.style || {};
+  return style.borderRadius === '50%' && style.width && style.height && !style.padding;
+}
+
+function renderIcon(icon, targetColor, isActive, outlineColor) {
+  if (!React.isValidElement(icon)) return icon;
+  const originalFill = icon.props.fill;
+  const newProps = { color: targetColor };
+  if (originalFill && originalFill !== 'none') {
+    newProps.fill = targetColor;
+  }
+  if (isActive) {
+    newProps.style = {
+      ...(icon.props.style || {}),
+      filter: `drop-shadow(0 0 1.5px ${outlineColor})`,
+    };
+  }
+  return React.cloneElement(icon, newProps);
+}
+
 /**
  * Clickable summary chips that act as quick row filters above AdvancedDataGrid.
  *
- * @param {Array<{ id: string, label: React.ReactNode, count?: number, icon?: React.ReactNode, variant?: keyof CHIP_VARIANTS, filterable?: boolean }>} chips
- * @param {string} activeId - currently selected chip id ('all' clears filter)
- * @param {(id: string) => void} onChange
+ * Each chip can define either:
+ * - `variant` (key of CHIP_VARIANTS),
+ * - `color` (any hex, generates a matching light/dark palette),
+ * - `colors` (full { bg, border, color, activeBg, activeText } override).
+ *
+ * @param {Array<{ id: string, label: React.ReactNode, count?: number, icon?: React.ReactNode, variant?: keyof CHIP_VARIANTS, color?: string, colors?: object, filterable?: boolean, title?: string | ((t) => string) }>} chips
+ * @param {string} activeId - currently selected chip id ('all' clears filter); use activeIds for multi
+ * @param {string[]} activeIds - currently selected chip ids for multi-select mode
+ * @param {(id: string, nextActiveIds?: string[]) => void} onChange
  */
 const GridQuickFilterChips = ({
   chips = [],
   activeId = 'all',
+  activeIds,
   onChange,
   className = '',
   style,
+  compact = false,
 }) => {
   const { theme } = useTheme();
   const { t } = useLang();
   const isDark = theme === 'dark';
 
+  const isMulti = Array.isArray(activeIds);
+
   if (!chips.length) return null;
 
   return (
     <div
-      className={`${styles.row} ${className}`}
+      className={`${styles.row} ${compact ? styles.compact : ''} ${className}`}
       style={style}
       role="toolbar"
       aria-label={t('grid_quick_filters')}
     >
       {chips.map((chip) => {
-        const isActive = activeId === chip.id;
+        const isActive = isMulti ? activeIds.includes(chip.id) : activeId === chip.id;
         const isClickable = chip.filterable !== false && typeof onChange === 'function';
-        const variant = CHIP_VARIANTS[chip.variant] || CHIP_VARIANTS.blue;
-        const colors = isDark ? variant.dark : variant.light;
+        const colors = resolveChipColors(chip, isDark);
 
         const chipStyle = isActive && isClickable
           ? {
-              background: isDark ? 'rgba(128, 0, 32, 0.35)' : '#fdf2f4',
-              border: '2px solid #800020',
-              color: isDark ? '#fda4af' : '#800020',
+              background: colors.activeBg,
+              border: `2px solid ${colors.color}`,
+              borderRadius: '9999px',
+              color: colors.activeText,
               fontWeight: 600,
-              boxShadow: isDark ? '0 0 0 1px rgba(128,0,32,0.4)' : '0 1px 3px rgba(128,0,32,0.15)',
+              boxShadow: `0 0 0 1px ${colorToRgba(colors.color, 0.35)}`,
             }
           : {
               background: colors.bg,
               border: `1px solid ${colors.border}`,
+              borderRadius: '9999px',
               color: colors.color,
               fontWeight: 500,
             };
 
+        const iconColor = isActive ? colors.activeText : colors.color;
+        const iconOutline = isActive
+          ? (isLightColor(colors.activeText) ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.85)')
+          : null;
+
+        const dotIcon = chip.icon && (chip.dot || isDotIcon(chip.icon));
+
         const content = (
           <>
-            {chip.icon ? <span className={styles.icon}>{chip.icon}</span> : null}
-            <span className={styles.label}>{chip.label}</span>
-            {chip.count != null ? (
-              <span className={styles.count}>{chip.count}</span>
+            {chip.icon ? (
+              <span className={styles.icon}>
+                {dotIcon && isActive ? (
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      background: '#fff',
+                      border: `2px solid ${colors.color}`,
+                      boxSizing: 'border-box',
+                      flexShrink: 0,
+                      display: 'inline-block',
+                    }}
+                  />
+                ) : (
+                  renderIcon(chip.icon, iconColor, isActive, iconOutline)
+                )}
+              </span>
             ) : null}
+            <span className={styles.label}>{chip.label}</span>
+            {chip.count !== undefined && (
+              <span
+                className={styles.count}
+                style={{
+                  backgroundColor: colorToRgba(isActive ? colors.activeText : colors.color, 0.13),
+                  color: isActive ? colors.activeText : colors.color,
+                  boxShadow: `0 1px 3px ${colorToRgba(isActive ? colors.activeText : colors.color, 0.25)}`,
+                }}
+              >
+                {chip.count > 99 ? '99+' : chip.count}
+              </span>
+            )}
           </>
         );
 
@@ -128,13 +243,17 @@ const GridQuickFilterChips = ({
             type="button"
             className={`${styles.chip} ${styles.chipButton} ${isActive ? styles.chipActive : ''}`}
             style={chipStyle}
-            onClick={() => onChange(isActive && chip.id !== 'all' ? 'all' : chip.id)}
+            onClick={() => {
+              if (isMulti) {
+                const next = isActive
+                  ? activeIds.filter((id) => id !== chip.id)
+                  : [...activeIds, chip.id];
+                onChange(chip.id, next);
+              } else {
+                onChange(isActive && chip.id !== 'all' ? 'all' : chip.id);
+              }
+            }}
             aria-pressed={isActive}
-            title={
-              isActive
-                ? (t('grid_chip_clear_filter'))
-                : (t('grid_chip_apply_filter'))
-            }
           >
             {content}
           </button>

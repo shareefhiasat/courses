@@ -6,11 +6,11 @@ import PortalTooltip from '@ui/PortalTooltip';
 import { resolveIconSize } from '@utils/iconSize';
 import {
   // User & Role Icons
-  User, UserCheck, UserX, UserMinus, Users, Shield, Crown, UserPlus,
+  User, UserCheck, UserX, UserMinus, Users, Shield, ShieldCheck, Crown, UserPlus,
   // Workflow Icons
   Workflow, GitBranch,
   // Status Icons
-  CheckCircle, XCircle, AlertTriangle, AlertCircle, Info,
+  CheckCircle, CheckCircle2, XCircle, AlertTriangle, AlertCircle, Info,
   // Activity Icons
   TrendingUp, TrendingDown, Target, Activity, Zap,
   // Academic Icons
@@ -24,9 +24,9 @@ import {
   // UI Icons
   Settings, Key, Eye, EyeOff, Lock, LogIn, LogOut, MoreVertical,
   // Action Icons
-  Edit, Trash, Trash2, RefreshCw, Plus, Minus, X, Copy, Wrench, Clipboard, PlusCircle, FileCheck,
+  Edit, Pencil, Trash, Trash2, RefreshCw, Plus, Minus, X, Copy, Wrench, Clipboard, PlusCircle, FileCheck, StickyNote,
   // File Icons
-  FileSignature, Archive, Globe, Tag, QrCode, KeyRound, Paperclip, Image, Presentation, Table,
+  FileSignature, FilePenLine, Archive, Globe, Tag, QrCode, KeyRound, Paperclip, Image, Presentation, Table,
   // Behavior/Sleep Icons
   Bed,
   // Other Icons
@@ -263,7 +263,7 @@ export const ICON_TYPES = {
     check_circle: <CheckCircle size={16} />,
     circle: <Circle size={16} />,
     x_circle: <XCircle size={16} />,
-    file_signature: <FileSignature size={16} />,
+    file_signature: <FilePenLine size={16} />,
     help: <HelpCircle size={16} />,
     info: <Info size={16} />,
     warning: <AlertTriangle size={16} />,
@@ -624,7 +624,10 @@ export const getIconWithColor = (category, type, size = 16, color = 'currentColo
     return <Info size={size} color={color} fill="none" />;
   }
   
-  const iconConfig = ICON_TYPES[category]?.[type];
+  let iconConfig = ICON_TYPES[category]?.[type];
+  if (!iconConfig && typeof type === 'string') {
+    iconConfig = ICON_TYPES[category]?.[type.toLowerCase()];
+  }
   if (!iconConfig) {
     // Only warn for defined types that are missing
     warn(`Icon not found: ${category}.${type}`);
@@ -939,6 +942,12 @@ export const CLASS_STAT_CONFIGS = {
     color: '#8b5cf6',
     icon: { type: 'ui', name: 'calendar' }
   }
+};
+
+// Raw Lucide icon re-exports for components that need direct icon access
+export {
+  FileText, X, Eye, EyeOff, CheckCircle2, ShieldCheck, Pencil,
+  Activity, StickyNote, MessageSquare, Award, Workflow, Search,
 };
 
 export default {

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ACTIONS, EVENTS, STATUS } from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { requestTourStart, releaseTour } from '@utils/tourScheduler';
+import { isOnboardingTourEnabled } from '@utils/tourConfig.js';
 
 const STEP_PREPARE_MS = 150;
 
@@ -76,6 +77,9 @@ export function useModalTour({
   autoStartDelay = 400,
   enabled = true,
 }) {
+  // Auto-start stays gated by the JOYRIDE_TOUR flag; manual help events are
+  // checked at dispatch time so the navbar help icon can still start the tour.
+  const autoEnabled = enabled && isOnboardingTourEnabled();
   const [run, setRun] = useState(false);
   const [tourEngaged, setTourEngaged] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
@@ -122,7 +126,7 @@ export function useModalTour({
   }, [id, resolveSteps, prepareStep]);
 
   useEffect(() => {
-    if (!enabled || !autoStart) return undefined;
+    if (!autoEnabled || !autoStart) return undefined;
     const timer = setTimeout(() => {
       try {
         if (!localStorage.getItem(tourSeenKey)) startTour();
@@ -131,7 +135,7 @@ export function useModalTour({
       }
     }, autoStartDelay);
     return () => clearTimeout(timer);
-  }, [tourSeenKey, startTour, autoStart, autoStartDelay, enabled]);
+  }, [tourSeenKey, startTour, autoStart, autoStartDelay, autoEnabled]);
 
   const advanceStep = useCallback(
     (nextIndex) => {
@@ -178,7 +182,7 @@ export function useModalTour({
 
   useEffect(() => {
     if (!enabled) return undefined;
-    const handler = () => startTour();
+    const handler = () => { if (isOnboardingTourEnabled()) startTour(); };
     window.addEventListener('app:joyride', handler);
     window.addEventListener('app:help', handler);
     return () => {

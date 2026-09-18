@@ -361,7 +361,6 @@ export default function FileRoster({
                   display: 'flex',
                   alignItems: 'center',
                 }}
-                title={t('list_view')}
               >
                 {getThemedIcon('ui', 'list', 16, viewMode === 'list' ? 'white' : theme)}
               </button>
@@ -377,7 +376,6 @@ export default function FileRoster({
                   display: 'flex',
                   alignItems: 'center',
                 }}
-                title={t('grid_view')}
               >
                 {getThemedIcon('ui', 'grid', 16, viewMode === 'grid' ? 'white' : theme)}
               </button>
@@ -393,7 +391,6 @@ export default function FileRoster({
                   display: 'flex',
                   alignItems: 'center',
                 }}
-                title={t('drive.status')}
               >
                 {getThemedIcon('ui', 'check_circle', 16, showStatus ? 'white' : theme)}
               </button>
@@ -409,7 +406,6 @@ export default function FileRoster({
                   display: 'flex',
                   alignItems: 'center',
                 }}
-                title={t('drive.created')}
               >
                 {getThemedIcon('ui', 'calendar', 16, showCreated ? 'white' : theme)}
               </button>
@@ -581,7 +577,6 @@ export default function FileRoster({
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
-                  title={folder.starred ? t('drive.unstar') : t('drive.star')}
                 >
                   {folder.starred 
                     ? <svg width="16" height="16" viewBox="0 0 24 24" fill="#fbbf24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -690,7 +685,6 @@ paddingInlineEnd: '0.5rem',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
-                  title={t('drive.more')}
                 >
                   {getThemedIcon('ui', 'more_vertical', 16, 'muted')}
                 </button>
@@ -872,7 +866,6 @@ paddingInlineEnd: '0.5rem',
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
-                    title={file.starred ? t('drive.unstar') : t('drive.star')}
                   >
                     {file.starred 
                       ? <svg width="16" height="16" viewBox="0 0 24 24" fill="#fbbf24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -906,7 +899,6 @@ paddingInlineEnd: '0.5rem',
                           padding: 2,
                           border: '1px solid var(--border, #e5e7eb)',
                         }}
-                        title={getDeleteReasonText(file.deleteReason)}
                       >
                         {getThemedIcon('ui', 'lock', 10, 'muted')}
                       </div>
@@ -1013,7 +1005,6 @@ paddingInlineEnd: '0.5rem',
                         color: 'var(--text-secondary, #374151)',
                       }}
                       className="focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
-                      title={t('more_actions')}
                       aria-label={t('more_actions')}
                     >
                       {getThemedIcon('ui', 'more_vertical', 16, theme)}
@@ -1180,7 +1171,6 @@ paddingInlineEnd: '0.5rem',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
                 }}
-                title={getLocalizedFolderName(folder, lang)}
               >
                 {getLocalizedFolderName(folder, lang)}
               </div>
@@ -1270,7 +1260,6 @@ paddingInlineEnd: '0.5rem',
                         padding: 4,
                         border: '1px solid var(--border, #e5e7eb)',
                       }}
-                      title={getDeleteReasonText(file.deleteReason)}
                     >
                       {getThemedIcon('ui', 'lock', 12, 'muted')}
                     </div>
@@ -1285,7 +1274,6 @@ paddingInlineEnd: '0.5rem',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                   }}
-                  title={file.name}
                 >
                   {file.name}
                 </div>

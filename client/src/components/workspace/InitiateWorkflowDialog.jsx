@@ -14,6 +14,8 @@ import { AlertCircle, FileText } from 'lucide-react';
 import { useToast } from '@components/ui/ToastProvider.jsx';
 import { initiateAttendanceWorkflow, findExistingAttendanceWorkflow } from '@services/business/workflowInitiationService.js';
 import { deleteWorkflowDocument } from '@services/api/workflow-documents-api.js';
+import { exportDailyOfficialForDate } from '@services/business/accessScopeExportService.js';
+import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
 import { WORKFLOW_STATUS } from '@constants/workflowStatusTypes.jsx';
 
 export default function InitiateWorkflowDialog({
@@ -144,28 +146,63 @@ export default function InitiateWorkflowDialog({
   const activeExisting = existingWorkflow || precheckExisting;
 
   const handlePreviewPdf = useCallback(async () => {
-    if (!activeExisting?.fileId) return;
+    const status = String(activeExisting?.status || '').toUpperCase();
+    const isApproved = status === WORKFLOW_STATUS.APPROVED;
+    if (isApproved) {
+      if (!activeExisting?.fileId) {
+        toast?.showError(t('operations_board_preview_failed') || 'Preview unavailable');
+        return;
+      }
+      try {
+        const { apiService } = await import('@services/api/apiService.js');
+        const response = await apiService.get(`/drive/files/${activeExisting.fileId}/download`, {
+          responseType: 'blob',
+        });
+        const blobUrl = URL.createObjectURL(response.data);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        toast?.showSuccess(t('export_success') || 'Export successful');
+      } catch (err) {
+        console.error('[InitiateWorkflowDialog] preview PDF failed:', err);
+        const errorMsg = err.response?.status === 404
+          ? (t('file_not_found_reinitiate') || 'File not found in storage. Please reject and re-initiate the workflow to generate a new document.')
+          : err.response?.status === 403
+          ? (t('access_denied') || 'Access denied. You do not have permission to view this file.')
+          : err.response?.status === 500
+          ? (t('server_error') || 'Server error. The file may not exist in storage. Try rejecting and re-initiating the workflow.')
+          : (err.message || (t('operations_board_preview_failed') || 'Preview unavailable'));
+        toast?.showError(errorMsg);
+      }
+      return;
+    }
+
+    if (!cls?.id || !selectedDate) return;
     try {
-      const { apiService } = await import('@services/api/apiService.js');
-      const response = await apiService.get(`/drive/files/${activeExisting.fileId}/download`, {
-        responseType: 'blob',
+      const result = await exportDailyOfficialForDate({
+        cls,
+        program,
+        subject,
+        academicTerm: null,
+        lang,
+        user,
+        date: selectedDate,
+        instructorName: cls?.instructorName || null,
+        format: EXPORT_FORMAT.PDF,
+        skipDownload: true,
+        skipPersist: true,
+        workflowStatus: activeExisting?.status || null,
+        approvedBy: activeExisting?.approvedBy || null,
+        approvedAt: activeExisting?.approvedAt || null,
       });
-      const blobUrl = URL.createObjectURL(response.data);
+      const blobUrl = URL.createObjectURL(result.blob);
       window.open(blobUrl, '_blank');
       setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
       toast?.showSuccess(t('export_success') || 'Export successful');
     } catch (err) {
-      console.error('[InitiateWorkflowDialog] preview PDF failed:', err);
-      const errorMsg = err.response?.status === 404
-        ? (t('file_not_found_reinitiate') || 'File not found in storage. Please reject and re-initiate the workflow to generate a new document.')
-        : err.response?.status === 403
-        ? (t('access_denied') || 'Access denied. You do not have permission to view this file.')
-        : err.response?.status === 500
-        ? (t('server_error') || 'Server error. The file may not exist in storage. Try rejecting and re-initiating the workflow.')
-        : (err.message || (t('operations_board_preview_failed') || 'Preview unavailable'));
-      toast?.showError(errorMsg);
+      console.error('[InitiateWorkflowDialog] live preview PDF failed:', err);
+      toast?.showError(err.message || (t('operations_board_preview_failed') || 'Preview unavailable'));
     }
-  }, [activeExisting?.fileId, toast, t]);
+  }, [activeExisting, cls, program, subject, lang, user, selectedDate, toast, t]);
 
   return (
     <>
@@ -210,7 +247,7 @@ export default function InitiateWorkflowDialog({
                     >
                       {t('initiate_workflow_go_operations') || 'Go to Operations'}
                     </Button>
-                    {precheckExisting.fileId && String(precheckExisting.status || '').toUpperCase() !== WORKFLOW_STATUS.DRAFT && (
+                    {precheckExisting.fileId && String(precheckExisting.status || '').toUpperCase() !== WORKFLOW_STATUS.DRAFT && String(precheckExisting.status || '').toUpperCase() !== WORKFLOW_STATUS.APPROVED && (
                       <Button
                         size="small"
                         variant="text"

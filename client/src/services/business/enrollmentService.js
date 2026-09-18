@@ -402,9 +402,22 @@ export const toggleStudentAccess = async (classId, studentId, isCurrentlyDisable
     }
 
     const enrollment = enrollmentResult.data[0];
-    
-    // Toggle enrollment status
-    const newStatusId = isCurrentlyDisabled ? 1 : 7; // 1 = ENROLLED, 7 = SUSPENDED
+
+    // Resolve status IDs by code — canonical "enrolled" status is ACTIVE
+    const { getLookupItems } = await import('./lookupService.js');
+    const statusResult = await getLookupItems('enrollment-status-types');
+    const statusList = statusResult?.data || statusResult || [];
+    const statusIdByCode = new Map(statusList.map((s) => [s.code, s.id]));
+    const targetCode = isCurrentlyDisabled ? 'ACTIVE' : 'SUSPENDED';
+    const newStatusId = statusIdByCode.get(targetCode);
+
+    if (!newStatusId) {
+      return {
+        success: false,
+        error: `Enrollment status '${targetCode}' not found`,
+        data: null
+      };
+    }
     
     const updateResult = await updateEnrollment(enrollment.id, {
       statusId: newStatusId

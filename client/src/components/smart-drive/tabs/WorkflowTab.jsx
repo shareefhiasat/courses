@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { getIcon, getIconWithColor, getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { WORKFLOW_STATUS } from '@constants/workflowStatusTypes';
 import { apiService } from '@services/api/apiService';
@@ -267,7 +268,6 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
               background: `${roleColor}22`,
               color: roleColor,
             }}
-            title={t(`roles.${role}`, role)}
           >
             {React.cloneElement(roleIcon, { color: roleColor, size: 10 })}
           </span>
@@ -832,7 +832,6 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 transition: 'all 0.15s ease',
                 opacity: statusFilter && !isActive ? 0.5 : 1,
               }}
-              title={getStatusDescription(status)}
               onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
               onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
             >
@@ -1216,7 +1215,6 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                             alignItems: 'center',
                             justifyContent: 'center',
                           }}
-                          title={t('workflow.inbox.title', 'Workflow Inbox')}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.borderColor = '#3b82f6';
                             e.currentTarget.style.color = '#3b82f6';
@@ -1274,7 +1272,6 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                                 assignedRole: null 
                               });
                             }}
-                            title={t(`workflow.actions.${action}Hint`, t(`workflow.actions.${action}`, action))}
                             style={{
                               color: getActionColor(action),
                               textDecoration: 'none',
@@ -1452,9 +1449,11 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                       <DriveUserAvatar user={workflow.currentAssignee} size="xs" lang={lang} />
                       {t('drive.assignedTo')}: {getLocalizedUserName(workflow.currentAssignee, lang)}
                       {(() => { const role = getWorkflowRole(workflow); return role && (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginInlineStart: '0.25rem' }} title={t(`roles.${role}`, role)}>
-                          {getIcon('ui', 'users', 12, 'currentColor')}
-                        </span>
+                        <ColoredTooltip title={t(`roles.${role}`, role)}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginInlineStart: '0.25rem' }}>
+                            {getIcon('ui', 'users', 12, 'currentColor')}
+                          </span>
+                        </ColoredTooltip>
                       ); })()}
                     </span>
                   )}
@@ -1598,7 +1597,6 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                             alignItems: 'center',
                             justifyContent: 'center',
                           }}
-                          title={t('workflow.inbox.title', 'Workflow Inbox')}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.borderColor = '#3b82f6';
                             e.currentTarget.style.color = '#3b82f6';

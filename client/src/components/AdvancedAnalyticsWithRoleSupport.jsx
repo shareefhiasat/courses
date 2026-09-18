@@ -311,7 +311,6 @@ export default function AdvancedAnalytics({
               <button
                 onClick={guard.toggleAutoSave}
                 style={btnStyle(autoSave ? '#10b981' : '#6b7280')}
-                title={autoSave ? t('auto_save_on') : t('auto_save_off')}
               >
                 <Save size={16} />
                 {t('auto_save')}
@@ -338,7 +337,6 @@ export default function AdvancedAnalytics({
               <button
                 onClick={() => dashboardEngineRef.current?.resetToDefaults?.()}
                 style={btnStyle('#ef4444')}
-                title={t('reset_to_system_default')}
               >
                 {getThemedIcon('ui', 'rotate_ccw', 16, theme)}
                 {t('reset_to_system_default')}

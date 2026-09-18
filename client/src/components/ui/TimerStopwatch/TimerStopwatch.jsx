@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';// Compact inline Timer & Stopwatch widget
@@ -277,21 +278,23 @@ const TimerStopwatch = ({ compact = false, showTest = false }) => {
           <button onClick={() => setMode('timer')} style={modeButtonStyle(mode === 'timer')}>T</button>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <button
-            onClick={() => setSoundOn(v => !v)}
-            title={soundOn ? t('sound_on') : t('sound_off')}
-            style={iconButtonStyle(soundOn)}
-          >
-            🔊
-          </button>
-          {showTest && (
+          <ColoredTooltip title={soundOn ? t('sound_on') : t('sound_off')}>
             <button
-              onClick={() => { playBeep().catch(() => {}); }}
-              title={t('test')}
-              style={iconButtonStyle(false)}
+              onClick={() => setSoundOn(v => !v)}
+              style={iconButtonStyle(soundOn)}
             >
-              {t('test')}
+              🔊
             </button>
+          </ColoredTooltip>
+          {showTest && (
+            <ColoredTooltip title={t('test')}>
+              <button
+                onClick={() => { playBeep().catch(() => {}); }}
+                style={iconButtonStyle(false)}
+              >
+                {t('test')}
+              </button>
+            </ColoredTooltip>
           )}
           {mode === 'timer' && (
             <div style={{ display: 'flex', gap: 4 }}>

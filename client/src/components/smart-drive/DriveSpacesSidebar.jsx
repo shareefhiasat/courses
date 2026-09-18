@@ -65,7 +65,6 @@ export default function DriveSpacesSidebar({
       <button
         key={space.id}
         onClick={() => onSpaceChange?.(space.id)}
-        title={isMinimized ? space.label : undefined}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -125,7 +124,6 @@ export default function DriveSpacesSidebar({
           e.currentTarget.style.transform = 'translateY(0)';
           e.currentTarget.style.boxShadow = '0 2px 8px rgba(37, 99, 235, 0.25)';
         }}
-        title={isMinimized ? t('drive.newUpload') : undefined}
       >
         {getThemedIcon('ui', 'plus', 16, 'white')}
         {!isMinimized && (t('drive.newUpload'))}

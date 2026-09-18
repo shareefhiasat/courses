@@ -5,7 +5,7 @@ import { getLocalizedUserName } from '@utils/localizedUserName';
 import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { getUserRoleFromObject } from '@utils/userUtils';
 import { ATTENDANCE_TYPE_CATEGORY, getAttendanceColor, getAttendanceIcon } from '@constants/attendanceTypes';
-import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
+import { Check, Clock, X, Heart, Circle } from '@utils/icons.jsx';
 
 /**
  * StudentInfoCell - Displays student name, avatar, ID, favorite button, and today's status
@@ -26,15 +26,15 @@ const StudentInfoCell = ({ student, favoriteStudents, toggleFavorite, onStudentS
     
     switch (iconName) {
       case 'CheckCircle':
-        return <CheckSmallIcon style={{ width: '14px', height: '14px', stroke: color }} />;
+        return <Check size={14} strokeWidth={3} color={color} />;
       case 'Clock':
-        return <ClockSmallIcon style={{ width: '14px', height: '14px', stroke: color }} />;
+        return <Clock size={14} color={color} />;
       case 'XCircle':
-        return <XSmallIcon style={{ width: '14px', height: '14px', stroke: color }} />;
+        return <X size={14} color={color} />;
       case 'Heart':
-        return <HeartIcon style={{ width: '14px', height: '14px', stroke: color }} />;
+        return <Heart size={14} strokeWidth={2.5} color={color} />;
       default:
-        return <CircleIcon style={{ width: '14px', height: '14px', stroke: color }} />;
+        return <Circle size={14} color={color} />;
     }
   };
 
@@ -93,7 +93,6 @@ const StudentInfoCell = ({ student, favoriteStudents, toggleFavorite, onStudentS
                 border: '1.5px solid var(--panel, white)',
                 boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
               }}
-                title={t(`roles.${role}`, role)}
               >
                 {React.cloneElement(roleIcon, { color: roleColor, size: 10 })}
               </div>
@@ -151,6 +150,16 @@ const StudentInfoCell = ({ student, favoriteStudents, toggleFavorite, onStudentS
                 </span>
               )}
             </div>
+            {(student.studentNumber || (lang === 'ar' ? student.rankAr : student.rankEn) || student.rankEn) && (
+              <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted, #6b7280)', marginTop: '0.125rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                {(lang === 'ar' ? (student.rankAr || student.rankEn) : (student.rankEn || student.rankAr)) && (
+                  <span>{lang === 'ar' ? (student.rankAr || student.rankEn) : (student.rankEn || student.rankAr)}</span>
+                )}
+                {student.studentNumber && (
+                  <span style={{ fontFamily: 'var(--font-family-mono)', direction: 'ltr' }}>{student.studentNumber}</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

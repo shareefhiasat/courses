@@ -3,16 +3,18 @@
  */
 
 import prisma from '../db/prismaClient.js';
+import { normalizeProfileImageUrl } from '../utils/userNameFields.js';
 import {
   ATTENDANCE_STATUS_CODES,
   normalizeAttendanceStatus,
 } from '../constants/attendanceConstants.js';
+import { ENROLLMENT_STATUS_CODES } from '../constants/enrollmentConstants.js';
 
 const DEFAULT_RULES = {
   [ATTENDANCE_STATUS_CODES.ABSENT]: 0.5,
-  [ATTENDANCE_STATUS_CODES.LEAVE]: 0.25,
+  [ATTENDANCE_STATUS_CODES.LEAVE]: 0.5,
   [ATTENDANCE_STATUS_CODES.LATE]: 0.5,
-  [ATTENDANCE_STATUS_CODES.HUMAN_CASE]: 0.25,
+  [ATTENDANCE_STATUS_CODES.HUMAN_CASE]: 0.5,
 };
 
 const FAILURE_ABSENCE_COUNT = 8;
@@ -82,10 +84,19 @@ export async function calculateStudentAbsenceDeductions({
     where,
     include: {
       status: true,
-      creator: { select: { id: true, displayName: true, realName: true, firstName: true, lastName: true } },
+      creator: { select: { id: true, displayName: true, realName: true, firstName: true, lastName: true, keycloakId: true, profileImageUrl: true, updatedAt: true } },
       workflowLinks: {
         include: {
           workflowDocument: { select: { id: true, status: true, title: true } },
+        },
+      },
+      amendments: {
+        orderBy: { amendedAt: 'desc' },
+        take: 1,
+        include: {
+          fromStatus: { select: { id: true, code: true, nameEn: true, nameAr: true } },
+          toStatus: { select: { id: true, code: true, nameEn: true, nameAr: true } },
+          amendedByUser: { select: { id: true, displayName: true, realName: true, firstName: true, lastName: true } },
         },
       },
     },
@@ -96,16 +107,29 @@ export async function calculateStudentAbsenceDeductions({
     .map((row) => {
       const deduction = resolveDeductionForAttendance(row, rules);
       const workflowDoc = row.workflowLinks?.[0]?.workflowDocument;
+      const recordedByUser = normalizeProfileImageUrl(row.creator);
+      const latestAmendment = row.amendments?.[0] || null;
       return {
         attendanceId: row.id,
         date: row.date,
         statusCode: row.status?.code,
         excusedViaWorkflow: Boolean(row.excuseApprovedAt),
         deduction,
-        recordedBy: row.creator?.displayName || row.creator?.realName || [row.creator?.firstName, row.creator?.lastName].filter(Boolean).join(' ') || null,
+        recordedBy: recordedByUser?.displayName || recordedByUser?.realName || [recordedByUser?.firstName, recordedByUser?.lastName].filter(Boolean).join(' ') || null,
+        recordedByProfileImageUrl: recordedByUser?.profileImageUrl || null,
+        recordedByUpdatedAt: recordedByUser?.updatedAt || null,
         workflowDocumentId: workflowDoc?.id || null,
         workflowStatus: workflowDoc?.status || null,
         workflowTitle: workflowDoc?.title || null,
+        lastAmendment: latestAmendment ? {
+          id: latestAmendment.id,
+          reason: latestAmendment.reason,
+          attachmentUrl: latestAmendment.attachmentUrl,
+          attachmentName: latestAmendment.attachmentName,
+          attachmentType: latestAmendment.attachmentType,
+          amendedAt: latestAmendment.amendedAt,
+          amendedByUser: latestAmendment.amendedByUser,
+        } : null,
       };
     })
     .filter((row) => row.deduction > 0);
@@ -170,12 +194,12 @@ export async function getDeductionHistory({ userId, classId }) {
     where: { userId, ...(classId && { classId }) },
     include: {
       status: true,
-      creator: { select: { id: true, displayName: true, realName: true, firstName: true, lastName: true } },
+      creator: { select: { id: true, displayName: true, realName: true, firstName: true, lastName: true, keycloakId: true, profileImageUrl: true, updatedAt: true } },
       amendments: {
         include: {
           fromStatus: true,
           toStatus: true,
-          amendedByUser: { select: { id: true, displayName: true, realName: true } },
+          amendedByUser: { select: { id: true, displayName: true, realName: true, keycloakId: true, profileImageUrl: true, updatedAt: true } },
         },
         orderBy: { amendedAt: 'asc' },
       },
@@ -203,6 +227,8 @@ export async function getDeductionHistory({ userId, classId }) {
         description: `Attendance recorded: ${att.status?.nameEn || statusCode || 'Unknown'} on ${new Date(att.date).toLocaleDateString()}`,
         deductionChange: { old: 0, new: currentDeduction },
         actorName: att.creator?.displayName || att.creator?.realName || [att.creator?.firstName, att.creator?.lastName].filter(Boolean).join(' ') || null,
+        actorProfileImageUrl: normalizeProfileImageUrl(att.creator)?.profileImageUrl || null,
+        actorUpdatedAt: att.creator?.updatedAt || null,
         attendanceId: att.id,
         attendanceDate: att.date,
         workflowDocumentId: workflowDoc?.id || null,
@@ -224,6 +250,8 @@ export async function getDeductionHistory({ userId, classId }) {
         description: `Status changed from ${amend.fromStatus?.nameEn || fromCode} to ${amend.toStatus?.nameEn || toCode}${amend.reason ? ` — ${amend.reason}` : ''}`,
         deductionChange: { old: fromDeduction, new: toDeduction },
         actorName: amend.amendedByUser?.displayName || amend.amendedByUser?.realName || 'System',
+        actorProfileImageUrl: normalizeProfileImageUrl(amend.amendedByUser)?.profileImageUrl || null,
+        actorUpdatedAt: amend.amendedByUser?.updatedAt || null,
         attendanceId: att.id,
         attendanceDate: att.date,
       });
@@ -277,7 +305,7 @@ const UNEXCUSED_ABSENCE_CODES = new Set(['ATTENDANCE_ABSENT']);
 /**
  * Count absences per enrolled student in a class for warning reports.
  */
-export async function getClassAbsenceWarningCounts({ classId, userId }) {
+export async function getClassAbsenceWarningCounts({ classId, userId, dateFrom, dateTo }) {
   if (!classId) {
     return { success: false, error: 'classId is required' };
   }
@@ -285,7 +313,7 @@ export async function getClassAbsenceWarningCounts({ classId, userId }) {
   const enrollments = await prisma.enrollment.findMany({
     where: {
       classId: Number(classId),
-      status: { code: 'ENROLLED' },
+      status: { code: ENROLLMENT_STATUS_CODES.ACTIVE },
       ...(userId && { userId: Number(userId) }),
     },
     include: {
@@ -298,6 +326,9 @@ export async function getClassAbsenceWarningCounts({ classId, userId }) {
           rankEn: true,
           rankAr: true,
           sequence: true,
+          keycloakId: true,
+          profileImageUrl: true,
+          updatedAt: true,
         },
       },
       class: {
@@ -314,10 +345,17 @@ export async function getClassAbsenceWarningCounts({ classId, userId }) {
     return { success: true, data: [] };
   }
 
+  const rules = await loadRules();
+
+  const dateFilter = {};
+  if (dateFrom) dateFilter.gte = new Date(dateFrom);
+  if (dateTo) dateFilter.lte = new Date(dateTo);
+
   const attendances = await prisma.attendance.findMany({
     where: {
       classId: Number(classId),
       userId: { in: studentIds },
+      ...(Object.keys(dateFilter).length ? { date: dateFilter } : {}),
     },
     include: { status: true },
   });
@@ -331,6 +369,9 @@ export async function getClassAbsenceWarningCounts({ classId, userId }) {
       lateCount: 0,
       humanCaseCount: 0,
       presentCount: 0,
+      deductionApproved: 0,
+      deductionNotApproved: 0,
+      deductionTotal: 0,
     });
   });
 
@@ -352,7 +393,6 @@ export async function getClassAbsenceWarningCounts({ classId, userId }) {
         break;
       case ATTENDANCE_STATUS_CODES.LATE:
         entry.lateCount += 1;
-        entry.totalAbsences += 1;
         break;
       case ATTENDANCE_STATUS_CODES.HUMAN_CASE:
         entry.humanCaseCount += 1;
@@ -361,17 +401,43 @@ export async function getClassAbsenceWarningCounts({ classId, userId }) {
       default:
         break;
     }
+
+    if (code !== ATTENDANCE_STATUS_CODES.LATE) {
+      const deduction = resolveDeductionForAttendance(row, rules);
+      if (deduction > 0) {
+        if (row.excuseApprovedAt) {
+          entry.deductionApproved += deduction;
+        } else {
+          entry.deductionNotApproved += deduction;
+        }
+        entry.deductionTotal += deduction;
+      }
+    }
   });
 
   const data = enrollments.map((enrollment) => {
-    const counts = countsByUser.get(enrollment.userId) || {
+    const rawCounts = countsByUser.get(enrollment.userId) || {
       totalAbsences: 0,
       unexcusedAbsences: 0,
       excusedAbsences: 0,
       lateCount: 0,
       humanCaseCount: 0,
       presentCount: 0,
+      deductionApproved: 0,
+      deductionNotApproved: 0,
+      deductionTotal: 0,
     };
+    const counts = {
+      ...rawCounts,
+      deductionApproved: Number((rawCounts.deductionApproved || 0).toFixed(2)),
+      deductionNotApproved: Number((rawCounts.deductionNotApproved || 0).toFixed(2)),
+      deductionTotal: Number((rawCounts.deductionTotal || 0).toFixed(2)),
+    };
+    const profileImageUrl = enrollment.user.profileImageUrl
+      ? (enrollment.user.profileImageUrl.startsWith('http') || enrollment.user.profileImageUrl.startsWith('/api/')
+          ? enrollment.user.profileImageUrl
+          : `/api/v1/user-images/proxy/${enrollment.user.keycloakId || enrollment.user.id}/profile`)
+      : null;
     return {
       studentId: enrollment.userId,
       studentNumber: enrollment.user.studentNumber || '',
@@ -380,6 +446,8 @@ export async function getClassAbsenceWarningCounts({ classId, userId }) {
       rankEn: enrollment.user.rankEn || '',
       rankAr: enrollment.user.rankAr || '',
       sequence: enrollment.user.sequence,
+      profileImageUrl,
+      avatarUpdatedAt: enrollment.user.updatedAt?.getTime?.() || null,
       programName: enrollment.class?.program?.nameEn || '',
       programNameAr: enrollment.class?.program?.nameAr || '',
       subjectName: enrollment.class?.subject?.nameEn || '',
@@ -393,6 +461,59 @@ export async function getClassAbsenceWarningCounts({ classId, userId }) {
   return { success: true, data };
 }
 
+function toISODate(date) {
+  return new Date(date).toISOString().slice(0, 10);
+}
+
+function startOfWeek(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay(); // 0 = Sunday
+  d.setDate(d.getDate() - day);
+  return d;
+}
+
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+export async function getClassAttendanceWeeks({ classId }) {
+  if (!classId) {
+    return { success: false, error: 'classId is required' };
+  }
+
+  const agg = await prisma.attendance.aggregate({
+    where: { classId: Number(classId) },
+    _min: { date: true },
+    _max: { date: true },
+  });
+
+  const minDate = agg._min?.date ? new Date(agg._min.date) : null;
+  const maxDate = agg._max?.date ? new Date(agg._max.date) : null;
+
+  if (!minDate || !maxDate) {
+    return { success: true, weeks: [] };
+  }
+
+  const weeks = [];
+  const end = startOfWeek(maxDate);
+  let current = startOfWeek(minDate);
+
+  while (current <= end) {
+    const weekEnd = addDays(current, 6);
+    weeks.push({
+      value: toISODate(current),
+      start: toISODate(current),
+      end: toISODate(weekEnd),
+    });
+    current = addDays(current, 7);
+  }
+
+  return { success: true, weeks };
+}
+
 export default {
   calculateStudentAbsenceDeductions,
   suggestAttendanceMarkComponent,
@@ -401,4 +522,5 @@ export default {
   getDeductionHistory,
   getFailureThresholds,
   getClassAbsenceWarningCounts,
+  getClassAttendanceWeeks,
 };

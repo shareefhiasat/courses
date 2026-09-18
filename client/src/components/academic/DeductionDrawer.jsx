@@ -1,32 +1,33 @@
 import React, { memo, useMemo, useCallback, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ExternalLink, Workflow } from 'lucide-react';
+import { ExternalLink, Workflow } from '@utils/icons.jsx';
 import { Button, SimpleLoading } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import useResizableDrawer from '@hooks/useResizableDrawer';
 import { formatDateTime, formatDateShort, getQatarDateParts, formatDate } from '@utils/date-formatter.js';
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
+import { getAvatarColor, getAvatarInitials, normalizeProfileImageUrl } from '@utils/avatarUtils';
 import { getAttendanceColor, getLocalizedAttendanceLabel, ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { ACADEMIC_TERMS, getAcademicTermLabel } from '@constants/academicTerms';
 import { WORKFLOW_UI_COLORS } from '@constants/workflowConfig';
 import { getProgressColor } from '@utils/progressColors.js';
 import useDrawerTheme from '@hooks/useDrawerTheme.js';
 import useDrawerStyles from '@hooks/useDrawerStyles.js';
-import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon } from '@utils/icons.jsx';
+import { Check, Clock, X, Heart } from '@utils/icons.jsx';
 import { getWorkflowDocumentsByContext } from '@services/api/workflow-documents-api';
 import DayWorkflowsDrawer from './DayWorkflowsDrawer';
 
 const STATUS_ICON_MAP = {
-  [ATTENDANCE_STATUS.PRESENT]: CheckSmallIcon,
-  [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: XSmallIcon,
-  [ATTENDANCE_STATUS.LATE]: ClockSmallIcon,
-  [ATTENDANCE_STATUS.EXCUSED_LEAVE]: HeartIcon,
-  [ATTENDANCE_STATUS.HUMAN_CASE]: HeartIcon,
-  [ATTENDANCE_STATUS.STANDUP_PRESENT]: CheckSmallIcon,
-  [ATTENDANCE_STATUS.STANDUP_LATE]: ClockSmallIcon,
-  [ATTENDANCE_STATUS.STANDUP_ABSENT]: XSmallIcon,
-  [ATTENDANCE_STATUS.STANDUP_CLINIC]: HeartIcon,
+  [ATTENDANCE_STATUS.PRESENT]: Check,
+  [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: X,
+  [ATTENDANCE_STATUS.LATE]: Clock,
+  [ATTENDANCE_STATUS.EXCUSED_LEAVE]: Heart,
+  [ATTENDANCE_STATUS.HUMAN_CASE]: Heart,
+  [ATTENDANCE_STATUS.STANDUP_PRESENT]: Check,
+  [ATTENDANCE_STATUS.STANDUP_LATE]: Clock,
+  [ATTENDANCE_STATUS.STANDUP_ABSENT]: X,
+  [ATTENDANCE_STATUS.STANDUP_CLINIC]: Heart,
 };
 
 function toDateKey(date) {
@@ -74,6 +75,14 @@ const DeductionDrawer = memo(({
 
   const resolvedClassId = classIdProp || student?.classId || null;
   const resolvedUserId = student?.studentId || student?.userId || student?.id;
+
+  const displayName = useMemo(() => getLocalizedUserName(
+    student,
+    lang,
+    student?.studentName || student?.displayName || student?.name || t('unknown') || 'Unknown'
+  ), [student, lang, t]);
+  const avatarColor = useMemo(() => getAvatarColor(displayName || ''), [displayName]);
+  const avatarInitials = useMemo(() => getAvatarInitials(displayName || ''), [displayName]);
 
   const localizedClassName = useMemo(() => {
     if (!student?.className) return '';
@@ -152,9 +161,6 @@ const DeductionDrawer = memo(({
         type="button"
         onClick={() => hasWorkflows && setDayWorkflowContext({ date })}
         disabled={!hasWorkflows}
-        title={hasWorkflows
-          ? (t('workflow.dayDrawer.open', 'View workflows for this day'))
-          : (t('workflow.dayDrawer.none', 'No workflows for this day'))}
         style={{
           background: 'transparent',
           border: 'none',
@@ -281,7 +287,6 @@ const DeductionDrawer = memo(({
           {entry.workflowDocumentId && (
             <button
               onClick={() => window.open(`/workflow-documents/${entry.workflowDocumentId}`, '_blank')}
-              title={t('view_workflow') || 'View workflow'}
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -296,7 +301,31 @@ const DeductionDrawer = memo(({
             </button>
           )}
           {entry.actorName && (
-            <span style={{ fontSize: '0.65rem', color: mutedColor }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.65rem', color: mutedColor }}>
+              <span style={{
+                width: '18px',
+                height: '18px',
+                borderRadius: '50%',
+                background: getAvatarColor(entry.actorName || '').bg,
+                color: getAvatarColor(entry.actorName || '').color,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.55rem',
+                fontWeight: 700,
+                overflow: 'hidden',
+                flexShrink: 0,
+              }}>
+                {entry.actorProfileImageUrl ? (
+                  <img
+                    src={normalizeProfileImageUrl(entry.actorProfileImageUrl, entry.actorUpdatedAt)}
+                    alt={entry.actorName}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  getAvatarInitials(entry.actorName || '')
+                )}
+              </span>
               {t('by', 'by')} {entry.actorName}
             </span>
           )}
@@ -325,25 +354,6 @@ const DeductionDrawer = memo(({
         role="dialog"
         aria-modal="true"
       >
-        {/* Header */}
-        <div style={{
-          padding: '1rem',
-          borderBottom: `1px solid ${borderColor}`,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          position: 'sticky',
-          top: 0,
-          background: bgColor,
-          zIndex: 10,
-        }}>
-          <h3 style={{ margin: 0, color: textColor, fontSize: '1.125rem', fontWeight: 700 }}>
-            {type === 'absence' ? (t('absence_deductions')) :
-             type === 'penalty' ? (t('penalty_deductions')) :
-             (t('deductions'))}
-          </h3>
-        </div>
-
         {/* Student Info */}
         {student && (
           <div style={{
@@ -360,26 +370,29 @@ const DeductionDrawer = memo(({
               width: '40px',
               height: '40px',
               borderRadius: '50%',
-              background: isDarkMode ? '#4b5563' : '#e5e7eb',
+              background: avatarColor.bg,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '1rem',
               fontWeight: 700,
-              color: isDarkMode ? '#e5e7eb' : '#4b5563',
+              color: avatarColor.color,
               overflow: 'hidden',
             }}>
-              {(getLocalizedUserName(student, lang, student.studentName || student.displayName || student.name || '?'))
-                .split(' ')
-                .map(w => w[0])
-                .slice(0, 2)
-                .join('')
-                .toUpperCase()}
+              {student?.profileImageUrl ? (
+                <img
+                  src={normalizeProfileImageUrl(student.profileImageUrl, student?.updatedAt || student?.updated_at)}
+                  alt={displayName}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                avatarInitials
+              )}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <div style={{ fontWeight: 600, color: textColor, fontSize: '0.9rem' }}>
-                  {getLocalizedUserName(student, lang, student.studentName || student.displayName || student.name || 'Unknown')}
+                  {displayName}
                 </div>
                 {student.studentId && (
                   <button
@@ -391,7 +404,6 @@ const DeductionDrawer = memo(({
                       if (student.classId) params.set('classId', student.classId);
                       window.open(`/student-dashboard?${params.toString()}`, '_blank');
                     }}
-                    title={t('open_student_dashboard') || 'Open student dashboard'}
                     style={{
                       background: 'transparent',
                       border: 'none',
@@ -564,21 +576,50 @@ const DeductionDrawer = memo(({
                         {/* Date + Recorded By */}
                         <div style={{
                           flexShrink: 0,
-                          fontSize: '0.7rem',
-                          color: mutedColor,
-                          minWidth: '70px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          minWidth: '120px',
                         }}>
-                          <div>{formatDate(item.date, lang)}</div>
                           {item.recordedBy && (
-                            <div style={{ fontSize: '0.6rem', color: mutedColor, opacity: 0.8, marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {item.recordedBy}
+                            <div style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              background: getAvatarColor(item.recordedBy || '').bg,
+                              color: getAvatarColor(item.recordedBy || '').color,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.65rem',
+                              fontWeight: 700,
+                              overflow: 'hidden',
+                              flexShrink: 0,
+                            }}>
+                              {item.recordedByProfileImageUrl ? (
+                                <img
+                                  src={normalizeProfileImageUrl(item.recordedByProfileImageUrl, item.recordedByUpdatedAt)}
+                                  alt={item.recordedBy}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              ) : (
+                                getAvatarInitials(item.recordedBy || '')
+                              )}
                             </div>
                           )}
+                          <div style={{ fontSize: '0.7rem', color: mutedColor, minWidth: 0, flex: 1 }}>
+                            <div>{formatDate(item.date, lang)}</div>
+                            {item.recordedBy && (
+                              <div style={{ fontSize: '0.6rem', color: mutedColor, opacity: 0.8, marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {item.recordedBy}
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         {/* Status + Excused */}
                         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                          {(() => { const Icon = STATUS_ICON_MAP[statusCode]; return Icon ? <Icon style={{ width: '12px', height: '12px', color, flexShrink: 0 }} /> : null; })()}
+                          {(() => { const Icon = STATUS_ICON_MAP[statusCode]; return Icon ? <Icon size={12} color={color} style={{ flexShrink: 0 }} /> : null; })()}
                           <span style={{
                             fontSize: '0.8rem',
                             fontWeight: 600,
@@ -591,7 +632,6 @@ const DeductionDrawer = memo(({
                           </span>
                           {excused && (
                             <span
-                              title={t('workflow.excuseApprovedBadge', 'Excuse approved — 0.25 deduction')}
                               style={{
                                 fontSize: '0.65rem',
                                 color: '#22c55e',
@@ -606,7 +646,6 @@ const DeductionDrawer = memo(({
                         {item.workflowDocumentId && (
                             <button
                               onClick={() => window.open(`/workflow-documents/${item.workflowDocumentId}`, '_blank')}
-                              title={t('view_workflow') || 'View workflow'}
                               style={{
                                 background: 'transparent',
                                 border: 'none',

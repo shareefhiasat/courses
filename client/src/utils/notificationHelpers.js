@@ -3,12 +3,13 @@ import { NOTIFICATION_TYPES, NOTIFICATION_STATUS } from '@constants/notification
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { WORKFLOW_STATUS_COLORS } from '@constants/workspaceStatusColors.js';
 import { formatTermDisplay } from '@constants/gradingStandards';
+import apiService from '@/services/api/apiService.js';
 
 /**
  * Format a notification timestamp as a relative time string.
  * Used by both NotificationDrawer and NotificationsPage.
  */
-export const formatNotificationTime = (timestamp, t) => {
+export const formatNotificationTime = (timestamp, t, lang = 'en') => {
   if (!timestamp) return '';
   const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
   const now = new Date();
@@ -18,7 +19,7 @@ export const formatNotificationTime = (timestamp, t) => {
   if (diff < 3600000) return `${Math.floor(diff / 60000)}${t('notifications.minutes_ago')}`;
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}${t('notifications.hours_ago')}`;
   if (diff < 604800000) return `${Math.floor(diff / 86400000)}${t('notifications.days_ago')}`;
-  return formatDateTime(date);
+  return formatDateTime(date, lang);
 };
 
 /**
@@ -172,7 +173,7 @@ const WORKFLOW_TITLE_PREFIX_KEYS = {
  */
 export const getLocalizedWorkflowName = (workflowName, t) => {
   if (!workflowName) return workflowName || '';
-  const parts = workflowName.split('—').map((s) => s.trim());
+  const parts = workflowName.split(/\s+[—–-]\s+/).map((s) => s.trim()).filter(Boolean);
   if (parts.length < 2) return workflowName;
 
   const prefix = parts[0].toLowerCase();
@@ -376,13 +377,16 @@ export const filterNotifications = ({
   if (filterSubject !== 'all') {
     const before = filtered.length;
     filtered = filtered.filter(n => {
-      const classId = n.data?.classId || n.classId;
-      const subjectId = n.data?.subjectId || n.metadata?.subjectId;
+      const data = n.data || n.metadata || {};
+      const directSubjectId = data.subjectId;
+      if (directSubjectId != null && String(directSubjectId) === String(filterSubject)) return true;
+
+      const classId = data.classId || n.classId;
       if (classId) {
         const classItem = classes.find(c => String(c.id || c.docId) === String(classId));
-        return String(classItem?.subjectId) === String(filterSubject);
+        if (classItem?.subjectId && String(classItem.subjectId) === String(filterSubject)) return true;
       }
-      return String(subjectId) === String(filterSubject);
+      return false;
     });
     console.log('[filterNotifications] subject filter:', { filterSubject, before, after: filtered.length, classesLoaded: classes.length });
   }
@@ -401,7 +405,10 @@ export const filterNotifications = ({
   if (filterYear !== 'all') {
     const before = filtered.length;
     filtered = filtered.filter(n => {
-      const classId = n.data?.classId || n.classId;
+      const data = n.data || n.metadata || {};
+      if (data.year != null && String(data.year) === String(filterYear)) return true;
+
+      const classId = data.classId || n.classId;
       if (classId) {
         const classItem = classes.find(c => String(c.id || c.docId) === String(classId));
         if (classItem?.year && String(classItem.year) === filterYear) return true;
@@ -427,12 +434,17 @@ export const filterNotifications = ({
   // Filter by semester
   if (filterSemester !== 'all') {
     const before = filtered.length;
+    const filterSem = filterSemester.toLowerCase();
     filtered = filtered.filter(n => {
-      const classId = n.data?.classId || n.classId;
+      const data = n.data || n.metadata || {};
+      if (data.term != null && formatTermDisplay(String(data.term)).toLowerCase() === filterSem) return true;
+      if (data.semester != null && formatTermDisplay(String(data.semester)).toLowerCase() === filterSem) return true;
+
+      const classId = data.classId || n.classId;
       if (classId) {
         const classItem = classes.find(c => String(c.id || c.docId) === String(classId));
         if (classItem?.term) {
-          return formatTermDisplay(classItem.term) === filterSemester;
+          return formatTermDisplay(classItem.term).toLowerCase() === filterSem;
         }
       }
       return false;
@@ -463,10 +475,30 @@ export const gotoFromNotification = async (n, navigate, onMarkAsRead) => {
     const url = new URL(n.link, window.location.origin);
     url.searchParams.delete('expanded');
     url.searchParams.delete('scheduleExpanded');
+
+    // Backfill workflow context for old links that were saved without it
+    const linkWorkflowId = url.searchParams.get('workflowId');
+    if (linkWorkflowId && (!url.searchParams.get('date') || !url.searchParams.get('classId'))) {
+      try {
+        const res = await apiService.apiClient.get(`/workflow-documents/${linkWorkflowId}`);
+        const doc = res.data?.data;
+        if (doc?.date && !url.searchParams.get('date')) {
+          const parsed = new Date(doc.date);
+          if (!isNaN(parsed.getTime())) url.searchParams.set('date', parsed.toISOString().slice(0, 10));
+        }
+        if (doc?.classId && !url.searchParams.get('classId')) url.searchParams.set('classId', String(doc.classId));
+        if (doc?.programId && !url.searchParams.get('programId')) url.searchParams.set('programId', String(doc.programId));
+        if (doc?.termId && !url.searchParams.get('termId')) url.searchParams.set('termId', String(doc.termId));
+        if (doc?.subjectId && !url.searchParams.get('subjectId')) url.searchParams.set('subjectId', String(doc.subjectId));
+      } catch (err) {
+        console.error('[gotoFromNotification] Failed to fetch workflow context for link', err);
+      }
+    }
     
     // If the link is to operations board or welcome page with operations tab, open in new tab to avoid navbar issues
     if (url.pathname.includes('/operations/board') || (url.pathname.includes('/welcome') && url.searchParams.get('tab') === 'operations')) {
-      window.open(url.pathname + url.search, '_blank');
+      const newWindow = window.open(url.pathname + url.search, '_blank');
+      if (newWindow) newWindow.opener = null;
       return;
     }
     
@@ -502,12 +534,42 @@ export const gotoFromNotification = async (n, navigate, onMarkAsRead) => {
       break;
     case NOTIFICATION_TYPES.WORKFLOW:
       { const wfId = data.workflowId || data.documentId;
-        const url = wfId ? `/operations/board?workflowId=${wfId}` : '/operations/board';
+        const url = new URL('/operations/board', window.location.origin);
+        if (wfId) url.searchParams.set('workflowId', String(wfId));
+        let rawDate = data.workflowDate || data.date;
+        let wfClassId = data.classId;
+        let wfProgramId = data.programId;
+        let wfTermId = data.termId;
+        let wfSubjectId = data.subjectId;
+        if ((!rawDate || !wfClassId) && wfId) {
+          try {
+            const res = await apiService.apiClient.get(`/workflow-documents/${wfId}`);
+            const doc = res.data?.data;
+            if (!rawDate && doc?.date) rawDate = doc.date;
+            if (!wfClassId && doc?.classId) wfClassId = doc.classId;
+            if (!wfProgramId && doc?.programId) wfProgramId = doc.programId;
+            if (!wfTermId && doc?.termId) wfTermId = doc.termId;
+            if (!wfSubjectId && doc?.subjectId) wfSubjectId = doc.subjectId;
+          } catch (err) {
+            console.error('[gotoFromNotification] Failed to fetch workflow context', err);
+          }
+        }
+        if (rawDate) {
+          const parsed = new Date(rawDate);
+          if (!isNaN(parsed.getTime())) url.searchParams.set('date', parsed.toISOString().slice(0, 10));
+        }
+        if (wfProgramId) url.searchParams.set('programId', String(wfProgramId));
+        if (wfTermId) url.searchParams.set('termId', String(wfTermId));
+        if (wfClassId) url.searchParams.set('classId', String(wfClassId));
+        if (wfSubjectId) url.searchParams.set('subjectId', String(wfSubjectId));
+        // Default operations board lane/view
+        if (!url.searchParams.get('lane')) url.searchParams.set('lane', 'status');
+        if (!url.searchParams.get('view')) url.searchParams.set('view', 'kanban');
         // Remove expanded=1 to prevent unwanted expanded view
-        const urlObj = new URL(url, window.location.origin);
-        urlObj.searchParams.delete('expanded');
-        console.log('[gotoFromNotification] WORKFLOW notification - opening in new tab:', urlObj.pathname + urlObj.search);
-        window.open(urlObj.pathname + urlObj.search, '_blank');
+        url.searchParams.delete('expanded');
+        console.log('[gotoFromNotification] WORKFLOW notification - opening in new tab:', url.toString());
+        const newWindow2 = window.open(url.toString(), '_blank');
+        if (newWindow2) newWindow2.opener = null;
         return; }
       break;
     case NOTIFICATION_TYPES.BEHAVIOR:

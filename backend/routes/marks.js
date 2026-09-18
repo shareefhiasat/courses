@@ -11,8 +11,9 @@ import {
   getAbsenceDeductionRules,
   getStudentDeductionHistory,
   getAbsenceWarningCounts,
+  getClassAttendanceWeeks,
 } from '../controllers/marks.js';
-import { screenOps } from '../middleware/requirePermission.js';
+import { screenOps, requireAnyPermission } from '../middleware/requirePermission.js';
 
 const router = express.Router();
 const ops = screenOps('marks-entry');
@@ -301,8 +302,9 @@ router.get('/report', ops.view, getAllStudentMarksReport);
 router.get('/history/:userId/:subjectId/:classId', ops.view, getStudentMarksHistory);
 
 router.get('/attendance-deduction', ops.view, getAttendanceDeductionSuggestion);
-router.get('/absence-deduction-rules', ops.view, getAbsenceDeductionRules);
+router.get('/absence-deduction-rules', requireAnyPermission('marks-entry.canView', 'qr-scanner.canMarkAttendance', 'qr-scanner.canManualInput', 'qr-scanner.canUseQRScanner', 'attendance.canView', 'operations.canView'), getAbsenceDeductionRules);
 router.get('/deduction-history', ops.view, getStudentDeductionHistory);
-router.get('/absence-warning-counts', ops.view, getAbsenceWarningCounts);
+router.get('/absence-warning-counts', requireAnyPermission('marks-entry.canView', 'qr-scanner.canMarkAttendance', 'qr-scanner.canManualInput', 'qr-scanner.canUseQRScanner', 'attendance.canView', 'operations.canView'), getAbsenceWarningCounts);
+router.get('/class-attendance-weeks', requireAnyPermission('marks-entry.canView', 'qr-scanner.canMarkAttendance', 'qr-scanner.canManualInput', 'qr-scanner.canUseQRScanner', 'attendance.canView', 'operations.canView'), getClassAttendanceWeeks);
 
 export default router;

@@ -1,5 +1,6 @@
 import React, { forwardRef, useMemo } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { useLang } from '@contexts/LangContext';
 import styles from './UrlInput.module.css';
 
@@ -101,15 +102,21 @@ const UrlInput = forwardRef(({
           inputMode="url"
         />
         <span className={styles.actions}>
-          <button type="button" className={styles.actionBtn} onClick={handleOpen} title={t('open_in_new_tab')} disabled={!value || !valid}> 
-            {getThemedIcon('ui', 'external_link', 14)}
-          </button>
-          <button type="button" className={styles.actionBtn} onClick={handleCopy} title={t('copy_url')} disabled={!value}>
-            {getThemedIcon('ui', 'copy', 14)}
-          </button>
-          <button type="button" className={styles.actionBtn} onClick={handleClear} title={t('clear')}>
-            {getThemedIcon('ui', 'close', 14)}
-          </button>
+          <ColoredTooltip title={t('open_in_new_tab')}>
+            <button type="button" className={styles.actionBtn} onClick={handleOpen} disabled={!value || !valid}> 
+              {getThemedIcon('ui', 'external_link', 14)}
+            </button>
+          </ColoredTooltip>
+          <ColoredTooltip title={t('copy_url')}>
+            <button type="button" className={styles.actionBtn} onClick={handleCopy} disabled={!value}>
+              {getThemedIcon('ui', 'copy', 14)}
+            </button>
+          </ColoredTooltip>
+          <ColoredTooltip title={t('clear')}>
+            <button type="button" className={styles.actionBtn} onClick={handleClear}>
+              {getThemedIcon('ui', 'close', 14)}
+            </button>
+          </ColoredTooltip>
         </span>
       </div>
       {(hasError || helperText) && (

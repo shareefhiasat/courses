@@ -1,0 +1,13 @@
+import { chromium } from 'playwright';
+const URL = 'https://localhost:5174/welcome?programId=5&termId=6&tab=violations&classId=60&date=2026-08-24';
+const browser = await chromium.launch({ headless: true, args: ['--host-resolver-rules=MAP localhost 127.0.0.1'] });
+const context = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1440, height: 900 } });
+const page = await context.newPage();
+page.on('console', (msg) => console.log('CONSOLE:', msg.type(), msg.text()));
+page.on('pageerror', (err) => console.log('PAGE ERROR:', err.message));
+page.on('requestfailed', (req) => console.log('REQUEST FAILED:', req.url(), req.failure().errorText));
+await page.goto(URL, { waitUntil: 'domcontentloaded' });
+await page.waitForTimeout(10000);
+await page.screenshot({ path: '/tmp/violations-blank.png', fullPage: false });
+console.log('Screenshot saved');
+await browser.close();

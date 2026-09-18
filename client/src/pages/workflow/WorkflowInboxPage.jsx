@@ -8,6 +8,7 @@
 import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format } from "date-fns";
 import { getSlaInfo } from '@utils/sla.js';
@@ -708,15 +709,16 @@ const WorkflowInboxPage = () => {
             {getThemedIcon('ui', 'eye', 16, 'white')}
           </Button>
           {isSuperAdmin && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => handleNuclearDelete(params.row.id)}
-              className="h-8 px-3"
-              title="Nuclear Delete"
-            >
-              <Trash2 size={16} />
-            </Button>
+            <ColoredTooltip title="Nuclear Delete">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => handleNuclearDelete(params.row.id)}
+                className="h-8 px-3"
+              >
+                <Trash2 size={16} />
+              </Button>
+            </ColoredTooltip>
           )}
         </div>
       )
@@ -843,7 +845,6 @@ const WorkflowInboxPage = () => {
                     assignment: ''
                   });
                 }}
-                title={t('workflow.inbox.clearFilters', 'Clear filters')}
               >
                 {getThemedIcon('ui', 'x', 16, theme)}
               </Button>
@@ -852,7 +853,6 @@ const WorkflowInboxPage = () => {
                 size="sm"
                 onClick={refresh}
                 disabled={loading}
-                title={t('workflow.inbox.refresh', 'Refresh')}
               >
                 {getThemedIcon('ui', 'refresh_cw', 16, theme)}
               </Button>

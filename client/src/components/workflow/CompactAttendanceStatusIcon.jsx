@@ -5,7 +5,7 @@ import {
   getAttendanceColor,
   getLocalizedAttendanceLabel,
 } from '@constants/attendanceTypes';
-import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
+import { Check, Clock, X, Heart, Circle } from '@utils/icons.jsx';
 
 function normalizeStatus(status) {
   if (!status) return null;
@@ -27,39 +27,42 @@ export default function CompactAttendanceStatusIcon({
 
   if (!normalized) {
     return (
-      <CircleIcon
-        style={{ width: size, height: size, stroke: '#9ca3af', flexShrink: 0 }}
-        title={tooltip}
+      <Circle
+        size={size}
+        color="#9ca3af"
+        style={{ flexShrink: 0 }}
       />
     );
   }
 
   const color = getAttendanceColor(normalized);
-  const style = { width: size, height: size, stroke: color, flexShrink: 0 };
 
-  let IconComponent = CircleIcon;
+  let IconComponent = Circle;
+  let strokeWidth = 2;
   switch (normalized) {
     case ATTENDANCE_STATUS.PRESENT:
     case ATTENDANCE_STATUS.STANDUP_PRESENT:
-      IconComponent = CheckSmallIcon;
+      IconComponent = Check;
+      strokeWidth = 3;
       break;
     case ATTENDANCE_STATUS.LATE:
     case ATTENDANCE_STATUS.STANDUP_LATE:
-      IconComponent = ClockSmallIcon;
+      IconComponent = Clock;
       break;
     case ATTENDANCE_STATUS.ABSENT_NO_EXCUSE:
     case ATTENDANCE_STATUS.STANDUP_ABSENT:
-      IconComponent = XSmallIcon;
+      IconComponent = X;
       break;
     case ATTENDANCE_STATUS.EXCUSED_LEAVE:
     case ATTENDANCE_STATUS.HUMAN_CASE:
     case ATTENDANCE_STATUS.STANDUP_CLINIC:
-      IconComponent = HeartIcon;
+      IconComponent = Heart;
+      strokeWidth = 2.5;
       break;
     default:
-      IconComponent = CircleIcon;
+      IconComponent = Circle;
       break;
   }
 
-  return <IconComponent style={style} title={tooltip} />;
+  return <IconComponent size={size} color={color} strokeWidth={strokeWidth} style={{ flexShrink: 0 }} title={tooltip} />;
 }

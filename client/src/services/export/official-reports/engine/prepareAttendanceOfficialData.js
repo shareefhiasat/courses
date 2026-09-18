@@ -2,7 +2,7 @@ import { ATTENDANCE_STATUS, getStatusCodeFromRecord } from '@constants/attendanc
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import { buildViolationsOfficialSerial } from './serialNumber.js';
 import { formatDeduction, getDeductionForStatus } from '../shared/deductionDisplay.js';
-import { formatOfficialReportDate } from '../shared/officialDateFormat.js';
+import { formatOfficialReportDate, formatOfficialReportDateTime } from '../shared/officialDateFormat.js';
 import { getQatarDateParts, formatForDateInput } from '@utils/date-formatter.js';
 
 const VIOLATION_LABELS = {
@@ -43,7 +43,7 @@ export function prepareAttendanceOfficialData({
   lang = 'ar',
   preview = false,
 }) {
-  const serial = buildViolationsOfficialSerial(metadata.programId);
+  const serial = buildViolationsOfficialSerial(metadata.programId, metadata.dateFrom || metadata.date);
   const issueDate = formatOfficialReportDate(new Date());
 
   const filtered = records.filter((record) => {
@@ -149,13 +149,7 @@ export function prepareAttendanceOfficialData({
     : '';
 
   const isAr = lang === 'ar';
-  const generatedAt = new Date().toLocaleString(isAr ? 'ar-SA' : 'en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const generatedAt = formatOfficialReportDateTime(new Date(), lang);
 
   return {
     serial,
@@ -173,5 +167,7 @@ export function prepareAttendanceOfficialData({
     },
     dateGroups,
     watermarkUser: metadata.watermarkUser,
+    watermarkStatus: metadata.watermarkStatus || null,
+    approvedByUser: metadata.approvedByUser || null,
   };
 }

@@ -5,41 +5,41 @@
  * A simple FAB that opens the /chat page in a new tab when clicked.
  * Shows unread message count badge.
  */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageCircle } from 'lucide-react';
+import React, { useSyncExternalStore, useState, useEffect, useRef, useCallback } from 'react';
+import { MessageCircle, Sparkles } from 'lucide-react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import chatSocket from '@services/realtime/chatSocket.js';
 import { getUserRooms } from '@services/business/chatService.js';
+import AiQueryDialog from '@components/ai/AiQueryDialog.jsx';
+import { subscribe, getSnapshot, setOpen } from '@components/ai/aiQueryStore';
+import { isFeatureEnabledForUser } from '@constants/featureFlags.js';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import styles from './MiniChatBalloon.module.css';
 
-const STORAGE_KEY = 'mini-chat-balloon-position';
-const FAB_SIZE = 48;
+const STORAGE_PREFIX = 'mini-chat-balloon-position';
+const FAB_SIZE = 36;
 const DEFAULT_MARGIN = 16;
 
 const MiniChatBalloon = ({ groupRole = 'hr', groupLabel }) => {
-  const { user } = useAuth();
+  const { user, isAdmin, isHR, isSuperAdmin } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const isRTL = lang === 'ar';
+  const canUseAi = (isAdmin || isHR || isSuperAdmin) && isFeatureEnabledForUser('AI_BALLOON', user);
+  const { open: aiDialogOpen } = useSyncExternalStore(subscribe, getSnapshot);
 
   const wrapperRef = useRef(null);
   const dragState = useRef({ dragging: false, startX: 0, startY: 0, origLeft: 0, origTop: 0, moved: false });
 
-  const [pos, setPos] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch { /* ignore */ }
-    return {
-      left: isRTL ? DEFAULT_MARGIN : undefined,
-      right: isRTL ? undefined : DEFAULT_MARGIN,
-      bottom: DEFAULT_MARGIN,
-      top: undefined,
-    };
-  });
+  const [pos, setPos] = useState(() => ({
+    left: isRTL ? DEFAULT_MARGIN : undefined,
+    right: isRTL ? undefined : DEFAULT_MARGIN,
+    bottom: DEFAULT_MARGIN,
+    top: undefined,
+  }));
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [hrGroupId, setHrGroupId] = useState(null);
@@ -97,10 +97,28 @@ const MiniChatBalloon = ({ groupRole = 'hr', groupLabel }) => {
   }, []);
 
   const persistPos = useCallback((left, top) => {
+    const key = `${STORAGE_PREFIX}-${lang}`;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ left, top }));
+      localStorage.setItem(key, JSON.stringify({ left, top }));
     } catch { /* ignore */ }
-  }, []);
+  }, [lang, STORAGE_PREFIX]);
+
+  useEffect(() => {
+    const key = `${STORAGE_PREFIX}-${lang}`;
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        setPos(JSON.parse(saved));
+      } else {
+        setPos({
+          left: isRTL ? DEFAULT_MARGIN : undefined,
+          right: isRTL ? undefined : DEFAULT_MARGIN,
+          bottom: DEFAULT_MARGIN,
+          top: undefined,
+        });
+      }
+    } catch { /* ignore */ }
+  }, [lang, isRTL]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -173,25 +191,54 @@ const MiniChatBalloon = ({ groupRole = 'hr', groupLabel }) => {
     bottom: pos.bottom != null ? `${pos.bottom}px` : undefined,
   };
 
+  const handleAiClick = useCallback((e) => {
+    e.stopPropagation();
+    if (dragState.current.moved) return;
+    setOpen(true);
+  }, []);
+
   return (
-    <div
-      ref={wrapperRef}
-      className={`${styles.wrapper} ${isDark ? styles.dark : ''}`}
-      style={wrapperStyle}
-    >
-      <button
-        type="button"
-        className={styles.fab}
-        onPointerDown={handlePointerDown}
-        onClick={handleFabClick}
-        aria-label={t('mini_chat_title') || 'Chat'}
+    <>
+      <div
+        ref={wrapperRef}
+        className={`${styles.wrapper} ${isDark ? styles.dark : ''}`}
+        style={wrapperStyle}
       >
-        <MessageCircle size={16} />
-        {unreadCount > 0 && (
-          <span className={styles.badge}>{unreadCount > 99 ? '99+' : unreadCount}</span>
-        )}
-      </button>
-    </div>
+        <div className={styles.buttonGroup}>
+          <ColoredTooltip title={t('mini_chat_title') || 'Chat'}>
+            <button
+              type="button"
+              className={styles.fab}
+              onPointerDown={handlePointerDown}
+              onClick={handleFabClick}
+              aria-label={t('mini_chat_title') || 'Chat'}
+            >
+              <MessageCircle size={18} />
+              {unreadCount > 0 && (
+                <span className={styles.badge}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
+            </button>
+          </ColoredTooltip>
+
+          {canUseAi && (
+            <ColoredTooltip title={isRTL ? 'المساعد الذكي للاستعلامات' : 'Smart Query Assistant'}>
+              <button
+                type="button"
+                data-testid="ai-assistant-fab"
+                className={styles.aiFab}
+                onPointerDown={handlePointerDown}
+                onClick={handleAiClick}
+                aria-label={isRTL ? 'المساعد الذكي' : 'AI Assistant'}
+              >
+                <Sparkles size={18} />
+              </button>
+            </ColoredTooltip>
+          )}
+        </div>
+      </div>
+
+      {canUseAi && aiDialogOpen && <AiQueryDialog />}
+    </>
   );
 };
 

@@ -15,6 +15,8 @@ const WelcomeHeader = ({ user, role }) => {
 
   const userName = getUserDisplayName(user, lang);
   const roleLabel = t(`welcome_role_${role}`) || role;
+  const rank = lang === 'ar' ? (user?.rankAr || user?.rankEn) : (user?.rankEn || user?.rankAr);
+  const displayUser = rank ? `${rank} ${userName}` : userName;
 
   return (
     <div
@@ -28,30 +30,13 @@ const WelcomeHeader = ({ user, role }) => {
         textAlign: 'center',
       }}
     >
-      <div
-        style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '50%',
-          background: 'var(--color-primary, #800020)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '26px',
-          fontWeight: 700,
-          color: '#fff',
-          marginBottom: '8px',
-        }}
-      >
-        {userName?.charAt(0)?.toUpperCase() || '?'}
-      </div>
       <h1
         style={{
           fontSize: '24px',
           fontWeight: 700,
           margin: 0,
           color: isDark ? '#f1f5f9' : '#1e293b',
-        }}
+        }}displayU
       >
         {t(greetingKey)}, {userName}
       </h1>

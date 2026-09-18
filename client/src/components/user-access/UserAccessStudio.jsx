@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Joyride from 'react-joyride';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import {
   Users, Layers, BookOpen, GraduationCap, DoorOpen, Eye, Shield, Plus, Trash2,
   Sparkles, ChevronRight, Save, Search, GitBranch, ClipboardList, Calendar, MessageSquare,
@@ -466,19 +467,20 @@ function UserAccessStudio() {
           </div>
         </div>
         {showDm && (
-          <button
-            type="button"
-            title={t('message_user')}
-            aria-label={t('message_user')}
-            onClick={(e) => handleMessageUser(u, e)}
-            style={{
-              flexShrink: 0, border: `1px solid ${border}`, borderRadius: 8,
-              background: isDark ? '#111827' : '#fff', padding: '6px 8px', cursor: 'pointer',
-              display: 'inline-flex', alignItems: 'center', color: 'var(--color-primary,#800020)',
-            }}
-          >
-            <MessageSquare size={14} />
-          </button>
+          <ColoredTooltip title={t('message_user')}>
+            <button
+              type="button"
+              aria-label={t('message_user')}
+              onClick={(e) => handleMessageUser(u, e)}
+              style={{
+                flexShrink: 0, border: `1px solid ${border}`, borderRadius: 8,
+                background: isDark ? '#111827' : '#fff', padding: '6px 8px', cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', color: 'var(--color-primary,#800020)',
+              }}
+            >
+              <MessageSquare size={14} />
+            </button>
+          </ColoredTooltip>
         )}
       </div>
     );

@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Joyride from 'react-joyride';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { getModalJoyrideProps, modalTourStep } from '@utils/tourConfig';
 import { useModalTour } from '@hooks/useModalTour';
 import { useLang } from '@contexts/LangContext';
@@ -323,9 +324,11 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
                             {getChatUserDisplayName(user)}
                           </span>
                           {isInactive && (
-                            <span title={t('inactive_user')} style={{ fontSize: '0.65rem', background: '#dc2626', color: 'white', padding: '1px 5px', borderRadius: 8, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                              {t('inactive')}
-                            </span>
+                            <ColoredTooltip title={t('inactive_user')}>
+                              <span style={{ fontSize: '0.65rem', background: '#dc2626', color: 'white', padding: '1px 5px', borderRadius: 8, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                {t('inactive')}
+                              </span>
+                            </ColoredTooltip>
                           )}
                         </div>
                         {user.email && (

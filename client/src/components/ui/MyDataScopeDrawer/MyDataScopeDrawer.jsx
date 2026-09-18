@@ -1,12 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CalendarDays, Download, FileText, ClipboardList } from 'lucide-react';
 import { Drawer, Button, SimpleLoading } from '@ui';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { getAuthToken } from '@utils/authHelpers';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
+import { resolveUserRole } from '@utils/userUtils.js';
+import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import { getClassOptionLabel, getProgramOptionLabel, getSubjectOptionLabel } from '@utils/academicSelectOptions';
-import { getAcademicTermOptions, getAcademicTermLabel } from '@constants/academicTerms';
+import { getAcademicTermLabel } from '@constants/academicTerms';
 import { getLocalizedName } from '@utils/languageHelpers';
 import useDrawerTheme from '@hooks/useDrawerTheme';
 import { UI_THEMES } from '@constants/uiTheme';
@@ -51,65 +54,17 @@ function ClassExportActions({
     }
   };
 
-  const btnStyle = {
+  const iconBtnStyle = {
     fontSize: '0.72rem',
-    padding: '4px 8px',
+    padding: '4px 6px',
     minHeight: 'unset',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
   };
 
   return (
     <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-        <Button
-          variant="outline"
-          size="sm"
-          style={btnStyle}
-          disabled={!!exporting}
-          onClick={() => runExport('weekly', () => exportWeeklyScheduleForScope({ cls, program, subject, lang, t, user }))}
-        >
-          {exporting === 'weekly' ? t('exporting') : t('weekly_schedule')}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          style={btnStyle}
-          disabled={!!exporting}
-          onClick={() => runExport('template', () => exportDailyOfficialTemplate({ cls, program, subject, lang, user }))}
-        >
-          {exporting === 'template' ? t('exporting') : t('daily_official_template')}
-        </Button>
-        {canDailyWithDate && (
-          <>
-            <DatePicker
-              value={dailyDate}
-              onChange={setDailyDate}
-              theme={theme}
-              style={{ width: 130, fontSize: '0.75rem' }}
-            />
-            <Button
-              variant="primary"
-              size="sm"
-              style={btnStyle}
-              disabled={!!exporting || !dailyDate}
-              onClick={() => runExport('daily', () => exportDailyOfficialForDate({
-                cls, program, subject, lang, user, date: dailyDate,
-              }))}
-            >
-              {exporting === 'daily' ? t('exporting') : t('daily_official')}
-            </Button>
-          </>
-        )}
-        {canAttendanceOfficial && (
-          <Button
-            variant="outline"
-            size="sm"
-            style={btnStyle}
-            onClick={() => onAttendanceOfficial({ cls, program, subject })}
-          >
-            {t('attendance_official')}
-          </Button>
-        )}
-      </div>
       {error && <div style={{ fontSize: '0.72rem', color: UI_THEMES[theme]?.colors.error[600] || '#dc2626' }}>{error}</div>}
     </div>
   );
@@ -125,8 +80,6 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
   const [details, setDetails] = useState(null);
   const [error, setError] = useState('');
   const [searchText, setSearchText] = useState('');
-  const [yearFilter, setYearFilter] = useState('');
-  const [termFilter, setTermFilter] = useState('');
   const [programFilter, setProgramFilter] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
   const [ownershipFilter, setOwnershipFilter] = useState('all');
@@ -161,6 +114,9 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
         headers: { Authorization: token ? `Bearer ${token}` : '' },
       });
       const json = await res.json();
+      console.log('[MyDataScopeDrawer] API response:', { status: res.status, success: json.success, data: json.data });
+      console.log('[MyDataScopeDrawer] details.unlimited:', json.data?.unlimited, '| details.unrestricted:', json.data?.unrestricted, '| source:', json.data?.source);
+      console.log('[MyDataScopeDrawer] programs:', json.data?.programs?.length, '| subjects:', json.data?.subjects?.length, '| classes:', json.data?.classes?.length);
       if (!res.ok || !json.success) {
         throw new Error(json.error || 'Failed to load access scope');
       }
@@ -186,12 +142,6 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
     [details],
   );
 
-  const availableYears = useMemo(() => {
-    const years = new Set((details?.classes || []).map((c) => c.year).filter(Boolean));
-    return [...years].sort((a, b) => String(b).localeCompare(String(a)));
-  }, [details]);
-
-  const termOptions = getAcademicTermOptions(lang);
 
   const filteredClasses = useMemo(() => {
     let items = details?.classes || [];
@@ -205,10 +155,6 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
     }
     if (subjectFilter) {
       items = items.filter((c) => Number(c.subjectId || c.subject?.id) === Number(subjectFilter));
-    }
-    if (yearFilter) items = items.filter((c) => String(c.year) === String(yearFilter));
-    if (termFilter) {
-      items = items.filter((c) => String(c.term || '').toLowerCase() === termFilter.toLowerCase());
     }
     const q = searchText.trim().toLowerCase();
     if (q) {
@@ -226,7 +172,7 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
       });
     }
     return items;
-  }, [details, ownershipFilter, programFilter, subjectFilter, yearFilter, termFilter, searchText, lang, programMap, subjectMap]);
+  }, [details, ownershipFilter, programFilter, subjectFilter, searchText, lang, programMap, subjectMap]);
 
   const filteredSubjects = useMemo(() => {
     let items = details?.subjects || [];
@@ -235,12 +181,6 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
     }
     if (subjectFilter) {
       items = items.filter((s) => Number(s.id) === Number(subjectFilter));
-    }
-    if (yearFilter || termFilter) {
-      const classSubjectIds = new Set(
-        filteredClasses.map((c) => Number(c.subjectId)).filter(Boolean),
-      );
-      items = items.filter((s) => classSubjectIds.has(Number(s.id)));
     }
     const q = searchText.trim().toLowerCase();
     if (q) {
@@ -252,7 +192,7 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
       });
     }
     return items;
-  }, [details, programFilter, subjectFilter, filteredClasses, yearFilter, termFilter, searchText, lang, programMap]);
+  }, [details, programFilter, subjectFilter, searchText, lang, programMap]);
 
   const groupedClasses = useMemo(() => {
     const groups = new Map();
@@ -271,6 +211,22 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
       getLocalizedName(a.program, lang).localeCompare(getLocalizedName(b.program, lang), lang === 'ar' ? 'ar' : 'en'),
     );
   }, [filteredClasses, programMap, lang]);
+
+  const filteredPrograms = useMemo(() => {
+    let items = details?.programs || [];
+    if (programFilter) {
+      items = items.filter((p) => Number(p.id) === Number(programFilter));
+    }
+    const q = searchText.trim().toLowerCase();
+    if (q) {
+      items = items.filter((p) => {
+        const label = getProgramOptionLabel(p, lang).toLowerCase();
+        const code = (p.code || '').toLowerCase();
+        return label.includes(q) || code.includes(q);
+      });
+    }
+    return items;
+  }, [details?.programs, programFilter, searchText, lang]);
 
   const programOptions = useMemo(() => {
     const items = details?.programs || [];
@@ -386,7 +342,79 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
         resizable
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.25rem 0' }}>
-          {!loading && details && (
+          {!loading && user && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                {user.profileImageUrl || user.avatar ? (
+                  <img
+                    src={user.profileImageUrl || user.avatar}
+                    alt={getLocalizedUserName(user, lang, '')}
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                      background: 'linear-gradient(135deg, rgb(212, 175, 55), rgb(255, 215, 0))',
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      color: 'rgb(46, 59, 78)',
+                      background: 'linear-gradient(135deg, rgb(212, 175, 55), rgb(255, 215, 0))',
+                    }}
+                  >
+                    {(getLocalizedUserName(user, lang, '') || '?').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                {(() => {
+                  const role = resolveUserRole(user);
+                  const roleIcon = role ? getUserRoleIcon(role) : null;
+                  const roleColor = role ? getUserRoleColor(role) : null;
+                  return roleIcon && (
+                    <div
+                      aria-label={role}
+                      style={{
+                        position: 'absolute',
+                        right: -8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: 18,
+                        height: 18,
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: isDarkMode ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.96)',
+                        color: '#fff',
+                        boxShadow: `0 0 0 1px ${roleColor}`,
+                      }}
+                    >
+                      {React.cloneElement(roleIcon, { size: 12, color: '#fff', fill: roleColor })}
+                    </div>
+                  );
+                })()}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <span style={{ fontWeight: 600, fontSize: '0.95rem', color: textColor }}>
+                  {getLocalizedUserName(user, lang, '')}
+                </span>
+                <span style={{ fontSize: '0.75rem', color: mutedColor }}>
+                  {t('signed_in_as')}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {!loading && details && !(details.unlimited && (details.programs?.length || 0) === 0 && (details.subjects?.length || 0) === 0 && (details.classes?.length || 0) === 0) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <input
                 type="text"
@@ -418,8 +446,6 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
                     </option>
                   ))}
                 </select>
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <select
                   value={ownershipFilter}
                   onChange={(e) => setOwnershipFilter(e.target.value)}
@@ -428,26 +454,6 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
                   <option value="all">{t('my_access_filter_all_classes')}</option>
                   <option value="mine">{t('my_access_filter_my_classes')}</option>
                   <option value="others">{t('my_access_filter_other_classes')}</option>
-                </select>
-                <select
-                  value={yearFilter}
-                  onChange={(e) => setYearFilter(e.target.value)}
-                  style={{ ...selectStyle, flex: 1, minWidth: 90 }}
-                >
-                  <option value="">{t('all_years')}</option>
-                  {availableYears.map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-                <select
-                  value={termFilter}
-                  onChange={(e) => setTermFilter(e.target.value)}
-                  style={{ ...selectStyle, flex: 1, minWidth: 110 }}
-                >
-                  <option value="">{t('all_terms')}</option>
-                  {termOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
                 </select>
               </div>
             </div>
@@ -461,19 +467,69 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
 
           {!loading && !error && details && (
             <>
+              {details.unlimited && (() => {
+                const totalPrograms = details.programs?.length || 0;
+                const totalSubjects = details.subjects?.length || 0;
+                const totalClasses = details.classes?.length || 0;
+                const hasNoFilters = !searchText.trim() && !programFilter && !subjectFilter && ownershipFilter === 'all';
+                const noDataAtAll = totalPrograms === 0 && totalSubjects === 0 && totalClasses === 0;
+
+                if (noDataAtAll && hasNoFilters) {
+                  return (
+                    <div style={{
+                      padding: '1rem 1.25rem',
+                      borderRadius: 10,
+                      border: `1px solid ${isDarkMode ? '#166534' : '#16a34a'}`,
+                      background: isDarkMode ? 'rgba(22, 101, 52, 0.12)' : 'rgba(34, 197, 94, 0.08)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {getThemedIcon('ui', 'shield', 20, 'success')}
+                        <span style={{ fontWeight: 600, fontSize: '0.95rem', color: isDarkMode ? '#4ade80' : '#15803d' }}>
+                          {t('my_access_unlimited')}
+                        </span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: isDarkMode ? '#86efac' : '#16a34a' }}>
+                        {t('my_access_unlimited_hint')}
+                      </p>
+                    </div>
+                  );
+                }
+
+                return null;
+              })()}
+
+              {(!details.unlimited || (details.unlimited && !(() => {
+                const totalPrograms = details.programs?.length || 0;
+                const totalSubjects = details.subjects?.length || 0;
+                const totalClasses = details.classes?.length || 0;
+                const hasNoFilters = !searchText.trim() && !programFilter && !subjectFilter && ownershipFilter === 'all';
+                return totalPrograms === 0 && totalSubjects === 0 && totalClasses === 0 && hasNoFilters;
+              })())) && (
+                <>
               {details.unlimited && (
-                <div style={{ padding: '0.75rem 1rem', borderRadius: 8, border: `1px solid ${border}`, background: panelBg }}>
+                <div style={{
+                  padding: '0.75rem 1rem',
+                  borderRadius: 8,
+                  border: `1px solid ${isDarkMode ? '#166534' : '#16a34a'}`,
+                  background: isDarkMode ? 'rgba(22, 101, 52, 0.12)' : 'rgba(34, 197, 94, 0.08)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {getThemedIcon('ui', 'shield', 18, 'success')}
-                    <span style={{ fontWeight: 500 }}>{t('my_access_unlimited')}</span>
+                    <span style={{ fontWeight: 600, color: isDarkMode ? '#4ade80' : '#15803d' }}>{t('my_access_unlimited')}</span>
                   </div>
-                  <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: muted }}>{t('my_access_unlimited_hint')}</p>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: isDarkMode ? '#86efac' : '#16a34a' }}>{t('my_access_unlimited_hint')}</p>
                 </div>
               )}
 
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 {[
-                  { key: 'programs', count: details.programs?.length || 0, label: t('programs') },
+                  { key: 'programs', count: filteredPrograms.length, label: t('programs') },
                   { key: 'subjects', count: filteredSubjects.length, label: t('subjects') },
                   { key: 'classes', count: filteredClasses.length, label: t('classes') },
                 ].map((chip) => (
@@ -494,7 +550,7 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
               </div>
 
               {(() => {
-                const hasNoFilters = !searchText.trim() && !programFilter && !subjectFilter && !yearFilter && !termFilter && ownershipFilter === 'all';
+                const hasNoFilters = !searchText.trim() && !programFilter && !subjectFilter && ownershipFilter === 'all';
                 const totalPrograms = details.programs?.length || 0;
                 const totalSubjects = details.subjects?.length || 0;
                 const totalClasses = details.classes?.length || 0;
@@ -519,7 +575,7 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
                   );
                 }
 
-                if (filteredClasses.length === 0 && filteredSubjects.length === 0 && !hasNoFilters) {
+                if (filteredClasses.length === 0 && filteredSubjects.length === 0 && !hasNoFilters && filteredPrograms.length === 0) {
                   return (
                     <div style={{ padding: '0.75rem 1rem', borderRadius: 8, border: `1px dashed ${border}`, color: muted, fontSize: '0.875rem' }}>
                       {t('my_access_no_filter_results')}
@@ -532,8 +588,19 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
 
               {groupedClasses.map((group) => (
                 <div key={group.program?.id || 'unknown'} style={{ border: `1px solid ${border}`, borderRadius: 8, overflow: 'hidden' }}>
-                  <div style={{ padding: '0.6rem 0.85rem', background: panelBg, fontWeight: 600, fontSize: '0.9rem' }}>
+                  <div style={{ padding: '0.6rem 0.85rem', background: panelBg, fontWeight: 600, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                     {getProgramOptionLabel(group.program, lang) || t('unknown_program')}
+                    <span style={{
+                      padding: '1px 6px',
+                      borderRadius: 999,
+                      fontSize: '0.68rem',
+                      fontWeight: 600,
+                      background: isDarkMode ? grayColors[100] : bgColor,
+                      color: muted,
+                      border: `1px solid ${border}`,
+                    }}>
+                      {group.classes.length}
+                    </span>
                   </div>
                   <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                     {group.classes.map((cls) => {
@@ -666,6 +733,8 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
               )}
 
               <p style={{ margin: 0, fontSize: '0.78rem', color: muted }}>{t('my_data_access_hint')}</p>
+                </>
+              )}
             </>
           )}
         </div>

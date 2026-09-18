@@ -37,6 +37,8 @@ import {
   getBoardWorkflowDocuments,
   ensureDailyWorkflows,
   shareWorkflowFile,
+  validateWorkflowAttendanceBeforeApproval,
+  replaceWorkflowDocumentFile,
 } from '../services/workflowDocumentService.js';
 import { emit } from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
@@ -53,7 +55,7 @@ const mapCommentAuthorImages = (comments) => {
     if (!c.author?.profileImageUrl) return c;
     const url = c.author.profileImageUrl;
     if (url.startsWith('http') || url.startsWith('/api/')) return c;
-    return { ...c, author: { ...c.author, profileImageUrl: `/api/v1/user-images/proxy/${c.author.keycloakId}/profile` } };
+    return { ...c, author: { ...c.author, profileImageUrl: `/api/v1/user-images/proxy/${c.author.keycloakId || c.author.id}/profile` } };
   });
 };
 
@@ -61,10 +63,19 @@ const mapCommentAuthorImages = (comments) => {
  * Convert MinIO image key in a user object to a proxy URL.
  */
 const mapUserImage = (user) => {
-  if (!user?.profileImageUrl) return user;
-  const url = user.profileImageUrl;
-  if (url.startsWith('http') || url.startsWith('/api/')) return user;
-  return { ...user, profileImageUrl: `/api/v1/user-images/proxy/${user.keycloakId}/profile` };
+  if (!user) return user;
+  const userId = user.keycloakId || user.id || user.userId;
+  const rawUrl = user.profileImageUrl || user.imageUrl || user.image || user.profileImage || user.avatar;
+  if (rawUrl) {
+    if (rawUrl.startsWith('http') || rawUrl.startsWith('/api/')) {
+      return { ...user, profileImageUrl: rawUrl };
+    }
+    return { ...user, profileImageUrl: `/api/v1/user-images/proxy/${userId}/profile` };
+  }
+  if (userId) {
+    return { ...user, profileImageUrl: `/api/v1/user-images/proxy/${userId}/profile` };
+  }
+  return user;
 };
 
 /**
@@ -77,6 +88,7 @@ const mapDocumentUserImages = (document) => {
     submitter: mapUserImage(document.submitter),
     currentAssignee: mapUserImage(document.currentAssignee),
     instructor: mapUserImage(document.instructor),
+    class: document.class ? { ...document.class, instructor: mapUserImage(document.class.instructor) } : document.class,
     statusHistory: (document.statusHistory || []).map(h => ({
       ...h,
       actor: mapUserImage(h.actor),
@@ -103,6 +115,7 @@ export const createWorkflowDocumentController = async (req, res) => {
       });
       return res.status(403).json({
         success: false,
+        errorKey: 'workflow_error_access_instructor_required',
         error: 'Access denied. Instructor role required.'
       });
     }
@@ -123,6 +136,7 @@ export const createWorkflowDocumentController = async (req, res) => {
     if (!workflowType || !title || !classId || !date || !program || !subject) {
       return res.status(400).json({
         success: false,
+        errorKey: 'workflow_error_missing_required_fields',
         error: 'Missing required fields: workflowType, title, classId, date, program, subject'
       });
     }
@@ -130,6 +144,7 @@ export const createWorkflowDocumentController = async (req, res) => {
     if (!fileData || !fileName || !fileType) {
       return res.status(400).json({
         success: false,
+        errorKey: 'workflow_error_missing_file_data',
         error: 'Missing file data: fileData, fileName, fileType required'
       });
     }
@@ -156,36 +171,7 @@ export const createWorkflowDocumentController = async (req, res) => {
     });
 
     if (result.success) {
-      // Emit notification to HR users
-      try {
-        const submitter = await prisma.user.findUnique({
-          where: { id: user.dbId },
-          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
-        });
-        const cls = result.data.document.classId ? await prisma.class.findUnique({
-          where: { id: result.data.document.classId },
-          select: { id: true, nameEn: true, nameAr: true, code: true }
-        }) : null;
-
-        await emit(EVENTS.WORKFLOW_SUBMITTED, {
-          ...buildNotificationNameVars(submitter, 'Unknown User'),
-          title: result.data.document.title,
-          workflowType: result.data.document.workflowType,
-          documentId: result.data.document.id,
-          classId: result.data.document.classId,
-          date: result.data.document.date,
-          className: cls?.nameEn || null,
-          classNameAr: cls?.nameAr || cls?.nameEn || null,
-          submitterName: submitter?.displayName || 'Unknown',
-          senderName: submitter?.displayName || 'Unknown',
-          senderId: user?.dbId || null,
-          recipientType: 'role',
-          recipientRole: LMS_ROLES.HR,
-        }, user, { role: LMS_ROLES.HR });
-      } catch (notificationError) {
-        console.error('Failed to emit notification:', notificationError);
-      }
-
+      // Notification is emitted by createWorkflowDocumentWithUpload
       res.status(201).json({
         success: true,
         data: result.data
@@ -331,13 +317,14 @@ export const updateWorkflowDocumentStatusController = async (req, res) => {
     if (!status) {
       return res.status(400).json({
         success: false,
+        errorKey: 'workflow_error_status_required',
         error: 'Status is required'
       });
     }
 
     const existing = await getWorkflowDocument(parseInt(id));
     if (!existing.success) {
-      return res.status(404).json({ success: false, error: 'Document not found' });
+      return res.status(404).json({ success: false, errorKey: 'workflow_error_document_not_found', error: 'Document not found' });
     }
     const previousStatus = existing.data.status;
 
@@ -366,7 +353,7 @@ export const updateWorkflowDocumentStatusController = async (req, res) => {
       try {
         const actor = await prisma.user.findUnique({
           where: { id: user.dbId },
-          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, role: true, roleAssignments: { select: { role: { select: { code: true } } } }, keycloakId: true }
         });
         const cls = result.data.classId ? await prisma.class.findUnique({
           where: { id: result.data.classId },
@@ -378,6 +365,8 @@ export const updateWorkflowDocumentStatusController = async (req, res) => {
           documentId: result.data.id,
           senderName: actor?.displayName || 'Unknown',
           senderId: user?.dbId || null,
+          senderImage: mapUserImage(actor)?.profileImageUrl || null,
+          senderKeycloakId: actor?.keycloakId || null,
           classId: result.data.classId || null,
           subjectId: cls?.subjectId || null,
           className: cls?.nameEn || null,
@@ -386,43 +375,216 @@ export const updateWorkflowDocumentStatusController = async (req, res) => {
           newStatus: status,
         };
 
+        const isWeeklyWorkflow = result.data.attendanceSubtype === 'WEEKLY_SUMMARY';
+
         if (status === 'SUBMITTED' && previousStatus === 'DRAFT') {
           // Instructor submitted — notify Admins and HR that a draft is ready for review pipeline
           await emit(EVENTS.WORKFLOW_SUBMITTED, {
             ...basePayload,
             recipientType: 'role',
             recipientRole: LMS_ROLES.ADMIN,
-          }, user, { role: LMS_ROLES.ADMIN });
+          }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
           await emit(EVENTS.WORKFLOW_SUBMITTED, {
             ...basePayload,
             recipientType: 'role',
             recipientRole: LMS_ROLES.HR,
-          }, user, { role: LMS_ROLES.HR });
+          }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
         } else if (status === 'UNDER_ADMIN_REVIEW' && previousStatus === 'SUBMITTED') {
           await emit(EVENTS.WORKFLOW_SENT_FOR_APPROVAL, {
             ...basePayload,
             recipientType: 'role',
             recipientRole: LMS_ROLES.ADMIN,
-          }, user, { role: LMS_ROLES.ADMIN });
+          }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
         } else if (status === 'UNDER_HR_REVIEW') {
           await emit(EVENTS.WORKFLOW_SENT_FOR_REVIEW, {
             ...basePayload,
             recipientType: 'role',
             recipientRole: LMS_ROLES.HR,
-          }, user, { role: LMS_ROLES.HR });
+          }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
         } else if (status === 'SUBMITTED' && previousStatus === 'UNDER_ADMIN_REVIEW' && result.data.submitterId) {
           await emit(EVENTS.WORKFLOW_RETURNED, {
             ...basePayload,
             feedback: reason || '',
             recipientType: 'user',
             recipientUserId: result.data.submitterId,
-          }, user, { userId: result.data.submitterId });
+          }, user, { userId: result.data.submitterId, excludeInstructors: isWeeklyWorkflow });
           await emit(EVENTS.WORKFLOW_RETURNED, {
             ...basePayload,
             feedback: reason || '',
             recipientType: 'role',
             recipientRole: LMS_ROLES.ADMIN,
-          }, user, { role: LMS_ROLES.ADMIN });
+          }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
+        } else if (status === 'SUBMITTED' && previousStatus === 'UNDER_HR_REVIEW' && result.data.submitterId) {
+          await emit(EVENTS.WORKFLOW_RETURNED, {
+            ...basePayload,
+            feedback: reason || '',
+            recipientType: 'user',
+            recipientUserId: result.data.submitterId,
+          }, user, { userId: result.data.submitterId, excludeInstructors: isWeeklyWorkflow });
+          await emit(EVENTS.WORKFLOW_RETURNED, {
+            ...basePayload,
+            feedback: reason || '',
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.HR,
+          }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
+        } else if (status === 'DRAFT' && ['SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW'].includes(previousStatus)) {
+          if (result.data.submitterId) {
+            await emit(EVENTS.WORKFLOW_RETURNED, {
+              ...basePayload,
+              feedback: reason || '',
+              recipientType: 'user',
+              recipientUserId: result.data.submitterId,
+            }, user, { userId: result.data.submitterId, excludeInstructors: isWeeklyWorkflow });
+          }
+          await emit(EVENTS.WORKFLOW_RETURNED, {
+            ...basePayload,
+            feedback: reason || '',
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.ADMIN,
+          }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
+        } else if (status === 'APPROVED' && ['UNDER_HR_REVIEW', 'UNDER_ADMIN_REVIEW', 'SUBMITTED'].includes(previousStatus)) {
+          await emit(EVENTS.WORKFLOW_APPROVED, {
+            ...basePayload,
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.ADMIN,
+          }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
+          await emit(EVENTS.WORKFLOW_APPROVED, {
+            ...basePayload,
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.HR,
+          }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
+          if (result.data.submitterId) {
+            await emit(EVENTS.WORKFLOW_APPROVED, {
+              ...basePayload,
+              recipientType: 'user',
+              recipientUserId: result.data.submitterId,
+            }, user, { userId: result.data.submitterId, excludeInstructors: isWeeklyWorkflow });
+          }
+        } else if (status === 'REJECTED' && ['UNDER_HR_REVIEW', 'UNDER_ADMIN_REVIEW', 'SUBMITTED'].includes(previousStatus)) {
+          await emit(EVENTS.WORKFLOW_REJECTED, {
+            ...basePayload,
+            feedback: reason || '',
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.ADMIN,
+          }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
+          await emit(EVENTS.WORKFLOW_REJECTED, {
+            ...basePayload,
+            feedback: reason || '',
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.HR,
+          }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
+          if (result.data.submitterId) {
+            await emit(EVENTS.WORKFLOW_REJECTED, {
+              ...basePayload,
+              feedback: reason || '',
+              recipientType: 'user',
+              recipientUserId: result.data.submitterId,
+            }, user, { userId: result.data.submitterId, excludeInstructors: isWeeklyWorkflow });
+          }
+        } else if (status === 'UNDER_ADMIN_REVIEW' && previousStatus === 'UNDER_HR_REVIEW') {
+          await emit(EVENTS.WORKFLOW_RETURNED, {
+            ...basePayload,
+            feedback: reason || '',
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.ADMIN,
+          }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
+          await emit(EVENTS.WORKFLOW_RETURNED, {
+            ...basePayload,
+            feedback: reason || '',
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.HR,
+          }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
+        } else if (previousStatus === 'REJECTED') {
+          // Reinstating a rejected document — notify based on target status
+          if (status === 'DRAFT' && result.data.submitterId) {
+            await emit(EVENTS.WORKFLOW_RETURNED, {
+              ...basePayload,
+              feedback: reason || '',
+              recipientType: 'user',
+              recipientUserId: result.data.submitterId,
+            }, user, { userId: result.data.submitterId, excludeInstructors: isWeeklyWorkflow });
+          } else if (status === 'SUBMITTED') {
+            await emit(EVENTS.WORKFLOW_RESUBMITTED, {
+              ...basePayload,
+              recipientType: 'role',
+              recipientRole: LMS_ROLES.ADMIN,
+            }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
+            await emit(EVENTS.WORKFLOW_RESUBMITTED, {
+              ...basePayload,
+              recipientType: 'role',
+              recipientRole: LMS_ROLES.HR,
+            }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
+          } else if (status === 'UNDER_ADMIN_REVIEW') {
+            await emit(EVENTS.WORKFLOW_SENT_FOR_APPROVAL, {
+              ...basePayload,
+              recipientType: 'role',
+              recipientRole: LMS_ROLES.ADMIN,
+            }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
+          } else if (status === 'UNDER_HR_REVIEW') {
+            await emit(EVENTS.WORKFLOW_SENT_FOR_REVIEW, {
+              ...basePayload,
+              recipientType: 'role',
+              recipientRole: LMS_ROLES.HR,
+            }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
+          } else if (status === 'APPROVED') {
+            await emit(EVENTS.WORKFLOW_APPROVED, {
+              ...basePayload,
+              recipientType: 'role',
+              recipientRole: LMS_ROLES.ADMIN,
+            }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
+            await emit(EVENTS.WORKFLOW_APPROVED, {
+              ...basePayload,
+              recipientType: 'role',
+              recipientRole: LMS_ROLES.HR,
+            }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
+          }
+        } else if (previousStatus === 'APPROVED') {
+          // Reopening an approved document — notify based on target status
+          if (status === 'DRAFT' && result.data.submitterId) {
+            await emit(EVENTS.WORKFLOW_RETURNED, {
+              ...basePayload,
+              feedback: reason || '',
+              recipientType: 'user',
+              recipientUserId: result.data.submitterId,
+            }, user, { userId: result.data.submitterId, excludeInstructors: isWeeklyWorkflow });
+          } else if (status === 'SUBMITTED' && result.data.submitterId) {
+            await emit(EVENTS.WORKFLOW_RETURNED, {
+              ...basePayload,
+              feedback: reason || '',
+              recipientType: 'user',
+              recipientUserId: result.data.submitterId,
+            }, user, { userId: result.data.submitterId, excludeInstructors: isWeeklyWorkflow });
+          } else if (status === 'UNDER_ADMIN_REVIEW') {
+            await emit(EVENTS.WORKFLOW_SENT_FOR_APPROVAL, {
+              ...basePayload,
+              recipientType: 'role',
+              recipientRole: LMS_ROLES.ADMIN,
+            }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
+          } else if (status === 'UNDER_HR_REVIEW') {
+            await emit(EVENTS.WORKFLOW_SENT_FOR_REVIEW, {
+              ...basePayload,
+              recipientType: 'role',
+              recipientRole: LMS_ROLES.HR,
+            }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
+          } else if (status === 'REJECTED') {
+            await emit(EVENTS.WORKFLOW_REJECTED, {
+              ...basePayload,
+              recipientType: 'role',
+              recipientRole: LMS_ROLES.ADMIN,
+            }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
+            await emit(EVENTS.WORKFLOW_REJECTED, {
+              ...basePayload,
+              recipientType: 'role',
+              recipientRole: LMS_ROLES.HR,
+            }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
+            if (result.data.submitterId) {
+              await emit(EVENTS.WORKFLOW_REJECTED, {
+                ...basePayload,
+                recipientType: 'user',
+                recipientUserId: result.data.submitterId,
+              }, user, { userId: result.data.submitterId, excludeInstructors: isWeeklyWorkflow });
+            }
+          }
         }
       } catch (notificationError) {
         console.error('Failed to emit status-change notification:', notificationError);
@@ -490,6 +652,7 @@ export const addWorkflowCommentController = async (req, res) => {
     if (!comment) {
       return res.status(400).json({
         success: false,
+        errorKey: 'workflow_error_comment_required',
         error: 'Comment is required'
       });
     }
@@ -562,7 +725,7 @@ export const approveWorkflowDocumentController = async (req, res) => {
   try {
     const { id } = req.params;
     const { user } = req;
-    const { comment, snapshotFileId, snapshotWeekFrom, snapshotWeekTo, filedFileId } = req.body;
+    const { comment, snapshotFileId, snapshotWeekFrom, snapshotWeekTo, filedFileId, fileData, fileName, fileType } = req.body;
 
     // Get current document to determine workflow type and status
     const document = await prisma.workflowDocument.findUnique({
@@ -575,12 +738,24 @@ export const approveWorkflowDocumentController = async (req, res) => {
         status: true,
         updatedBy: true,
         submitterId: true,
+        classId: true,
+        date: true,
+        dateFrom: true,
+        dateTo: true,
+        program: true,
+        subject: true,
+        targetStudentId: true,
+        metadata: true,
+        class: {
+          select: { id: true, nameEn: true, nameAr: true, code: true },
+        },
       }
     });
 
     if (!document) {
       return res.status(404).json({
         success: false,
+        errorKey: 'workflow_error_document_not_found',
         error: 'Document not found'
       });
     }
@@ -590,8 +765,9 @@ export const approveWorkflowDocumentController = async (req, res) => {
     const isAdmin = user.roles && user.roles.includes(LMS_ROLES.ADMIN);
     const isInstructor = user.roles && user.roles.includes(LMS_ROLES.INSTRUCTOR);
     // Instructor may send SUBMITTED → Admin (first approve step). Admin/HR/SuperAdmin for later stages.
+    // Admin can also advance from UNDER_HR_REVIEW to handle HR-approval overrides, in line with frontend rule: Admin has full control.
     const instructorCanSendToAdmin = isInstructor && document.status === 'SUBMITTED';
-    const adminCanAdvance = isAdmin && ['SUBMITTED', 'UNDER_ADMIN_REVIEW'].includes(document.status);
+    const adminCanAdvance = isAdmin && ['SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW'].includes(document.status);
     const hrCanAdvance = isHR && ['SUBMITTED', 'UNDER_HR_REVIEW'].includes(document.status);
 
     if (!user || !user.roles || (!isSuperAdmin && !instructorCanSendToAdmin && !adminCanAdvance && !hrCanAdvance)) {
@@ -604,6 +780,7 @@ export const approveWorkflowDocumentController = async (req, res) => {
       });
       return res.status(403).json({
         success: false,
+        errorKey: 'workflow_error_approve_access_denied',
         error: 'Access denied. You do not have permission to approve at this stage.'
       });
     }
@@ -612,19 +789,23 @@ export const approveWorkflowDocumentController = async (req, res) => {
     if (document.status === 'APPROVED') {
       return res.status(400).json({
         success: false,
+        errorKey: 'workflow_error_already_approved',
         error: 'This document has already been approved.'
       });
     }
 
     // Prevent duplicate approval by the same user on the same status
     // Super Admin can override this to simulate all workflow steps
-    // Admin can advance through multiple stages (SUBMITTED → UNDER_ADMIN_REVIEW → UNDER_HR_REVIEW)
+    // Admin can advance through multiple stages (SUBMITTED → UNDER_ADMIN_REVIEW → UNDER_HR_REVIEW → APPROVED)
     if (!isSuperAdmin && !adminCanAdvance && document.updatedBy === user.dbId && document.status !== 'SUBMITTED') {
       return res.status(400).json({
         success: false,
+        errorKey: 'workflow_error_already_approved_stage',
         error: 'You have already approved this document at this stage.'
       });
     }
+
+    const isWeeklyWorkflow = document.attendanceSubtype === 'WEEKLY_SUMMARY';
 
     // Use XState workflow service to determine next status
     const { status } = document;
@@ -646,11 +827,49 @@ export const approveWorkflowDocumentController = async (req, res) => {
       });
     }
 
+    // Block final approval for attendance workflows if any daily attendance is not fully taken or contains late records
+    if (nextStatus === 'APPROVED') {
+      const attendanceCheck = await validateWorkflowAttendanceBeforeApproval(document);
+      if (!attendanceCheck.ok) {
+        const { reason, taken, enrolled, missing, lateCount, className, date } = attendanceCheck;
+        let errorMessage;
+        if (reason === 'late') {
+          errorMessage = `Cannot approve: ${lateCount} student${lateCount > 1 ? 's are' : ' is'} marked late for ${className || 'class'} on ${date}`;
+        } else if (reason === 'not_yet') {
+          errorMessage = `Cannot approve: ${missing} student${missing > 1 ? 's have' : ' has'} no status yet for ${className || 'class'} on ${date}`;
+        } else {
+          errorMessage = `Attendance is not fully taken: ${taken} of ${enrolled} students marked for ${className || 'class'} on ${date}`;
+        }
+        return res.status(400).json({
+          success: false,
+          errorKey: 'workflow_error_attendance_not_fully_taken',
+          error: errorMessage,
+          ...attendanceCheck,
+        });
+      }
+    }
+
     // Build snapshot data if provided (for HR approval with weekly report snapshot)
     const snapshotData = snapshotFileId ? { snapshotFileId, snapshotWeekFrom, snapshotWeekTo } : null;
 
+    // Replace file for warning workflows if an updated watermarked PDF is provided
+    let replacementFileId = filedFileId || null;
+    if (fileData && fileName && fileType && document.workflowType?.startsWith('ATTENDANCE_WARNING')) {
+      const replacement = await replaceWorkflowDocumentFile({
+        document,
+        fileData,
+        fileName,
+        fileType,
+        actorId: user.dbId,
+        status: nextStatus,
+      });
+      if (replacement?.fileId) {
+        replacementFileId = replacement.fileId;
+      }
+    }
+
     // Update status — pass filedFileId when filing on Admin→HR transition
-    const result = await updateStatus(parseInt(id), nextStatus, user.dbId, comment, snapshotData, filedFileId || null);
+    const result = await updateStatus(parseInt(id), nextStatus, user.dbId, comment, snapshotData, replacementFileId);
 
     if (result.success) {
       // Share the filed PDF with HR when filing on Admin→HR transition
@@ -683,7 +902,7 @@ export const approveWorkflowDocumentController = async (req, res) => {
       try {
         const approver = await prisma.user.findUnique({
           where: { id: user.dbId },
-          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, role: true, roleAssignments: { select: { role: { select: { code: true } } } }, keycloakId: true }
         });
         const cls = result.data.classId ? await prisma.class.findUnique({
           where: { id: result.data.classId },
@@ -697,6 +916,8 @@ export const approveWorkflowDocumentController = async (req, res) => {
           approverName: approver?.displayName || 'Unknown',
           senderName: approver?.displayName || 'Unknown',
           senderId: user?.dbId || null,
+          senderImage: mapUserImage(approver)?.profileImageUrl || null,
+          senderKeycloakId: approver?.keycloakId || null,
           className: cls?.nameEn || null,
           classNameAr: cls?.nameAr || cls?.nameEn || null,
           previousStatus: status,
@@ -709,14 +930,14 @@ export const approveWorkflowDocumentController = async (req, res) => {
             ...baseNotifyPayload,
             recipientType: 'user',
             recipientUserId: result.data.submitterId,
-          }, user, { userId: result.data.submitterId });
+          }, user, { userId: result.data.submitterId, excludeInstructors: isWeeklyWorkflow });
           if (submitterResult?.success) notifyResults.push({ target: 'Submitter', count: submitterResult.results.length });
 
           const adminResult = await emit(EVENTS.WORKFLOW_SENT_FOR_APPROVAL, {
             ...baseNotifyPayload,
             recipientType: 'role',
             recipientRole: LMS_ROLES.ADMIN,
-          }, user, { role: LMS_ROLES.ADMIN });
+          }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
           if (adminResult?.success) notifyResults.push({ target: 'Admin', count: adminResult.results.length });
 
         } else if (nextStatus === 'UNDER_HR_REVIEW') {
@@ -725,33 +946,26 @@ export const approveWorkflowDocumentController = async (req, res) => {
             ...baseNotifyPayload,
             recipientType: 'user',
             recipientUserId: result.data.submitterId,
-          }, user, { userId: result.data.submitterId });
+          }, user, { userId: result.data.submitterId, excludeInstructors: isWeeklyWorkflow });
           if (submitterResult?.success) notifyResults.push({ target: 'Submitter', count: submitterResult.results.length });
 
           const hrResult = await emit(EVENTS.WORKFLOW_SENT_FOR_REVIEW, {
             ...baseNotifyPayload,
             recipientType: 'role',
             recipientRole: LMS_ROLES.HR,
-          }, user, { role: LMS_ROLES.HR });
+          }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
           if (hrResult?.success) notifyResults.push({ target: 'HR', count: hrResult.results.length });
 
         } else if (nextStatus === 'APPROVED') {
-          // HR Review → Approved: notify submitter + Admin + HR
+          // HR Review → Approved: notify Admin and HR
           const snapshotFileId = result.data.snapshotFileId || null;
-          const submitterResult = await emit(EVENTS.WORKFLOW_APPROVED, {
-            ...baseNotifyPayload,
-            snapshotFileId,
-            recipientType: 'user',
-            recipientUserId: result.data.submitterId,
-          }, user, { userId: result.data.submitterId });
-          if (submitterResult?.success) notifyResults.push({ target: 'Submitter', count: submitterResult.results.length });
 
           const hrWatchResult = await emit(EVENTS.WORKFLOW_APPROVED, {
             ...baseNotifyPayload,
             snapshotFileId,
             recipientType: 'role',
             recipientRole: LMS_ROLES.HR,
-          }, user, { role: LMS_ROLES.HR });
+          }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
           if (hrWatchResult?.success) notifyResults.push({ target: 'HR (Watchers)', count: hrWatchResult.results.length });
 
           const adminWatchResult = await emit(EVENTS.WORKFLOW_APPROVED, {
@@ -759,7 +973,7 @@ export const approveWorkflowDocumentController = async (req, res) => {
             snapshotFileId,
             recipientType: 'role',
             recipientRole: LMS_ROLES.ADMIN,
-          }, user, { role: LMS_ROLES.ADMIN });
+          }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
           if (adminWatchResult?.success) notifyResults.push({ target: 'Admin (Watchers)', count: adminWatchResult.results.length });
         }
       } catch (notificationError) {
@@ -795,18 +1009,20 @@ export const rejectWorkflowDocumentController = async (req, res) => {
   try {
     const { id } = req.params;
     const { user } = req;
-    const { comment } = req.body;
+    const { comment, fileData, fileName, fileType } = req.body;
 
     // Get the document first to check ownership
     const documentResult = await getWorkflowDocument(parseInt(id));
     if (!documentResult.success) {
       return res.status(404).json({
         success: false,
+        errorKey: 'workflow_error_document_not_found',
         error: 'Document not found'
       });
     }
 
     const document = documentResult.data;
+    const isWeeklyWorkflow = document.attendanceSubtype === 'WEEKLY_SUMMARY';
 
     // Validate HR, Admin, or Super Admin role (reviewers can reject)
     const isHR = user.roles && user.roles.includes(LMS_ROLES.HR);
@@ -823,6 +1039,7 @@ export const rejectWorkflowDocumentController = async (req, res) => {
       });
       return res.status(403).json({
         success: false,
+        errorKey: 'workflow_error_reject_access_denied',
         error: 'Access denied. Admin or Instructor role required for rejection.'
       });
     }
@@ -831,6 +1048,7 @@ export const rejectWorkflowDocumentController = async (req, res) => {
     if (!comment) {
       return res.status(400).json({
         success: false,
+        errorKey: 'workflow_error_comment_required_rejection',
         error: 'Comment is required for rejection'
       });
     }
@@ -862,8 +1080,24 @@ export const rejectWorkflowDocumentController = async (req, res) => {
       }
     }
 
+    // Replace file for warning workflows if a watermarked PDF is provided
+    let replacementFileId = null;
+    if (fileData && fileName && fileType && document.workflowType?.startsWith('ATTENDANCE_WARNING')) {
+      const replacement = await replaceWorkflowDocumentFile({
+        document,
+        fileData,
+        fileName,
+        fileType,
+        actorId: user.dbId,
+        status: nextStatus,
+      });
+      if (replacement?.fileId) {
+        replacementFileId = replacement.fileId;
+      }
+    }
+
     // Update status to REJECTED
-    const result = await updateStatus(parseInt(id), nextStatus, user.dbId, comment);
+    const result = await updateStatus(parseInt(id), nextStatus, user.dbId, comment, null, replacementFileId);
 
     if (result.success) {
       if (global.chatWSBroadcast) {
@@ -880,7 +1114,7 @@ export const rejectWorkflowDocumentController = async (req, res) => {
       try {
         const rejecter = await prisma.user.findUnique({
           where: { id: user.dbId },
-          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, role: true, roleAssignments: { select: { role: { select: { code: true } } } }, keycloakId: true }
         });
         const cls = result.data.classId ? await prisma.class.findUnique({
           where: { id: result.data.classId },
@@ -895,6 +1129,8 @@ export const rejectWorkflowDocumentController = async (req, res) => {
           rejecterName: rejecter?.displayName || 'Unknown',
           senderName: rejecter?.displayName || 'Unknown',
           senderId: user?.dbId || null,
+          senderImage: mapUserImage(rejecter)?.profileImageUrl || null,
+          senderKeycloakId: rejecter?.keycloakId || null,
           className: cls?.nameEn || null,
           classNameAr: cls?.nameAr || cls?.nameEn || null,
           previousStatus: document.status,
@@ -905,7 +1141,7 @@ export const rejectWorkflowDocumentController = async (req, res) => {
           ...rejectBasePayload,
           recipientType: 'user',
           recipientUserId: result.data.submitterId,
-        }, user, { userId: result.data.submitterId });
+        }, user, { userId: result.data.submitterId, excludeInstructors: isWeeklyWorkflow });
         if (submitterResult?.success) notifyResults.push({ target: 'Submitter', count: submitterResult.results.length });
 
         const everReachedHR = (document.statusHistory || []).some(
@@ -918,7 +1154,7 @@ export const rejectWorkflowDocumentController = async (req, res) => {
           ...rejectBasePayload,
           recipientType: 'role',
           recipientRole: LMS_ROLES.HR,
-          }, user, { role: LMS_ROLES.HR });
+          }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
           if (hrResult?.success) notifyResults.push({ target: 'HR (Watchers)', count: hrResult.results.length });
         }
 
@@ -927,7 +1163,7 @@ export const rejectWorkflowDocumentController = async (req, res) => {
           ...rejectBasePayload,
           recipientType: 'role',
           recipientRole: LMS_ROLES.ADMIN,
-          }, user, { role: LMS_ROLES.ADMIN });
+          }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
           if (adminResult?.success) notifyResults.push({ target: 'Admin (Watchers)', count: adminResult.results.length });
         }
       } catch (notificationError) {
@@ -969,6 +1205,7 @@ export const returnWorkflowDocumentController = async (req, res) => {
     if (!document.success) {
       return res.status(404).json({
         success: false,
+        errorKey: 'workflow_error_document_not_found',
         error: 'Document not found'
       });
     }
@@ -990,6 +1227,7 @@ export const returnWorkflowDocumentController = async (req, res) => {
       });
       return res.status(403).json({
         success: false,
+        errorKey: 'workflow_error_return_access_denied',
         error: 'Access denied. You do not have permission to return this document.'
       });
     }
@@ -998,6 +1236,7 @@ export const returnWorkflowDocumentController = async (req, res) => {
     if (!comment) {
       return res.status(400).json({
         success: false,
+        errorKey: 'workflow_error_comment_required_return',
         error: 'Comment is required for return'
       });
     }
@@ -1032,6 +1271,7 @@ export const returnWorkflowDocumentController = async (req, res) => {
 
     // Update status to previous stage
     const result = await updateStatus(parseInt(id), previousStatus, user.dbId, comment);
+    const isWeeklyWorkflow = result.data?.attendanceSubtype === 'WEEKLY_SUMMARY';
 
     if (result.success) {
       if (global.chatWSBroadcast) {
@@ -1048,7 +1288,7 @@ export const returnWorkflowDocumentController = async (req, res) => {
       try {
         const returner = await prisma.user.findUnique({
           where: { id: user.dbId },
-          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, role: true, roleAssignments: { select: { role: { select: { code: true } } } }, keycloakId: true }
         });
         const cls = result.data.classId ? await prisma.class.findUnique({
           where: { id: result.data.classId },
@@ -1065,11 +1305,13 @@ export const returnWorkflowDocumentController = async (req, res) => {
           returnerName: returner?.displayName || 'Unknown',
           senderName: returner?.displayName || 'Unknown',
           senderId: user?.dbId || null,
+          senderImage: mapUserImage(returner)?.profileImageUrl || null,
+          senderKeycloakId: returner?.keycloakId || null,
           className: cls?.nameEn || null,
           classNameAr: cls?.nameAr || cls?.nameEn || null,
           recipientType: 'user',
           recipientUserId: result.data.submitterId,
-        }, user, { userId: result.data.submitterId });
+        }, user, { userId: result.data.submitterId, excludeInstructors: isWeeklyWorkflow });
         if (submitterResult?.success) notifyResults.push({ target: 'Submitter', count: submitterResult.results.length });
 
         // Stage-aware role notifications
@@ -1084,11 +1326,13 @@ export const returnWorkflowDocumentController = async (req, res) => {
             returnerName: returner?.displayName || 'Unknown',
             senderName: returner?.displayName || 'Unknown',
             senderId: user?.dbId || null,
+            senderImage: mapUserImage(returner)?.profileImageUrl || null,
+          senderKeycloakId: returner?.keycloakId || null,
             className: cls?.nameEn || null,
             classNameAr: cls?.nameAr || cls?.nameEn || null,
             recipientType: 'role',
             recipientRole: LMS_ROLES.ADMIN,
-          }, user, { role: LMS_ROLES.ADMIN });
+          }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
           if (adminResult?.success) notifyResults.push({ target: 'Admin', count: adminResult.results.length });
         }
         if (previousStatus === 'UNDER_HR_REVIEW' || currentStatus === 'UNDER_HR_REVIEW') {
@@ -1102,11 +1346,13 @@ export const returnWorkflowDocumentController = async (req, res) => {
             returnerName: returner?.displayName || 'Unknown',
             senderName: returner?.displayName || 'Unknown',
             senderId: user?.dbId || null,
+            senderImage: mapUserImage(returner)?.profileImageUrl || null,
+          senderKeycloakId: returner?.keycloakId || null,
             className: cls?.nameEn || null,
             classNameAr: cls?.nameAr || cls?.nameEn || null,
             recipientType: 'role',
             recipientRole: LMS_ROLES.HR,
-          }, user, { role: LMS_ROLES.HR });
+          }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
           if (hrResult?.success) notifyResults.push({ target: 'HR', count: hrResult.results.length });
         }
       } catch (notificationError) {
@@ -1147,6 +1393,7 @@ export const resubmitWorkflowDocumentController = async (req, res) => {
     if (!fileData || !fileName || !fileType) {
       return res.status(400).json({
         success: false,
+        errorKey: 'workflow_error_missing_file_data',
         error: 'Missing file data: fileData, fileName, fileType required'
       });
     }
@@ -1172,11 +1419,12 @@ export const resubmitWorkflowDocumentController = async (req, res) => {
           title: result.data.title,
         });
       }
+      const isWeeklyWorkflow = result.data.attendanceSubtype === 'WEEKLY_SUMMARY';
       // Emit notification to HR + Admin users
       try {
         const submitter = await prisma.user.findUnique({
           where: { id: user.dbId },
-          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, role: true, roleAssignments: { select: { role: { select: { code: true } } } }, keycloakId: true }
         });
         const cls = result.data.classId ? await prisma.class.findUnique({
           where: { id: result.data.classId },
@@ -1191,6 +1439,8 @@ export const resubmitWorkflowDocumentController = async (req, res) => {
           submitterName: submitter?.displayName || 'Unknown',
           senderName: submitter?.displayName || 'Unknown',
           senderId: user?.dbId || null,
+          senderImage: mapUserImage(submitter)?.profileImageUrl || null,
+          senderKeycloakId: submitter?.keycloakId || null,
           className: cls?.nameEn || null,
           classNameAr: cls?.nameAr || cls?.nameEn || null,
           previousStatus: 'REJECTED',
@@ -1201,13 +1451,13 @@ export const resubmitWorkflowDocumentController = async (req, res) => {
           ...resubmitPayload,
           recipientType: 'role',
           recipientRole: LMS_ROLES.HR,
-        }, user, { role: LMS_ROLES.HR });
+        }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
 
         await emit(EVENTS.WORKFLOW_RESUBMITTED, {
           ...resubmitPayload,
           recipientType: 'role',
           recipientRole: LMS_ROLES.ADMIN,
-        }, user, { role: LMS_ROLES.ADMIN });
+        }, user, { role: LMS_ROLES.ADMIN, excludeInstructors: isWeeklyWorkflow });
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
       }
@@ -1245,6 +1495,7 @@ export const uploadSignedDocumentController = async (req, res) => {
     if (!fileData || !fileName || !fileType) {
       return res.status(400).json({
         success: false,
+        errorKey: 'workflow_error_missing_file_data',
         error: 'Missing file data: fileData, fileName, fileType required'
       });
     }
@@ -1261,31 +1512,49 @@ export const uploadSignedDocumentController = async (req, res) => {
     });
 
     if (result.success) {
-      // Emit notification to HR users
-      try {
-        const admin = await prisma.user.findUnique({
-          where: { id: user.dbId },
-          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
-        });
-        const cls = result.data.classId ? await prisma.class.findUnique({
-          where: { id: result.data.classId },
-          select: { id: true, nameEn: true, nameAr: true, code: true }
-        }) : null;
+      const isWeeklyWorkflow = result.data.attendanceSubtype === 'WEEKLY_SUMMARY';
+      const isPostApproval = result.data.status === 'APPROVED' && result.data.signedFileId;
+      // Emit notification to HR users (only when the doc is actually reassigned to HR)
+      if (!isPostApproval) {
+        try {
+          const admin = await prisma.user.findUnique({
+            where: { id: user.dbId },
+            select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, role: true, roleAssignments: { select: { role: { select: { code: true } } } }, keycloakId: true }
+          });
+          const cls = result.data.classId ? await prisma.class.findUnique({
+            where: { id: result.data.classId },
+            select: { id: true, nameEn: true, nameAr: true, code: true }
+          }) : null;
 
-        await emit(EVENTS.WORKFLOW_ASSIGNED, {
-          ...buildNotificationNameVars(admin, 'Unknown User'),
-          workflowName: result.data.title,
-          documentId: result.data.id,
-          adminName: admin?.displayName || 'Unknown',
-          senderName: admin?.displayName || 'Unknown',
-          senderId: user?.dbId || null,
-          className: cls?.nameEn || null,
-          classNameAr: cls?.nameAr || cls?.nameEn || null,
-          recipientType: 'role',
-          recipientRole: LMS_ROLES.HR,
-        }, user, { role: LMS_ROLES.HR });
-      } catch (notificationError) {
-        console.error('Failed to emit notification:', notificationError);
+          await emit(EVENTS.WORKFLOW_ASSIGNED, {
+            ...buildNotificationNameVars(admin, 'Unknown User'),
+            workflowName: result.data.title,
+            documentId: result.data.id,
+            adminName: admin?.displayName || 'Unknown',
+            senderName: admin?.displayName || 'Unknown',
+            senderId: user?.dbId || null,
+            className: cls?.nameEn || null,
+            classNameAr: cls?.nameAr || cls?.nameEn || null,
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.HR,
+          }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
+        } catch (notificationError) {
+          console.error('Failed to emit notification:', notificationError);
+        }
+      }
+
+      // Broadcast board update so open boards/calendars refresh the signed-copy icon
+      try {
+        if (global.chatWSBroadcast) {
+          global.chatWSBroadcast('board:workflow_updated', {
+            documentId: result.data.id,
+            classId: result.data.classId,
+            status: result.data.status,
+            signedFileId: result.data.signedFileId || null,
+          });
+        }
+      } catch (broadcastError) {
+        console.error('Failed to broadcast workflow update:', broadcastError);
       }
 
       res.status(200).json({
@@ -1315,7 +1584,7 @@ export const withdrawWorkflowDocumentController = async (req, res) => {
   try {
     const { id } = req.params;
     const { user } = req;
-    const { comment } = req.body;
+    const { comment, fileData, fileName, fileType } = req.body;
 
     console.log('[withdrawWorkflowDocumentController] Document ID:', id, 'User DB ID:', user.dbId, 'Comment:', comment);
 
@@ -1330,11 +1599,12 @@ export const withdrawWorkflowDocumentController = async (req, res) => {
     console.log('[withdrawWorkflowDocumentController] Result:', result);
 
     if (result.success) {
+      const isWeeklyWorkflow = result.data.attendanceSubtype === 'WEEKLY_SUMMARY';
       // Emit notification to HR users as watchers
       try {
         const withdrawer = await prisma.user.findUnique({
           where: { id: user.dbId },
-          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, role: true, roleAssignments: { select: { role: { select: { code: true } } } }, keycloakId: true }
         });
         const cls = result.data.classId ? await prisma.class.findUnique({
           where: { id: result.data.classId },
@@ -1354,7 +1624,7 @@ export const withdrawWorkflowDocumentController = async (req, res) => {
           classNameAr: cls?.nameAr || cls?.nameEn || null,
           recipientType: 'role',
           recipientRole: LMS_ROLES.HR,
-        }, user, { role: LMS_ROLES.HR });
+        }, user, { role: LMS_ROLES.HR, excludeInstructors: isWeeklyWorkflow });
         if (hrResult?.success) notifyResults.push({ target: 'HR (Watchers)', count: hrResult.results.length });
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
@@ -1400,6 +1670,7 @@ export const getComplianceDataController = async (req, res) => {
       });
       return res.status(403).json({
         success: false,
+        errorKey: 'workflow_error_access_hr_admin_required',
         error: 'Access denied. HR or Admin role required.'
       });
     }
@@ -1453,6 +1724,7 @@ export const getAnalyticsDataController = async (req, res) => {
       });
       return res.status(403).json({
         success: false,
+        errorKey: 'workflow_error_access_hr_admin_required',
         error: 'Access denied. HR or Admin role required.'
       });
     }
@@ -1569,6 +1841,7 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
       });
       return res.status(403).json({
         success: false,
+        errorKey: 'workflow_error_access_instructor_hr_admin_required',
         error: 'Access denied. Instructor, HR, or Admin role required.'
       });
     }
@@ -1600,6 +1873,7 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
     if ((!workflowType && !workflowCategory) || !title) {
       return res.status(400).json({
         success: false,
+        errorKey: 'workflow_error_missing_category_or_title',
         error: 'Missing required fields: workflowCategory (or workflowType), title'
       });
     }
@@ -1611,12 +1885,14 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
       if (!req.body.classId) {
         return res.status(400).json({
           success: false,
+          errorKey: 'workflow_error_class_required_daily',
           error: 'Class is required for daily attendance approval'
         });
       }
       if (!dateFrom) {
         return res.status(400).json({
           success: false,
+          errorKey: 'workflow_error_date_required_daily',
           error: 'Attendance date is required for daily attendance approval'
         });
       }
@@ -1626,6 +1902,7 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
       if (!dateFrom || !dateTo) {
         return res.status(400).json({
           success: false,
+          errorKey: 'workflow_error_week_dates_required',
           error: 'Week start and end dates are required for weekly summary'
         });
       }
@@ -1725,11 +2002,12 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
     });
 
     if (result.success) {
+      const isWeeklyWorkflow = result.data?.document?.attendanceSubtype === 'WEEKLY_SUMMARY';
       // Emit notification to reviewers
       try {
         const submitter = await prisma.user.findUnique({
           where: { id: user.dbId },
-          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, role: true, roleAssignments: { select: { role: { select: { code: true } } } }, keycloakId: true }
         });
         const cls = result.data.document.classId ? await prisma.class.findUnique({
           where: { id: result.data.document.classId },
@@ -1750,7 +2028,7 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
             classNameAr: cls?.nameAr || cls?.nameEn || null,
             recipientType: 'user',
             recipientUserId: result.data.document.currentAssigneeId,
-          }, user, { userId: result.data.document.currentAssigneeId });
+          }, user, { userId: result.data.document.currentAssigneeId, excludeInstructors: isWeeklyWorkflow });
         }
       } catch (notificationError) {
         console.error('Error emitting notification:', notificationError);
@@ -1934,6 +2212,7 @@ export const getBoardWorkflowDocumentsController = async (req, res) => {
     }
 
     let data = result.data || [];
+    data = data.map(mapDocumentUserImages);
     const scope = await getRequestScope(req);
     if (!scope.unrestricted) {
       data = data.map((d) => ({

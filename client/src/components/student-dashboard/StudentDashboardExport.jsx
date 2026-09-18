@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { jsPDF } from 'jspdf';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import ExcelJS from 'exceljs';
 import { useLang } from '@contexts/LangContext';
 import { FileDown, FileSpreadsheet } from 'lucide-react';
@@ -142,26 +143,28 @@ export default function StudentDashboardExport({ dashData, lookupData, isRTL }) 
 
   return (
     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-      <button
-        type="button"
-        onClick={exportPDF}
-        data-testid="export-student-pdf"
-        title={t('export_pdf')}
-        aria-label={t('export_pdf')}
-        style={buttonStyle}
-      >
-        <FileDown size={16} />
-      </button>
-      <button
-        type="button"
-        onClick={exportExcel}
-        data-testid="export-student-excel"
-        title={t('export_excel')}
-        aria-label={t('export_excel')}
-        style={buttonStyle}
-      >
-        <FileSpreadsheet size={16} />
-      </button>
+      <ColoredTooltip title={t('export_pdf')}>
+        <button
+          type="button"
+          onClick={exportPDF}
+          data-testid="export-student-pdf"
+          aria-label={t('export_pdf')}
+          style={buttonStyle}
+        >
+          <FileDown size={16} />
+        </button>
+      </ColoredTooltip>
+      <ColoredTooltip title={t('export_excel')}>
+        <button
+          type="button"
+          onClick={exportExcel}
+          data-testid="export-student-excel"
+          aria-label={t('export_excel')}
+          style={buttonStyle}
+        >
+          <FileSpreadsheet size={16} />
+        </button>
+      </ColoredTooltip>
     </div>
   );
 }

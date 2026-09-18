@@ -203,6 +203,18 @@ export async function getWorkflowDocumentById(id) {
             versions: true
           }
         },
+        signedFile: true,
+        signedBy: {
+          select: {
+            id: true,
+            displayName: true,
+            displayNameAr: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+          }
+        },
         submitter: true,
         currentAssignee: true,
         instructor: true,
@@ -413,14 +425,14 @@ export async function updateWorkflowDocumentStatus(id, status, actorId, reason, 
       updateData.fileId = filedFileId;
     }
 
-    // Clear fileId on rejection so re-initiation generates a new document
+    // Replace file on rejection unless caller explicitly wants it cleared
     if (status === 'REJECTED') {
-      updateData.fileId = null;
+      updateData.fileId = filedFileId || null;
     }
 
-    // Clear fileId when moving back to DRAFT, since the document needs regeneration
+    // Replace file when moving back to DRAFT unless caller wants a specific file preserved
     if (status === 'DRAFT' && current.status !== 'DRAFT') {
-      updateData.fileId = null;
+      updateData.fileId = filedFileId || null;
     }
 
     // Update document

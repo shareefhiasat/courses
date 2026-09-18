@@ -1,8 +1,9 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { HistoryDayHeader } from './HistoryDayHeader';
 import { HistorySection } from './HistorySection';
 import { HistoryEntry } from './HistoryEntry';
-import { AttendanceIcon, ParticipationIcon, ZapIcon, PenaltyIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, HelpCircleIcon } from '@utils/icons.jsx';
+import { UserCheck, Trophy, Zap, AlertCircle, Check, Clock, X, Heart, HelpCircle } from '@utils/icons.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getAttendanceIcon, getAttendanceColor } from '@constants/attendanceTypes';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -109,11 +110,16 @@ const StudentHistory = React.memo(({
           theme={theme}
         />
         
-        {isDayExpanded && (
-          <div style={{
-            padding: '0.5rem 0.75rem',
-            background: theme === 'dark' ? '#111827' : 'transparent'
-          }}>
+        <AnimatePresence initial={false}>
+          {isDayExpanded && (
+          <motion.div
+            key="day-content"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden', padding: '0.5rem 0.75rem',
+            background: theme === 'dark' ? '#111827' : 'transparent' }}>
             {/* Combined Timeline - All records sorted by time */}
             {(() => {
               // Combine all logs from all types and sort by time
@@ -159,13 +165,13 @@ const StudentHistory = React.memo(({
                     console.log('🔍 StudentHistory - Icon Mapping:', { logType: log.logType, status, statusValue, iconName, statusColor });
                     
                     const attendanceIconMap = {
-                      CheckCircle: <CheckSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
-                      Clock: <ClockSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
-                      AlertCircle: <XSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
-                      XCircle: <XSmallIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
-                      Heart: <HeartIcon style={{ width: '12px', height: '12px', color: statusColor }} />,
+                      CheckCircle: <Check size={12} strokeWidth={3} color={statusColor} />,
+                      Clock: <Clock size={12} color={statusColor} />,
+                      AlertCircle: <X size={12} color={statusColor} />,
+                      XCircle: <X size={12} color={statusColor} />,
+                      Heart: <Heart size={12} strokeWidth={2.5} color={statusColor} />,
                       Star: getThemedIcon('ui', 'star', 12, statusColor),
-                      HelpCircle: <HelpCircleIcon style={{ width: '12px', height: '12px', color: statusColor }} />
+                      HelpCircle: <HelpCircle size={12} strokeWidth={2.5} color={statusColor} />
                     };
                     
                     icon = attendanceIconMap[iconName] || attendanceIconMap.HelpCircle;
@@ -181,7 +187,7 @@ const StudentHistory = React.memo(({
                     }
                     break;
                   case RECORD_TYPES.PARTICIPATION:
-                    icon = <ParticipationIcon />;
+                    icon = <Trophy size={14} />;
                     iconColor = "var(--color-info, #3b82f6)";
                     borderColor = "var(--border, #e5e7eb)";
                     if (canDeleteAttendance && handleDeleteParticipation) {
@@ -189,7 +195,7 @@ const StudentHistory = React.memo(({
                     }
                     break;
                   case RECORD_TYPES.BEHAVIOR:
-                    icon = <ZapIcon />;
+                    icon = <Zap size={14} />;
                     iconColor = "var(--color-warning, #f97316)";
                     borderColor = "var(--color-warning-border, #fed7aa)";
                     if (canDeleteAttendance && handleDeleteBehavior) {
@@ -197,7 +203,7 @@ const StudentHistory = React.memo(({
                     }
                     break;
                   case RECORD_TYPES.PENALTY:
-                    icon = <PenaltyIcon />;
+                    icon = <AlertCircle size={14} strokeWidth={2.5} />;
                     iconColor = "var(--color-danger, #ef4444)";
                     borderColor = "var(--color-danger-border, #fecaca)";
                     if (canDeleteAttendance && handleDeletePenalty) {
@@ -236,8 +242,9 @@ const StudentHistory = React.memo(({
     );
               });
             })()}
-          </div>
-        )}
+          </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   });

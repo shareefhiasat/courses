@@ -117,7 +117,6 @@ export default function CreateFolderModal({ parentFolderId, onCreate, onClose })
                   transition: 'all 0.15s ease',
                   transform: folderColor === c.value ? 'scale(1.1)' : 'scale(1)',
                 }}
-                title={c.label}
               >
                 {c.value
                   ? getColoredFolderIcon(16, c.value)

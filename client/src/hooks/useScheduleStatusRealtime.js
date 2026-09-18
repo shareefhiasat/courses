@@ -59,7 +59,7 @@ export default function useScheduleStatusRealtime({
   }, [classIds, weekDates, setStatusMap]);
 
   useEffect(() => {
-    if (!active) return undefined;
+    if (!setStatusMap) return undefined;
 
     const handleBoardEvent = (payload) => {
       const dateIso = toIsoDate(payload?.date);
@@ -76,7 +76,7 @@ export default function useScheduleStatusRealtime({
       chatSocket.off('board:workflow_updated', handleBoardEvent);
       chatSocket.off('board:attendance_updated', handleBoardEvent);
     };
-  }, [active, patchStatusForClassDate]);
+  }, [setStatusMap, patchStatusForClassDate]);
 
   useEffect(() => {
     if (!active || !refreshOnActivate) return;

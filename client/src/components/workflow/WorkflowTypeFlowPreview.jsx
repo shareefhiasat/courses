@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { ChevronRight, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, CheckCircle2 } from '@utils/icons.jsx';
 import { useLang } from '@contexts/LangContext';
 import { getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 

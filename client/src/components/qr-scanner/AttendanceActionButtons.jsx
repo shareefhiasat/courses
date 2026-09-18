@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, AlertCircleIcon, HeartIcon } from '@utils/icons.jsx';
+import { Check, Clock, X, AlertCircle, Heart } from '@utils/icons.jsx';
 import { getAttendanceColor, ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY, STANDUP_ATTENDANCE_TYPES } from '@constants/attendanceTypes';
 
 const AttendanceActionButtons = ({
@@ -65,17 +65,17 @@ const AttendanceActionButtons = ({
   // Define attendance buttons based on mode
   const attendanceButtons = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
     ? [
-        { status: STANDUP_ATTENDANCE_TYPES.STANDUP_PRESENT, label: t('standup_present'), icon: <CheckSmallIcon style={{ width: '18px', height: '18px' }} />, hover: '#059669', shadow: '#10b981' },
-        { status: STANDUP_ATTENDANCE_TYPES.STANDUP_LATE, label: t('standup_late'), icon: <ClockSmallIcon style={{ width: '18px', height: '18px' }} />, hover: '#f59e0b', shadow: '#fbbf24' },
-        { status: STANDUP_ATTENDANCE_TYPES.STANDUP_ABSENT, label: t('standup_absent'), icon: <XSmallIcon style={{ width: '18px', height: '18px' }} />, hover: '#dc2626', shadow: '#ef4444' },
-        { status: STANDUP_ATTENDANCE_TYPES.STANDUP_CLINIC, label: t('standup_clinic'), icon: <HeartIcon style={{ width: '18px', height: '18px' }} />, hover: '#c026d3', shadow: '#ec4899' }
+        { status: STANDUP_ATTENDANCE_TYPES.STANDUP_PRESENT, label: t('standup_present'), icon: <Check size={18} strokeWidth={3} />, hover: '#059669', shadow: '#10b981' },
+        { status: STANDUP_ATTENDANCE_TYPES.STANDUP_LATE, label: t('standup_late'), icon: <Clock size={18} />, hover: '#f59e0b', shadow: '#fbbf24' },
+        { status: STANDUP_ATTENDANCE_TYPES.STANDUP_ABSENT, label: t('standup_absent'), icon: <X size={18} />, hover: '#dc2626', shadow: '#ef4444' },
+        { status: STANDUP_ATTENDANCE_TYPES.STANDUP_CLINIC, label: t('standup_clinic'), icon: <Heart size={18} strokeWidth={2.5} />, hover: '#c026d3', shadow: '#ec4899' }
       ]
     : [
-        { status: ATTENDANCE_STATUS.PRESENT, label: t('present'), icon: <CheckSmallIcon style={{ width: '18px', height: '18px' }} />, hover: '#059669', shadow: '#10b981' },
-        { status: ATTENDANCE_STATUS.LATE, label: t('late'), icon: <ClockSmallIcon style={{ width: '18px', height: '18px' }} />, hover: '#d97706', shadow: '#f59e0b' },
-        { status: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: t('absent_no_excuse'), icon: <XSmallIcon style={{ width: '18px', height: '18px' }} />, hover: '#dc2626', shadow: '#ef4444' },
-        { status: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: t('excused_leave'), icon: <AlertCircleIcon style={{ width: '18px', height: '18px' }} />, hover: '#ea580c', shadow: '#f97316' },
-        { status: ATTENDANCE_STATUS.HUMAN_CASE, label: t('human_case'), icon: <HeartIcon style={{ width: '18px', height: '18px' }} />, hover: '#7c3aed', shadow: '#8b5cf6' }
+        { status: ATTENDANCE_STATUS.PRESENT, label: t('present'), icon: <Check size={18} strokeWidth={3} />, hover: '#059669', shadow: '#10b981' },
+        { status: ATTENDANCE_STATUS.LATE, label: t('late'), icon: <Clock size={18} />, hover: '#d97706', shadow: '#f59e0b' },
+        { status: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: t('absent_no_excuse'), icon: <X size={18} />, hover: '#dc2626', shadow: '#ef4444' },
+        { status: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: t('excused_leave'), icon: <AlertCircle size={18} strokeWidth={2.5} />, hover: '#ea580c', shadow: '#f97316' },
+        { status: ATTENDANCE_STATUS.HUMAN_CASE, label: t('human_case'), icon: <Heart size={18} strokeWidth={2.5} />, hover: '#7c3aed', shadow: '#8b5cf6' }
       ];
 
   return (

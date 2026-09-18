@@ -5,19 +5,23 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import useResizableDrawer from '@hooks/useResizableDrawer';
 import { formatDate, formatTime as fmtTime, formatDateTime } from '@utils/date-formatter.js';
-import { getExportHistory, openExportFile } from '@services/db/exportHistoryService.js';
+import { getExportHistory, openExportFile, clearExportHistory } from '@services/db/exportHistoryService.js';
 import { ROLE_STRINGS, getUserRoleFromObject, resolveUserRole } from '@utils/userUtils';
 import { getUserRoleColor, getUserRoleIcon, getThemedIcon } from '@constants/iconTypes';
+import ClassHistorySearchInput from '@components/workspace/ClassHistorySearchInput';
+import { DateGroupedList, DayFilterBanner } from '@components/workspace/LectureLogDrawer';
 import RoleBadge from '@pages/communications/chat/components/RoleBadge.jsx';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { buildSmartDriveHighlightUrl } from '@utils/exportSuccessUrls';
-import { format, parseISO } from 'date-fns';
-import { FileText, Table, FileType2, Download, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { getLocalizedUserName } from '@utils/localizedUserName';
+import { format, parseISO, addDays } from 'date-fns';
+import { FileText, Table, FileType2, Download, SlidersHorizontal, Trash2, CheckCircle, XCircle, FilePenLine, GitBranch } from 'lucide-react';
+import { WORKFLOW_STATUS_COLORS } from '@constants/workspaceStatusColors';
 
 const EXPORT_TYPE_COLORS = {
   attendance_daily: '#3b82f6',
-  attendance_daily_official: '#8b5cf6',
-  official_attendance: '#f59e0b',
+  attendance_daily_official: '#3b82f6',
+  official_attendance: '#8b5cf6',
   marks_semester_certificate: '#6366f1',
   marks_class_subject: '#0ea5e9',
   marks_qualitative_card: '#14b8a6',
@@ -26,6 +30,13 @@ const EXPORT_TYPE_COLORS = {
   behavioral: '#ef4444',
   penalty: '#b45309',
   summary: '#14b8a6',
+};
+
+const EXPORT_TYPE_ICONS = {
+  attendance_daily: FilePenLine,
+  attendance_daily_official: FilePenLine,
+  official_attendance: GitBranch,
+  summary: GitBranch,
 };
 
 const FORMAT_COLORS = {
@@ -46,8 +57,8 @@ const EXPORT_TYPE_GROUPS = {
 };
 
 const OFFICIAL_TYPE_LABELS = {
-  attendance_daily_official: 'Daily Official',
-  official_attendance: 'Attendance Official',
+  attendance_daily_official: 'Daily',
+  official_attendance: 'Weekly',
 };
 
 const BETA_TYPES = new Set([]);
@@ -75,22 +86,12 @@ function formatDisplayFilename(entry, classInfo, lang, t) {
   const className = classInfo
     ? (lang === 'ar' && classInfo.nameAr ? classInfo.nameAr : classInfo.nameEn || classInfo.code)
     : (entry.className || entry.class?.nameEn || entry.class?.code || '');
+  const subjectName = classInfo?.subject
+    ? (lang === 'ar' && classInfo.subject?.nameAr ? classInfo.subject.nameAr : classInfo.subject?.nameEn || '')
+    : (lang === 'ar' && entry.class?.subject?.nameAr ? entry.class.subject.nameAr : entry.class?.subject?.nameEn || '');
 
-  if (formattedDate && className) return `${formattedDate} ${className}`;
-  if (formattedDate) return formattedDate;
-  return entry.filename;
-}
-
-function formatDateLabel(dateStr, lang, t) {
-  const d = new Date(dateStr);
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (d.toDateString() === today.toDateString()) return t('today');
-  if (d.toDateString() === yesterday.toDateString()) return t('yesterday');
-
-  return formatDate(d, lang);
+  const displayParts = [className, subjectName, formattedDate].filter(Boolean);
+  return displayParts.length ? displayParts.join(' — ') : entry.filename;
 }
 
 function formatTime(dateStr, lang) {
@@ -107,19 +108,7 @@ function formatCount(key, count, t) {
     .replace('{es}', pluralEs);
 }
 
-function groupEntriesByDate(entries) {
-  const byDate = new Map();
-  entries.forEach((entry) => {
-    const dateKey = new Date(entry.createdAt).toDateString();
-    if (!byDate.has(dateKey)) byDate.set(dateKey, []);
-    byDate.get(dateKey).push(entry);
-  });
-  return Array.from(byDate.entries()).sort(
-    ([a], [b]) => new Date(b) - new Date(a)
-  );
-}
-
-function ExportEntryRow({
+export function ExportEntryRow({
   entry,
   lang,
   t,
@@ -187,7 +176,6 @@ function ExportEntryRow({
             cursor: hasFile ? 'pointer' : 'default',
             textDecoration: hasFile ? 'underline' : 'none',
           }}
-          title={hasFile ? entry.filename : `${entry.filename} (${t('export_file_unavailable')})`}
           onClick={() => hasFile && handleOpen(entry.format !== 'pdf')}
         >
           {displayFilename}
@@ -234,6 +222,29 @@ function ExportEntryRow({
             <FormatIcon size={11} strokeWidth={2.2} />
             {entry.format?.toUpperCase()}
           </span>
+          {(() => {
+            const wfStatus = entry.metadata?.workflowStatus;
+            if (!wfStatus) return null;
+            const statusColor = WORKFLOW_STATUS_COLORS[wfStatus] || '#6b7280';
+            return (
+              <span
+                style={{
+                  fontSize: 'var(--font-size-xs)',
+                  padding: '1px 6px',
+                  borderRadius: '8px',
+                  background: `${statusColor}15`,
+                  color: statusColor,
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3,
+                }}
+              >
+                {t(`workflow.status.${wfStatus.toLowerCase()}`, wfStatus)}
+              </span>
+            );
+          })()}
           <ColoredTooltip title={t('export_created_at_help') || 'When this export file was generated'} color="#64748b" placement="top">
             <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)' }}>
               {t('export_created_at') || 'Created'}: {formatDateTime(entry.createdAt, lang)}
@@ -249,8 +260,11 @@ function ExportEntryRow({
                 gap: 4,
               }}
             >
+              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)' }}>
+                {t('from') || 'From'}:
+              </span>
               <ColoredTooltip
-                title={entry.user?.displayName || entry.user?.email}
+                title={getLocalizedUserName(entry.user, lang, entry.user?.email)}
                 color="#64748b"
                 placement="top"
               >
@@ -276,36 +290,13 @@ function ExportEntryRow({
                         fontWeight: 700,
                       }}
                     >
-                      {getInitials(entry.user?.displayName || entry.user?.email)}
+                      {getInitials(getLocalizedUserName(entry.user, lang, entry.user?.email))}
                     </span>
                   )}
-                  {entry.user?.displayName || entry.user?.email}
+                  <RoleBadge user={entry.user} size={10} showLabel={false} />
+                  {getLocalizedUserName(entry.user, lang, entry.user?.email)}
                 </span>
               </ColoredTooltip>
-              {(() => {
-                const userRole = resolveUserRole(entry.user);
-                if (!userRole) return null;
-                const roleIcon = getUserRoleIcon(userRole);
-                const roleColor = getUserRoleColor(userRole);
-                return (
-                  <ColoredTooltip title={userRole} color={roleColor} placement="top">
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 14,
-                        height: 14,
-                        borderRadius: '50%',
-                        background: `${roleColor}22`,
-                        color: roleColor,
-                      }}
-                    >
-                      {React.cloneElement(roleIcon, { size: 9, color: roleColor })}
-                    </span>
-                  </ColoredTooltip>
-                );
-              })()}
             </span>
           )}
           {entry.reportDate && (
@@ -318,7 +309,6 @@ function ExportEntryRow({
           {!hasFile && (
             <span
               style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', fontStyle: 'italic' }}
-              title={t('export_file_unavailable')}
             >
               {t('export_file_unavailable')}
             </span>
@@ -329,65 +319,65 @@ function ExportEntryRow({
         <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
           <ColoredTooltip title={t('export_view_file')} color="#64748b" placement="top">
             <button
-              type="button"
-              disabled={opening}
-              onClick={() => handleOpen(false)}
-              style={{
-                background: 'transparent',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                width: 28,
-                height: 28,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: opening ? 'wait' : 'pointer',
-                color: 'var(--text)',
-              }}
-            >
-              {getThemedIcon('ui', 'eye', 15, 'currentColor')}
-            </button>
+                type="button"
+                disabled={opening}
+                onClick={() => handleOpen(false)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  borderRadius: 6,
+                  width: 34,
+                  height: 34,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: opening ? 'wait' : 'pointer',
+                  color: 'var(--text)',
+                }}
+              >
+                {getThemedIcon('ui', 'eye', 18, 'currentColor')}
+              </button>
           </ColoredTooltip>
           <ColoredTooltip title={t('export_download_file')} color="#64748b" placement="top">
             <button
-              type="button"
-              disabled={opening}
-              onClick={() => handleOpen(true)}
-              style={{
-                background: 'transparent',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                width: 28,
-                height: 28,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: opening ? 'wait' : 'pointer',
-                color: 'var(--text)',
-              }}
-            >
-              <Download size={15} />
-            </button>
+                type="button"
+                disabled={opening}
+                onClick={() => handleOpen(true)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  borderRadius: 6,
+                  width: 34,
+                  height: 34,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: opening ? 'wait' : 'pointer',
+                  color: 'var(--text)',
+                }}
+              >
+                <Download size={18} />
+              </button>
           </ColoredTooltip>
           <ColoredTooltip title={t('open_in_smart_drive')} color="#2563eb" placement="top">
             <button
-              type="button"
-              onClick={handleOpenInDrive}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 28,
-                height: 28,
-                background: 'transparent',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                cursor: 'pointer',
-                color: 'var(--color-primary, #2563eb)',
-              }}
-            >
-              {getThemedIcon('ui', 'external_link', 15, 'currentColor')}
-            </button>
+                type="button"
+                onClick={handleOpenInDrive}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 34,
+                  height: 34,
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  color: 'var(--color-primary, #2563eb)',
+                }}
+              >
+                {getThemedIcon('ui', 'external_link', 18, 'currentColor')}
+              </button>
           </ColoredTooltip>
         </div>
       )}
@@ -395,27 +385,98 @@ function ExportEntryRow({
   );
 }
 
-const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, classInfo = null, embedded = false, scope = 'global' }) => {
+const ExportHistoryDrawer = ({
+  isOpen, onClose, lang, t, theme, classId = null, classInfo = null,
+  embedded = false, scope = 'global', date = null,
+  minimal = false,
+  search: searchProp,
+  onSearchChange,
+  typeFilter: typeFilterProp,
+  onTypeFilterChange,
+  formatFilter: formatFilterProp,
+  onFormatFilterChange,
+  statusFilter: statusFilterProp,
+  onStatusFilterChange,
+  onVisibleCount,
+}) => {
   const isDark = theme === 'dark';
   const { user, isSuperAdmin } = useAuth();
   const { isRTL } = useLang();
   const navigate = useNavigate();
   const currentUserId = user?.dbId ?? user?.id;
-  const { width: drawerWidth, resizeHandleProps } = useResizableDrawer({
-    storageKey: 'export_history_drawer_width',
-    defaultWidth: 480,
-    minWidth: 360,
+  const { width: drawerWidth, setWidth: setDrawerWidth, resizeHandleProps } = useResizableDrawer({
+    storageKey: 'export-history-drawer-width',
+    defaultWidth: 420,
+    minWidth: 320,
     maxWidth: 800,
     isRTL,
   });
-
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [clearing, setClearing] = useState(false);
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [formatFilter, setFormatFilter] = useState('all');
+  const [localSearch, setLocalSearch] = useState('');
+  const [localType, setLocalType] = useState('all');
+  const [localFormat, setLocalFormat] = useState('all');
+  const [localStatus, setLocalStatus] = useState('all');
   const [expandedGroup, setExpandedGroup] = useState(null);
+
+  const search = searchProp !== undefined ? searchProp : localSearch;
+  const setSearch = (v) => { setLocalSearch(v); onSearchChange?.(v); };
+  const typeFilter = typeFilterProp !== undefined ? typeFilterProp : localType;
+  const setTypeFilter = (v) => { setLocalType(v); onTypeFilterChange?.(v); };
+  const formatFilter = formatFilterProp !== undefined ? formatFilterProp : localFormat;
+  const setFormatFilter = (v) => { setLocalFormat(v); onFormatFilterChange?.(v); };
+  const statusFilter = statusFilterProp !== undefined ? statusFilterProp : localStatus;
+  const setStatusFilter = (v) => { setLocalStatus(v); onStatusFilterChange?.(v); };
+
+  const targetDate = useMemo(() => {
+    if (!date) return null;
+    const d = date instanceof Date ? date : new Date(date);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString().split('T')[0];
+  }, [date]);
+
+  const filteredHistory = useMemo(() => {
+    if (!targetDate) return history;
+    return history.filter((record) => {
+      if (statusFilter !== 'all') {
+        const recordStatus = record.metadata?.workflowStatus;
+        const isApproved = recordStatus === 'APPROVED' || (!recordStatus && (record.exportType === 'attendance_daily_official' || record.exportType === 'official_attendance'));
+        const isRejected = recordStatus === 'REJECTED';
+        if (statusFilter === 'APPROVED' && !isApproved) return false;
+        if (statusFilter === 'REJECTED' && !isRejected) return false;
+      }
+      const reportDate = record.reportDate || record.metadata?.reportDate;
+      if (!reportDate) return false;
+      let parsed;
+      if (typeof reportDate === 'string') {
+        parsed = parseISO(reportDate);
+        if (!(parsed instanceof Date) || isNaN(parsed.getTime())) {
+          parsed = new Date(reportDate);
+        }
+      } else {
+        parsed = new Date(reportDate);
+      }
+      if (!(parsed instanceof Date) || isNaN(parsed.getTime())) return false;
+      const recordDate = format(parsed, 'yyyy-MM-dd');
+      if (recordDate === targetDate) return true;
+      // Weekly snapshots are indexed by the week start date; show them for any day inside that week.
+      if (record.exportType === 'official_attendance') {
+        try {
+          const start = parseISO(recordDate);
+          const end = addDays(start, 6);
+          const target = parseISO(targetDate);
+          return target >= start && target <= end;
+        } catch {
+          return false;
+        }
+      }
+      return false;
+    });
+  }, [history, targetDate, statusFilter]);
+
+  useEffect(() => {
+    onVisibleCount?.(filteredHistory.length);
+  }, [filteredHistory, onVisibleCount]);
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
@@ -424,6 +485,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
       if (typeFilter !== 'all') params.exportType = typeFilter;
       if (formatFilter !== 'all') params.format = formatFilter;
       if (search) params.search = search;
+      if (classId) params.classId = classId;
 
       const result = await getExportHistory(params);
       if (result.success) {
@@ -438,7 +500,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
     } finally {
       setLoading(false);
     }
-  }, [typeFilter, formatFilter, search]);
+  }, [typeFilter, formatFilter, search, classId]);
 
   const handleClearHistory = useCallback(async () => {
     if (!confirm(t('confirm_clear_export_history') || 'Are you sure you want to clear all export history?')) return;
@@ -473,9 +535,11 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
   }, [isOpen, fetchHistory]);
 
   const groupedData = useMemo(() => {
-    const scopedHistory = classId
-      ? history.filter((record) => Number(record.classId) === Number(classId))
-      : history;
+    const scopedHistory = filteredHistory.filter((record) => {
+      if (statusFilter === 'all') return true;
+      const recordStatus = record.metadata?.workflowStatus;
+      return recordStatus === statusFilter;
+    });
 
     if (!isSuperAdmin) {
       return [{
@@ -489,7 +553,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
     const byUser = new Map();
     scopedHistory.forEach((record) => {
       const userId = record.user?.id || record.userId;
-      const userName = record.user?.displayName || record.user?.email || `User ${userId}`;
+      const userName = getLocalizedUserName(record.user, lang, record.user?.email || `User ${userId}`);
 
       if (!byUser.has(userId)) {
         byUser.set(userId, {
@@ -508,13 +572,11 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
       const bLast = b.entries[0]?.createdAt || '';
       return new Date(bLast) - new Date(aLast);
     });
-  }, [history, isSuperAdmin, classId]);
+  }, [filteredHistory, isSuperAdmin, statusFilter, lang]);
 
   if (!isOpen) return null;
 
-  const visibleCount = classId
-    ? history.filter((record) => Number(record.classId) === Number(classId)).length
-    : history.length;
+  const visibleCount = filteredHistory.length;
 
   const isScoped = scope !== 'global';
 
@@ -526,7 +588,6 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
       ];
 
   const formatChips = [
-    { key: 'all', label: t('all_formats'), color: null, icon: null },
     ...FORMAT_KEYS.map((key) => ({
       key,
       label: key.toUpperCase(),
@@ -535,12 +596,31 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
     })),
   ];
 
+  const statusChips = [
+    { key: 'APPROVED', label: t('workflow.status.approved') || 'Approved', color: WORKFLOW_STATUS_COLORS.APPROVED, Icon: CheckCircle },
+    { key: 'REJECTED', label: t('workflow.status.rejected') || 'Rejected', color: WORKFLOW_STATUS_COLORS.REJECTED, Icon: XCircle },
+  ];
+
   const getExportTypeLabel = (typeKey) => {
-    if (OFFICIAL_TYPE_LABELS[typeKey]) return t(`export_type_${typeKey}`) || OFFICIAL_TYPE_LABELS[typeKey];
+    if (OFFICIAL_TYPE_LABELS[typeKey]) return OFFICIAL_TYPE_LABELS[typeKey];
     const translated = t(`export_type_${typeKey}`);
     if (translated && !translated.startsWith('export type')) return translated;
     return typeKey.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   };
+
+  const exportFilterDefs = [
+    { id: 'all', label: t('all') || 'All', color: '#6b7280', match: () => true },
+    ...EXPORT_TYPE_GROUPS.official.map((typeKey) => {
+      const Icon = EXPORT_TYPE_ICONS[typeKey];
+      return { id: typeKey, label: getExportTypeLabel(typeKey), color: EXPORT_TYPE_COLORS[typeKey], match: (item) => item.exportType === typeKey, icon: Icon ? <Icon size={10} /> : undefined };
+    }),
+    ...EXPORT_TYPE_GROUPS.standard.map((typeKey) => {
+      const Icon = EXPORT_TYPE_ICONS[typeKey];
+      return { id: typeKey, label: getExportTypeLabel(typeKey), color: EXPORT_TYPE_COLORS[typeKey], match: (item) => item.exportType === typeKey, icon: Icon ? <Icon size={10} /> : undefined };
+    }),
+    { id: 'APPROVED', label: t('workflow.status.approved') || 'Approved', color: WORKFLOW_STATUS_COLORS.APPROVED, match: (item) => item.metadata?.workflowStatus === 'APPROVED' || (!item.metadata?.workflowStatus && (item.exportType === 'attendance_daily_official' || item.exportType === 'official_attendance')), icon: <CheckCircle size={10} /> },
+    { id: 'REJECTED', label: t('workflow.status.rejected') || 'Rejected', color: WORKFLOW_STATUS_COLORS.REJECTED, match: (item) => item.metadata?.workflowStatus === 'REJECTED', icon: <XCircle size={10} /> },
+  ];
 
   const panel = (
     <div
@@ -630,88 +710,34 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
         </div>
         )}
 
-        <div style={{ marginBottom: 10 }}>
-          <input
-            type="text"
-            autoComplete="off"
-            placeholder={t('search_exports')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              fontSize: '0.95rem',
-              background: 'var(--bg)',
-              color: 'var(--text)',
-              boxSizing: 'border-box',
-            }}
-          />
-        </div>
+        {!minimal && ( <> {date && <DayFilterBanner date={date} lang={lang} t={t} isDark={isDark} />}
+        <ClassHistorySearchInput
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('search') || 'Search...'}
+        />
 
         {/* Type filter: group buttons row */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 4, alignItems: 'center' }}>
-          <button
-            type="button"
-            disabled
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.3rem',
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              padding: '4px 8px',
-              color: isDark ? '#94a3b8' : '#6b7280',
-              fontSize: 'var(--font-size-xs)',
-              fontWeight: 400,
-              cursor: 'default',
-            }}
-          >
-            <SlidersHorizontal size={13} />
-            <span>{t('filters') || 'Filters'}</span>
-          </button>
-
-          {/* All chip */}
-          <button
-            type="button"
-            onClick={() => { setTypeFilter('all'); setExpandedGroup(null); }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.25rem',
-              padding: '3px 10px',
-              borderRadius: '12px',
-              border: `1px solid ${typeFilter === 'all' ? '#6b7280' : 'var(--border)'}`,
-              background: typeFilter === 'all' ? `#6b728015` : 'transparent',
-              color: typeFilter === 'all' ? '#6b7280' : 'var(--text)',
-              fontSize: 'var(--font-size-xs)',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {t('all')}
-          </button>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12, alignItems: 'center' }}>
+          <div style={{ display: 'contents' }}>
 
           {isScoped ? (
             EXPORT_TYPE_GROUPS.official.map((typeKey) => {
               const isActive = typeFilter === typeKey;
               const chipColor = EXPORT_TYPE_COLORS[typeKey] || '#6b7280';
+              const Icon = EXPORT_TYPE_ICONS[typeKey];
               return (
                 <button
                   key={typeKey}
                   type="button"
-                  onClick={() => setTypeFilter(typeKey)}
+                  onClick={() => setTypeFilter(typeFilter === typeKey ? 'all' : typeKey)}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.25rem',
-                    padding: '3px 10px',
+                    padding: '4px 12px',
                     borderRadius: '12px',
-                    border: `1px solid ${isActive ? chipColor : 'var(--border)'}`,
+                    border: `1px solid ${chipColor}`,
                     background: isActive ? `${chipColor}15` : 'transparent',
                     color: isActive ? chipColor : 'var(--text)',
                     fontSize: 'var(--font-size-xs)',
@@ -721,6 +747,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
                     whiteSpace: 'nowrap',
                   }}
                 >
+                  {Icon && <Icon size={14} color={chipColor} />}
                   {getExportTypeLabel(typeKey)}
                 </button>
               );
@@ -748,9 +775,9 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '0.25rem',
-                      padding: '3px 10px',
+                      padding: '4px 12px',
                       borderRadius: '12px',
-                      border: `1px solid ${isGroupActive || isGroupTypeActive ? group.color : 'var(--border)'}`,
+                      border: `1px solid ${group.color}`,
                       background: isGroupActive || isGroupTypeActive ? `${group.color}15` : 'transparent',
                       color: isGroupActive || isGroupTypeActive ? group.color : 'var(--text)',
                       fontSize: 'var(--font-size-xs)',
@@ -761,7 +788,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
                     }}
                   >
                     {group.label}
-                    <span style={{ fontSize: '0.6rem', opacity: 0.7 }}>
+                    <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>
                       {isGroupActive ? '▲' : '▼'}
                     </span>
                   </button>
@@ -773,23 +800,24 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
 
         {/* Expanded sub-types on their own row */}
         {!isScoped && expandedGroup && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 4, alignItems: 'center', paddingLeft: 12 }}>
+          <div style={{ display: 'contents' }}>
             {groupChips.filter(g => g.key === expandedGroup).map(group =>
               group.types.map((typeKey) => {
                 const isActive = typeFilter === typeKey;
                 const chipColor = EXPORT_TYPE_COLORS[typeKey] || '#6b7280';
+                const Icon = EXPORT_TYPE_ICONS[typeKey];
                 return (
                   <button
                     key={typeKey}
                     type="button"
-                    onClick={() => setTypeFilter(typeKey)}
+                    onClick={() => setTypeFilter(typeFilter === typeKey ? 'all' : typeKey)}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '0.25rem',
-                      padding: '3px 10px',
+                      padding: '4px 12px',
                       borderRadius: '12px',
-                      border: `1px solid ${isActive ? chipColor : 'var(--border)'}`,
+                      border: `1px solid ${chipColor}`,
                       background: isActive ? `${chipColor}15` : 'transparent',
                       color: isActive ? chipColor : 'var(--text)',
                       fontSize: 'var(--font-size-xs)',
@@ -799,6 +827,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
                       whiteSpace: 'nowrap',
                     }}
                   >
+                    {Icon && <Icon size={14} color={chipColor} />}
                     {getExportTypeLabel(typeKey)}
                   </button>
                 );
@@ -807,8 +836,42 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
           </div>
         )}
 
+        {/* Workflow status filter chips */}
+        <div style={{ display: 'contents' }}>
+          {statusChips.map((chip) => {
+            const isActive = statusFilter === chip.key;
+            const color = chip.color;
+            const Icon = chip.Icon;
+            return (
+              <button
+                key={chip.key}
+                type="button"
+                onClick={() => setStatusFilter(statusFilter === chip.key ? 'all' : chip.key)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '4px 12px',
+                  borderRadius: '12px',
+                  border: `1px solid ${color}`,
+                  background: isActive ? `${color}15` : 'transparent',
+                  color,
+                  fontSize: 'var(--font-size-xs)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {Icon && <Icon size={14} color={color} />}
+                {chip.label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Format filter chips with icons */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+        <div style={{ display: 'contents' }}>
           {formatChips.map((chip) => {
             const isActive = formatFilter === chip.key;
             const chipColor = chip.color || '#6b7280';
@@ -817,14 +880,14 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
               <button
                 key={chip.key}
                 type="button"
-                onClick={() => setFormatFilter(chip.key)}
+                onClick={() => setFormatFilter(formatFilter === chip.key ? 'all' : chip.key)}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.25rem',
-                  padding: '3px 10px',
+                  padding: '4px 12px',
                   borderRadius: '12px',
-                  border: `1px solid ${isActive ? chipColor : 'var(--border)'}`,
+                  border: `1px solid ${chipColor}`,
                   background: isActive ? `${chipColor}15` : 'transparent',
                   color: isActive ? chipColor : 'var(--text)',
                   fontSize: 'var(--font-size-xs)',
@@ -834,12 +897,14 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
                   whiteSpace: 'nowrap',
                 }}
               >
-                {Icon && <Icon size={12} strokeWidth={2.2} />}
+                {Icon && <Icon size={14} strokeWidth={2.2} />}
                 {chip.label}
               </button>
             );
           })}
         </div>
+        </div>
+        </>)}
 
         <div style={{ flex: 1, overflowY: 'auto', maxHeight: 'calc(100vh - 280px)' }}>
           {loading ? (
@@ -852,7 +917,6 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
             </div>
           ) : (
             groupedData.map((group) => {
-              const dateGroups = groupEntriesByDate(group.entries);
               const role = group.user ? resolveUserRole(group.user) : null;
 
               return (
@@ -920,7 +984,6 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
                                 border: '1.5px solid var(--panel, white)',
                                 boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
                               }}
-                              title={badgeRole}
                             >
                               {React.cloneElement(roleIcon, { color: roleColor, size: 10 })}
                             </div>
@@ -954,35 +1017,25 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
                     </div>
                   )}
 
-                  {dateGroups.map(([dateKey, entries]) => (
-                    <div key={dateKey} style={{ marginBottom: 6 }}>
-                      <div
-                        style={{
-                          fontSize: 'var(--font-size-xs)',
-                          fontWeight: 700,
-                          color: 'var(--muted)',
-                          padding: `4px 0 2px ${group.flat ? 0 : 40}px`,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.5px',
-                        }}
-                      >
-                        {formatDateLabel(dateKey, lang, t)}
-                      </div>
-                      {entries.map((entry) => (
-                        <ExportEntryRow
-                          key={entry.id}
-                          entry={entry}
-                          lang={lang}
-                          t={t}
-                          theme={theme}
-                          isSuperAdmin={isSuperAdmin}
-                          currentUserId={currentUserId}
-                          classInfo={classInfo}
-                          indent={group.flat ? 0 : 40}
-                        />
-                      ))}
-                    </div>
-                  ))}
+                  <DateGroupedList
+                    items={group.entries}
+                    filterDefs={exportFilterDefs}
+                    renderItem={(entry) => (
+                      <ExportEntryRow
+                        key={entry.id}
+                        entry={entry}
+                        lang={lang}
+                        t={t}
+                        theme={theme}
+                        isSuperAdmin={isSuperAdmin}
+                        currentUserId={currentUserId}
+                        classInfo={classInfo}
+                        indent={group.flat ? 0 : 40}
+                      />
+                    )}
+                    isDark={isDark}
+                    t={t}
+                  />
                 </div>
               );
             })

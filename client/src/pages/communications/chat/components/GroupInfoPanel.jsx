@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { formatLongDate, formatTime } from '@utils/date-formatter.js';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -209,22 +210,23 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
               {roomName || t('chat_group_info')}
             </h3>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              fontSize: 'var(--font-size-lg)',
-              cursor: 'pointer',
-              color: 'var(--muted)',
-              flexShrink: 0,
-              padding: '4px 8px',
-              borderRadius: 6,
-            }}
-            title={t('close')}
-          >
-            ✕
-          </button>
+          <ColoredTooltip title={t('close')}>
+            <button
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                fontSize: 'var(--font-size-lg)',
+                cursor: 'pointer',
+                color: 'var(--muted)',
+                flexShrink: 0,
+                padding: '4px 8px',
+                borderRadius: 6,
+              }}
+            >
+              ✕
+            </button>
+          </ColoredTooltip>
         </div>
 
         {/* Stats Summary — compact, same row */}
@@ -312,7 +314,6 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
                       {onStartDM && p.userId !== currentUser?.dbId && (
                         <button
                           onClick={() => onStartDM(p.user)}
-                          title={t('chat_new_message')}
                           style={{ background: 'none', border: 'none', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, flexShrink: 0, color: 'var(--brand)' }}
                         >
                           {getThemedIcon('ui', 'message_square', 18, theme)}
@@ -322,7 +323,6 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
                         <button
                           onClick={() => openAssignAdminConfirm(p)}
                           disabled={actionLoading}
-                          title={t('chat_assign_admin')}
                           style={{ background: 'none', border: 'none', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, flexShrink: 0, color: '#ffc107' }}
                         >
                           {getIconWithColor('ui', 'crown', 16, '#ffc107')}
@@ -515,7 +515,6 @@ const MediaTab = ({ items, t, isRTL }) => {
             position: 'relative',
           }}
           onClick={() => item.fileUrl && window.open(withAuthToken(item.fileUrl), '_blank')}
-          title={item.fileName || ''}
         >
           {item.fileUrl ? (
             <img
@@ -563,7 +562,6 @@ const DocumentsTab = ({ items, t, isRTL }) => {
         <div
           key={item.id}
           onClick={() => item.fileUrl && window.open(withAuthToken(item.fileUrl), '_blank')}
-          title={formatMimeType(item.fileType)}
           style={{
             display: 'flex',
             alignItems: 'center',

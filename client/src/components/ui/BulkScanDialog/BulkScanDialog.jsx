@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { X, Upload, Trash2, Calendar, RefreshCw, Download, RotateCcw, Users, CheckCircle, AlertCircle, Info, Plus, Minus, ScanLine, Layers, GraduationCap, BookOpen, CalendarDays } from 'lucide-react';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { ATTENDANCE_TYPES, STANDUP_ATTENDANCE_TYPES, ATTENDANCE_TYPE_CATEGORY, getAttendanceColor, ATTENDANCE_DISPLAY_NAMES, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useBulkScan } from '@/contexts/BulkScanContext';
@@ -374,26 +375,28 @@ const BulkScanDialog = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <h2 id="bulk-scan-title" className={styles.title} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
               {t('bulk_scan_title')}
-              <button
-                onClick={() => window.dispatchEvent(new Event('app:bulk-tour'))}
-                style={{
-                  background: 'none',
-                  border: '1px solid var(--border, #e5e7eb)',
-                  borderRadius: '50%',
-                  width: '18px',
-                  height: '18px',
-                  fontSize: '0.6875rem',
-                  fontWeight: 700,
-                  color: 'var(--text-secondary, #6b7280)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
-                  flexShrink: 0
-                }}
-                title={t('bulk_help_tour')}
-              >?</button>
+              <ColoredTooltip title={t('bulk_help_tour')}>
+                <button
+                  onClick={() => window.dispatchEvent(new Event('app:bulk-tour'))}
+                  aria-label={t('bulk_help_tour')}
+                  style={{
+                    background: 'none',
+                    border: '1px solid var(--border, #e5e7eb)',
+                    borderRadius: '50%',
+                    width: '18px',
+                    height: '18px',
+                    fontSize: '0.6875rem',
+                    fontWeight: 700,
+                    color: 'var(--text-secondary, #6b7280)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0,
+                    flexShrink: 0
+                  }}
+                >?</button>
+              </ColoredTooltip>
             </h2>
           </div>
           <button
@@ -517,16 +520,17 @@ const BulkScanDialog = ({
                       )}
                     </button>
                   )}
-                  <button
-                    onClick={clearState}
-                    className={`${styles.clearButton} ${styles.tabActionButtons}`}
-                    disabled={loading || addingAll}
-                    title={t('clear_and_new')}
-                    style={{ padding: '0.5rem 0.875rem', fontSize: 'var(--font-size-sm)' }}
-                  >
-                    <RotateCcw size={16} />
-                    {t('clear_new')}
-                  </button>
+                  <ColoredTooltip title={t('clear_and_new')}>
+                    <button
+                      onClick={clearState}
+                      className={`${styles.clearButton} ${styles.tabActionButtons}`}
+                      disabled={loading || addingAll}
+                      style={{ padding: '0.5rem 0.875rem', fontSize: 'var(--font-size-sm)' }}
+                    >
+                      <RotateCcw size={16} />
+                      {t('clear_new')}
+                    </button>
+                  </ColoredTooltip>
                 </div>
               )}
             </div>
@@ -601,24 +605,26 @@ const BulkScanDialog = ({
               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: '0.375rem' }}>
                 {(activeTab === 'addAll' || activeTab === 'manual') && (
                   <>
-                    <button
-                      onClick={moveAllToExcluded}
-                      className={styles.clearButton}
-                      disabled={selectedStudents.length === 0 || loading}
-                      title={t('move_all_left')}
-                      style={{ padding: '0.5rem' }}
-                    >
-                      <Minus size={16} />
-                    </button>
-                    <button
-                      onClick={moveAllToSelected}
-                      className={styles.clearButton}
-                      disabled={excludedStudents.length === 0 || loading}
-                      title={t('move_all_right')}
-                      style={{ padding: '0.5rem' }}
-                    >
-                      <Plus size={16} />
-                    </button>
+                    <ColoredTooltip title={t('move_all_left')}>
+                      <button
+                        onClick={moveAllToExcluded}
+                        className={styles.clearButton}
+                        disabled={selectedStudents.length === 0 || loading}
+                        style={{ padding: '0.5rem' }}
+                      >
+                        <Minus size={16} />
+                      </button>
+                    </ColoredTooltip>
+                    <ColoredTooltip title={t('move_all_right')}>
+                      <button
+                        onClick={moveAllToSelected}
+                        className={styles.clearButton}
+                        disabled={excludedStudents.length === 0 || loading}
+                        style={{ padding: '0.5rem' }}
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </ColoredTooltip>
                   </>
                 )}
               </div>
@@ -733,23 +739,24 @@ const BulkScanDialog = ({
                   className={`${styles.dateInput} ${styles[theme]}`}
                   disabled={loading}
                 />
-                <button
-                  onClick={() => {
-                    const parts = getQatarDateParts(new Date());
-                    if (parts) {
-                      const yyyy = parts.year;
-                      const mm = String(parts.month).padStart(2, '0');
-                      const dd = String(parts.day).padStart(2, '0');
-                      setSelectedDate(new Date(`${yyyy}-${mm}-${dd}`));
-                    }
-                  }}
-                  className={styles.clearButton}
-                  title={t('go_to_today')}
-                  disabled={loading}
-                  style={{ padding: '0.375rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <CalendarDays size={16} />
-                </button>
+                <ColoredTooltip title={t('go_to_today')}>
+                  <button
+                    onClick={() => {
+                      const parts = getQatarDateParts(new Date());
+                      if (parts) {
+                        const yyyy = parts.year;
+                        const mm = String(parts.month).padStart(2, '0');
+                        const dd = String(parts.day).padStart(2, '0');
+                        setSelectedDate(new Date(`${yyyy}-${mm}-${dd}`));
+                      }
+                    }}
+                    className={styles.clearButton}
+                    disabled={loading}
+                    style={{ padding: '0.375rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <CalendarDays size={16} />
+                  </button>
+                </ColoredTooltip>
               </div>
             </div>
           )}

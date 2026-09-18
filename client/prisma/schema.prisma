@@ -146,6 +146,9 @@ enum WorkflowDocumentStatus {
 enum WorkflowType {
   ATTENDANCE_DAILY
   ATTENDANCE_WEEKLY
+  ATTENDANCE_WARNING
+  ATTENDANCE_WARNING_FIRST
+  ATTENDANCE_WARNING_FINAL
   GENERAL_HR
   GENERAL_ADMIN
   GENERAL_MIXED_HR_ADMIN
@@ -174,6 +177,8 @@ enum AttendanceWorkflowSubtype {
   WEEKLY_SUMMARY
   EXCUSE
   WARNING
+  WARNING_FIRST
+  WARNING_FINAL
 }
 
 enum SharePermission {
@@ -684,6 +689,7 @@ model User {
   workflowDocumentsAssigned      WorkflowDocument[]        @relation("WorkflowDocumentAssignee")
   workflowDocumentsInstructed    WorkflowDocument[]        @relation("WorkflowDocumentInstructor")
   workflowDocumentsTargetStudent WorkflowDocument[]        @relation("WorkflowDocumentTargetStudent")
+  workflowDocumentsSignedBy      WorkflowDocument[]        @relation("WorkflowDocumentSignedBy")
   workflowCommentsAuthored       WorkflowComment[]         @relation("WorkflowCommentAuthor")
   workflowStatusHistoryActed     WorkflowStatusHistory[]   @relation("WorkflowStatusHistoryActor")
   permissionDenialAudits        PermissionDenialAudit[]   @relation("PermissionDenialAuditUser")
@@ -937,14 +943,17 @@ model Attendance {
 }
 
 model AttendanceChangeLog {
-  id            Int      @id @default(autoincrement())
-  attendanceId  Int
-  fromStatusId  Int?
-  toStatusId    Int?
-  changedBy     Int?
-  changedAt     DateTime @default(now())
-  reason        String?
-  source        String   @default("manual")
+  id             Int      @id @default(autoincrement())
+  attendanceId   Int
+  fromStatusId   Int?
+  toStatusId     Int?
+  changedBy      Int?
+  changedAt      DateTime @default(now())
+  reason         String?
+  source         String   @default("manual")
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentType String?
 
   attendance    Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
   fromStatus    AttendanceStatusTypes? @relation("AttendanceChangeLogFromStatus", fields: [fromStatusId], references: [id])
@@ -962,6 +971,9 @@ model AttendanceAmendment {
   fromStatusId Int
   toStatusId   Int
   reason      String
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentType String?
   amendedBy   Int
   amendedAt   DateTime @default(now())
 
@@ -1599,6 +1611,7 @@ model File {
   workflowInstances WorkflowInstance[]
   workflowDocuments WorkflowDocument[] @relation("WorkflowDocumentFile")
   workflowDocumentSnapshots WorkflowDocument[] @relation("WorkflowDocumentSnapshotFile")
+  workflowDocumentSignedCopies WorkflowDocument[] @relation("WorkflowDocumentSignedFile")
   preferences       UserFilePreference[]
   exportHistories   ExportHistory[]    @relation("ExportHistoryFile")
 
@@ -2218,6 +2231,9 @@ model WorkflowDocument {
   status              WorkflowDocumentStatus @default(DRAFT)
   fileId              String?              // Reference to File model (UUID)
   fileVersionId       String?              // Reference to specific FileVersion (UUID) - tracks exact version used
+  signedFileId        String?              // Reference to signed/scan File (UUID) - uploaded after print & sign
+  signedAt            DateTime?            // When the signed copy was uploaded
+  signedById          Int?                 // Who uploaded the signed copy
   submitterId         Int
   currentAssigneeId   Int?
   classId             Int?
@@ -2241,6 +2257,8 @@ model WorkflowDocument {
 
   file                File?                   @relation("WorkflowDocumentFile", fields: [fileId], references: [id], onDelete: SetNull)
   snapshotFile        File?                   @relation("WorkflowDocumentSnapshotFile", fields: [snapshotFileId], references: [id], onDelete: SetNull)
+  signedFile          File?                   @relation("WorkflowDocumentSignedFile", fields: [signedFileId], references: [id], onDelete: SetNull)
+  signedBy            User?                   @relation("WorkflowDocumentSignedBy", fields: [signedById], references: [id], onDelete: SetNull)
   submitter           User                    @relation("WorkflowDocumentSubmitter", fields: [submitterId], references: [id])
   currentAssignee     User?                   @relation("WorkflowDocumentAssignee", fields: [currentAssigneeId], references: [id])
   instructor          User?                   @relation("WorkflowDocumentInstructor", fields: [instructorId], references: [id])

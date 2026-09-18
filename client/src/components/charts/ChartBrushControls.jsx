@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLang } from '@contexts/LangContext';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { CHART_LABEL_SHADOW, CHART_LABEL_FILL } from './chartLabelStyles';
 
 export const CHART_BRUSH_RESERVE = 50;
@@ -164,9 +165,11 @@ export default function ChartBrushControls({
 
         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 }}>
           {isZoomed && (
-            <button type="button" onClick={onReset} title={t('chart_reset_zoom')} style={iconBtn(false)}>
-              <IconReset size={14} color="var(--text)" />
-            </button>
+            <ColoredTooltip title={t('chart_reset_zoom')}>
+              <button type="button" onClick={onReset} style={iconBtn(false)}>
+                <IconReset size={14} color="var(--text)" />
+              </button>
+            </ColoredTooltip>
           )}
         </div>
       </div>

@@ -19,20 +19,27 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import useResizableDrawer from '@hooks/useResizableDrawer';
 import { formatDateTime } from '@utils/date';
-import { formatNotificationTime, filterNotifications as filterNotificationsUtil, groupNotificationsByDate, gotoFromNotification as gotoFromNotificationUtil, WORKFLOW_NOTIFICATION_STATUS_FILTERS, getWorkflowSubgroupColor, getWorkflowStatusKey, getLocalizedNotificationTitle, getLocalizedWorkflowName } from '@utils/notificationHelpers';
+import { formatNotificationTime, filterNotifications as filterNotificationsUtil, groupNotificationsByDate, gotoFromNotification as gotoFromNotificationUtil, WORKFLOW_NOTIFICATION_STATUS_FILTERS, getWorkflowSubgroupColor, getWorkflowStatusLabel, getWorkflowStatusKey, getLocalizedNotificationTitle, getLocalizedWorkflowName } from '@utils/notificationHelpers';
 import Input from './Input';
 import Select from './Select';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import PortalTooltip from './PortalTooltip/PortalTooltip';
+import GridQuickFilterChips from '@components/ui/GridQuickFilterChips';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { ActivityLogger } from '@services/other/activityLogger';
 import useNotifications from '@hooks/useNotifications';
+import notificationManager from '@utils/notifications';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/kibo/ui/avatar';
 import { useToast } from '@ui';
 import { formatTermDisplay, getLocalizedTermDisplay } from '@constants/gradingStandards';
+import { getEnglishUserName, getArabicUserName, getLocalizedUserName } from '@utils/localizedUserName';
+import { getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
+import { resolveUserRole } from '@utils/userUtils';
+import { normalizeProfileImageUrl } from '@utils/avatarUtils';
 
 // ── Notification Card (extracted for reuse in sub-groups) ──────────────────
 const NotificationCard = ({ notification, idx, isDark, isRTL, theme, t, lang, formatTime, hoveredCard, setHoveredCard, gotoFromNotification, handleMarkAsRead, handleMarkAsUnread, handleArchive, handleUnarchive, handleDelete, iconBtnStyle, getNotificationIcon, getCategoryColor, getNotificationBorderColor, PortalTooltip, getThemedIcon, motion, AnimatePresence, programs, classes }) => {
@@ -41,12 +48,6 @@ const NotificationCard = ({ notification, idx, isDark, isRTL, theme, t, lang, fo
   const iconEl = getNotificationIcon(notification.type, 20);
   const data = notification.data || notification.metadata || {};
   const localizedTitle = getLocalizedNotificationTitle(notification, t);
-  const rawWorkflowName = data.workflowName || notification.message;
-  const messageText =
-    notification.event?.startsWith('workflow.') && rawWorkflowName
-      ? getLocalizedWorkflowName(rawWorkflowName, t)
-      : (notification.message || data.message || data.body || notification.body || '');
-  const showMessage = messageText && messageText !== localizedTitle && messageText.trim() !== '';
   const classId = data.classId || notification.classId;
   const classItem = classId ? classes.find(c => String(c.id || c.docId) === String(classId)) : null;
   const programId = data.programId || classItem?.programId;
@@ -55,17 +56,52 @@ const NotificationCard = ({ notification, idx, isDark, isRTL, theme, t, lang, fo
     ? (lang === 'ar' ? (program.nameAr || program.nameEn || program.name || program.code) : (program.nameEn || program.name || program.code))
     : '';
   const className = classItem
-    ? (lang === 'ar' ? (classItem.nameAr || classItem.nameEn || classItem.name || classItem.code) : (classItem.name || classItem.code || ''))
+    ? (lang === 'ar'
+        ? (classItem.nameAr || classItem.nameEn || classItem.code || '')
+        : (classItem.nameEn || classItem.nameAr || classItem.code || ''))
     : '';
+  const rawWorkflowName = data.workflowName || notification.message;
+  const workflowParts = (rawWorkflowName || '').split(/\s+[—–-]\s+/).map((s) => s.trim()).filter(Boolean);
+  const workflowDate = data.workflowDate || data.date || (workflowParts.length > 1 ? workflowParts[workflowParts.length - 1] : '');
+  const isWorkflowMessage = notification.event?.startsWith('workflow.') && rawWorkflowName && workflowParts.length >= 2 && className;
+  const messageText = isWorkflowMessage ? null : (notification.message || data.message || data.body || notification.body || '');
+  const showMessage = isWorkflowMessage || !!messageText;
   const contextParts = [programName, className].filter(Boolean);
   const contextLabel = contextParts.join(' · ');
+  const fromStatus = data.previousStatus;
+  const toStatus = data.newStatus;
+  const fromLabel = fromStatus ? getWorkflowStatusLabel(fromStatus, t) : '';
+  const toLabel = toStatus ? getWorkflowStatusLabel(toStatus, t) : '';
+  const fromColor = fromStatus ? getWorkflowSubgroupColor(fromStatus) : '#6b7280';
+  const toColor = toStatus ? getWorkflowSubgroupColor(toStatus) : '#6b7280';
+  const senderName = data.senderName || data.userName || data.returnerName || '';
+  const senderNameAr = data.senderNameAr || data.userNameAr || data.returnerNameAr;
+  const senderImageCacheBuster = data.sender?.updatedAt || data.user?.updatedAt || data.actor?.updatedAt;
+  const senderImage =
+    normalizeProfileImageUrl(data.senderKeycloakId ? `/api/v1/user-images/proxy/${data.senderKeycloakId}/profile` : null, senderImageCacheBuster) ||
+    normalizeProfileImageUrl(data.senderId ? `/api/v1/user-images/proxy/${data.senderId}/profile` : null, senderImageCacheBuster) ||
+    normalizeProfileImageUrl(data.senderImage, data.sender?.updatedAt) ||
+    normalizeProfileImageUrl(data.userImage, data.user?.updatedAt) ||
+    normalizeProfileImageUrl(data.sender?.profileImageUrl, data.sender?.updatedAt) ||
+    normalizeProfileImageUrl(data.user?.profileImageUrl, data.user?.updatedAt) ||
+    normalizeProfileImageUrl(data.actor?.profileImageUrl, data.actor?.updatedAt);
+  const senderDisplayName = data.sender
+    ? getLocalizedUserName(data.sender, lang, '')
+    : (lang === 'ar'
+        ? (getArabicUserName({ displayNameAr: senderNameAr, displayName: senderName, name: senderName }, '') || senderNameAr || senderName)
+        : (getEnglishUserName({ displayName: senderName, name: senderName }, '') || getEnglishUserName({ displayName: senderNameAr, name: senderNameAr }, '') || senderName || senderNameAr));
+  const sender = data.sender || data.user || data.actor || null;
+  const senderRole = resolveUserRole(sender) || data.senderRole || resolveUserRole({ role: data.userRole }) || data.userRole || data.role || null;
+  const senderRoleColor = senderRole ? getUserRoleColor(senderRole) : null;
+  const senderRoleIcon = senderRole ? getUserRoleIcon(senderRole) : null;
+  const showTransition = fromStatus && toStatus;
   return (
     <motion.div
       key={notification.id}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, delay: idx * 0.02 }}
-      onClick={() => gotoFromNotification(notification)}
+      onClick={(e) => { e.stopPropagation(); gotoFromNotification(notification); }}
       onMouseEnter={() => setHoveredCard(notification.id)}
       onMouseLeave={() => setHoveredCard(null)}
       style={{
@@ -133,7 +169,59 @@ const NotificationCard = ({ notification, idx, isDark, isRTL, theme, t, lang, fo
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical'
             }}>
-              {messageText}
+              {isWorkflowMessage ? (
+                <>
+                  {!!workflowDate && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.15rem', color: toColor, fontSize: '0.72rem' }}>
+                      {getThemedIcon('ui', 'calendar', 12, toColor)}
+                      <span>{workflowDate}</span>
+                    </div>
+                  )}
+                </>
+              ) : messageText}
+            </div>
+          )}
+          {showTransition && (
+            <div style={{
+              fontSize: '0.72rem',
+              color: isDark ? '#b0b8c4' : '#555',
+              lineHeight: 1.5,
+              marginBottom: '0.3rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              flexWrap: 'wrap',
+              direction: isRTL ? 'rtl' : 'ltr'
+            }}>
+              <span>{t('from') || 'From'}</span>
+              <span style={{ color: fromColor, fontWeight: 600 }}>{fromLabel}</span>
+              <span>{isRTL ? '←' : '→'}</span>
+              <span style={{ color: toColor, fontWeight: 600 }}>{toLabel}</span>
+              {senderName && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginInlineStart: 'auto' }}>
+                  <Avatar className="h-4 w-4">
+                    <AvatarImage src={senderImage} alt={senderDisplayName} />
+                    <AvatarFallback className="text-[8px]">{senderDisplayName.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  {senderRoleIcon && (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 16,
+                        height: 16,
+                        borderRadius: '50%',
+                        background: `${senderRoleColor}22`,
+                        color: senderRoleColor,
+                      }}
+                    >
+                      {React.cloneElement(senderRoleIcon, { size: 10, color: senderRoleColor })}
+                    </span>
+                  )}
+                  <span style={{ color: isDark ? '#cbd5e1' : '#374151' }}>{senderDisplayName}</span>
+                </span>
+              )}
             </div>
           )}
           <div style={{
@@ -144,7 +232,10 @@ const NotificationCard = ({ notification, idx, isDark, isRTL, theme, t, lang, fo
             alignItems: 'center',
             opacity: 0.85
           }}>
-            <span>{formatTime(notification.createdAt)}</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: toColor }}>
+              {getThemedIcon('ui', 'clock', 10, toColor)}
+              {formatTime(notification.createdAt)}
+            </span>
             {contextLabel && (
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 {getThemedIcon('ui', 'tag', 10, isDark ? '#94a3b8' : '#64748b')}
@@ -283,7 +374,8 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
     markAsUnread: hookMarkAsUnread,
     archive: hookArchive,
     unarchive: hookUnarchive,
-    remove: hookRemove
+    remove: hookRemove,
+    refreshSettings: feedRefreshSettings
   } = feed || {};
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -298,8 +390,6 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
   const [filterProgram, setFilterProgram] = useState('all');
   const [filterSubject, setFilterSubject] = useState('all');
   const [filterClass, setFilterClass] = useState('all');
-  const [filterYear, setFilterYear] = useState('all');
-  const [filterSemester, setFilterSemester] = useState('all');
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -315,19 +405,27 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
 
   useEffect(() => {
     if (!isOpen || !initialFilters) return;
+    // Clear any previously selected status/workflow/type/search filters
+    // so that the new context does not start with a stale chip selection
+    // that produces an empty list while the other chips still show counts.
+    setFilterType('all');
+    setFilterCategory('all');
+    setFilterPenaltyType('all');
+    setFilterAttendanceStatus('all');
+    setFilterAbsenceType('all');
+    setFilterWorkflowStatus('all');
+    setShowArchived(false);
+    setSearchTerm('');
+
     const {
       filterClass,
       filterSubject,
       filterProgram,
-      filterYear,
-      filterSemester,
       showAdvanced: openAdvanced,
     } = initialFilters;
-    if (filterClass && filterClass !== 'all') setFilterClass(String(filterClass));
-    if (filterSubject && filterSubject !== 'all') setFilterSubject(String(filterSubject));
-    if (filterProgram && filterProgram !== 'all') setFilterProgram(String(filterProgram));
-    if (filterYear && filterYear !== 'all') setFilterYear(String(filterYear));
-    if (filterSemester && filterSemester !== 'all') setFilterSemester(formatTermDisplay(String(filterSemester)));
+    setFilterClass(filterClass && filterClass !== 'all' ? String(filterClass) : 'all');
+    setFilterSubject(filterSubject && filterSubject !== 'all' ? String(filterSubject) : 'all');
+    setFilterProgram(filterProgram && filterProgram !== 'all' ? String(filterProgram) : 'all');
     if (openAdvanced) setShowAdvanced(true);
   }, [isOpen, initialFilters]);
 
@@ -367,21 +465,17 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
       filterProgram,
       filterSubject,
       filterClass,
-      filterYear,
-      filterSemester,
       filterWorkflowStatus,
       subjects,
       classes
     });
     return result;
-  }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, searchTerm, showArchived, filterProgram, filterSubject, filterClass, filterYear, filterSemester, filterWorkflowStatus, subjects, classes, isHR, isAdmin, isSuperAdmin]);
+  }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, searchTerm, showArchived, filterProgram, filterSubject, filterClass, filterWorkflowStatus, subjects, classes, isHR, isAdmin, isSuperAdmin]);
 
   const hasActiveFilters = searchTerm.trim()
     || filterProgram !== 'all'
     || filterSubject !== 'all'
     || filterClass !== 'all'
-    || filterYear !== 'all'
-    || filterSemester !== 'all'
     || filterWorkflowStatus !== 'all';
 
   const clearAllFilters = useCallback(() => {
@@ -389,19 +483,32 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
     setFilterProgram('all');
     setFilterSubject('all');
     setFilterClass('all');
-    setFilterYear('all');
-    setFilterSemester('all');
     setFilterWorkflowStatus('all');
   }, []);
 
   const workflowStatusCounts = useMemo(() => {
+    const preFiltered = filterNotificationsUtil({
+      notifications,
+      filterType,
+      filterCategory,
+      filterPenaltyType,
+      filterAttendanceStatus,
+      filterAbsenceType,
+      searchTerm,
+      showArchived,
+      filterProgram,
+      filterSubject,
+      filterClass,
+      filterWorkflowStatus: 'all',
+      subjects,
+      classes,
+    });
     const counts = {};
     WORKFLOW_NOTIFICATION_STATUS_FILTERS.forEach((chip) => {
       if (chip.hideForHR && isHR && !isAdmin && !isSuperAdmin) return;
       counts[chip.id] = 0;
     });
-    notifications.forEach((n) => {
-      if (n.isArchived && !showArchived && filterType !== NOTIFICATION_STATUS.ARCHIVED) return;
+    preFiltered.forEach((n) => {
       if (!(n.type || '').startsWith('WORKFLOW')) return;
       const key = getWorkflowStatusKey(n);
       WORKFLOW_NOTIFICATION_STATUS_FILTERS.forEach((chip) => {
@@ -412,18 +519,38 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
       });
     });
     return counts;
-  }, [notifications, showArchived, filterType, isHR, isAdmin, isSuperAdmin]);
+  }, [notifications, showArchived, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, searchTerm, filterProgram, filterSubject, filterClass, subjects, classes, isHR, isAdmin, isSuperAdmin]);
 
   const groupedNotifications = useMemo(() => {
     return groupNotificationsByDate(filteredNotifications, t);
   }, [filteredNotifications, t]);
 
-  const archivedCount = notifications.filter(n => n.isArchived).length;
-  const readCount = notifications.filter(n => n.isRead && !n.isArchived).length;
+  const statusFilteredNotifications = useMemo(() =>
+    filterNotificationsUtil({
+      notifications,
+      filterType: 'all',
+      filterCategory,
+      filterPenaltyType,
+      filterAttendanceStatus,
+      filterAbsenceType,
+      searchTerm,
+      showArchived: true,
+      filterProgram,
+      filterSubject,
+      filterClass,
+      filterWorkflowStatus: 'all',
+      subjects,
+      classes,
+    }),
+  [notifications, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, searchTerm, filterProgram, filterSubject, filterClass, subjects, classes]);
+
+  const filteredArchivedCount = statusFilteredNotifications.filter(n => n.isArchived).length;
+  const filteredReadCount = statusFilteredNotifications.filter(n => n.isRead && !n.isArchived).length;
+  const filteredUnreadCount = statusFilteredNotifications.filter(n => !n.isRead && !n.isArchived).length;
 
   const formatTime = useCallback((timestamp) => {
-    return formatNotificationTime(timestamp, t);
-  }, [t]);
+    return formatNotificationTime(timestamp, t, lang);
+  }, [t, lang]);
 
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(true);
@@ -432,6 +559,22 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
     setSoundEnabled(notificationSettings.soundEnabled);
     setBrowserNotificationsEnabled(notificationSettings.browserNotificationsEnabled);
   }, [notificationSettings]);
+
+  // Sync browser notification toggle with actual browser permission state
+  // (e.g. after user changes it from address bar and reloads)
+  useEffect(() => {
+    if (typeof Notification === 'undefined') return;
+    const syncPermission = () => {
+      const perm = Notification.permission;
+      if (perm === 'denied' && browserNotificationsEnabled) {
+        setBrowserNotificationsEnabled(false);
+        updateSetting('browserNotificationsEnabled', false);
+      }
+    };
+    syncPermission();
+    document.addEventListener('visibilitychange', syncPermission);
+    return () => document.removeEventListener('visibilitychange', syncPermission);
+  }, [browserNotificationsEnabled, updateSetting]);
 
   const handleMarkAsRead = useCallback(async (notificationId, e) => {
     e?.stopPropagation();
@@ -601,7 +744,18 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
               {/* Pushable settings icon buttons */}
               <PortalTooltip content={t('notifications_sound_enabled')} position="top">
                 <button
-                  onClick={(e) => { e.stopPropagation(); updateSetting('soundEnabled', !soundEnabled) }}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const next = !soundEnabled;
+                    setSoundEnabled(next);
+                    if (next) {
+                      await notificationManager.initializeAudio();
+                      notificationManager.playNotificationSound('default');
+                    }
+                    await updateSetting('soundEnabled', next);
+                    feedRefreshSettings?.();
+                    toast.success(next ? t('profile_sound_enabled') : t('profile_sound_disabled'));
+                  }}
                   style={{
                     ...iconBtnStyle(false),
                     background: soundEnabled ? 'rgba(128,0,32,0.15)' : 'transparent',
@@ -617,7 +771,39 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
               {checkSupport().notification && (
                 <PortalTooltip content={t('notifications_browser_notifications')} position="top">
                   <button
-                    onClick={(e) => { e.stopPropagation(); updateSetting('browserNotificationsEnabled', !browserNotificationsEnabled) }}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const next = !browserNotificationsEnabled;
+                      if (next) {
+                        // Turning ON — check actual browser permission
+                        if (typeof Notification === 'undefined') {
+                          toast.error(t('notifications_browser_not_supported'));
+                          return;
+                        }
+                        if (Notification.permission === 'denied') {
+                          toast.error(t('notifications_permission_denied'));
+                          return;
+                        }
+                        if (Notification.permission === 'default') {
+                          const result = await Notification.requestPermission();
+                          if (result !== 'granted') {
+                            toast.error(t('notifications_permission_denied'));
+                            return;
+                          }
+                        }
+                        // Permission is granted — enable notifications
+                        setBrowserNotificationsEnabled(true);
+                        await updateSetting('browserNotificationsEnabled', true);
+                        feedRefreshSettings?.();
+                        toast.success(t('profile_browser_notifications_enabled'));
+                      } else {
+                        // Turning OFF
+                        setBrowserNotificationsEnabled(false);
+                        await updateSetting('browserNotificationsEnabled', false);
+                        feedRefreshSettings?.();
+                        toast.success(t('profile_browser_notifications_disabled'));
+                      }
+                    }}
                     style={{
                       ...iconBtnStyle(false),
                       background: browserNotificationsEnabled ? 'rgba(128,0,32,0.15)' : 'transparent',
@@ -656,9 +842,9 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
           <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '0.5rem', alignItems: 'center' }}>
             {[
               { value: 'all', icon: 'inbox', label: t('all') || 'All' },
-              { value: NOTIFICATION_STATUS.UNREAD, icon: 'circle', label: t('unread') || 'Unread', count: unreadCount },
-              { value: NOTIFICATION_STATUS.READ, icon: 'check_circle', label: t('read') || 'Read', count: readCount },
-              { value: NOTIFICATION_STATUS.ARCHIVED, icon: 'archive', label: t('archived') || 'Archived', count: archivedCount },
+              { value: NOTIFICATION_STATUS.UNREAD, icon: 'circle', label: t('unread') || 'Unread', count: filteredUnreadCount },
+              { value: NOTIFICATION_STATUS.READ, icon: 'check_circle', label: t('read') || 'Read', count: filteredReadCount },
+              { value: NOTIFICATION_STATUS.ARCHIVED, icon: 'archive', label: t('archived') || 'Archived', count: filteredArchivedCount },
             ].map(opt => (
               <button
                 key={opt.value}
@@ -694,132 +880,104 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
                 )}
               </button>
             ))}
-            <PortalTooltip content={t('academic_filters') || 'Academic Filters'} position="top">
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowAdvanced(!showAdvanced) }}
-                style={{
-                  background: showAdvanced ? 'rgba(128,0,32,0.12)' : 'transparent',
-                  border: `1px solid ${showAdvanced ? 'var(--color-primary, #800020)' : (isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb')}`,
-                  color: showAdvanced ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'),
-                  borderRadius: '6px',
-                  padding: '4px 8px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.3rem',
-                  fontSize: 'var(--font-size-xs)',
-                  fontWeight: showAdvanced ? 600 : 400,
-                  transition: 'all 0.2s ease',
-                  marginLeft: 'auto',
-                }}
-              >
-                {getThemedIcon('ui', 'sliders_horizontal', 14, showAdvanced ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'))}
-                <span>{t('filters') || 'Filters'}</span>
-              </button>
-            </PortalTooltip>
+            <span style={{ display: 'flex', gap: '0.25rem', marginInlineStart: 'auto' }}>
+              {hasActiveFilters && (
+                <PortalTooltip content={t('operations_board_clear_filters') || 'Clear all'} position="top">
+                  <button
+                    type="button"
+                    onClick={clearAllFilters}
+                    aria-label={t('operations_board_clear_filters') || 'Clear all'}
+                    style={{
+                      background: 'transparent',
+                      border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : '#e5e7eb'}`,
+                      color: isDark ? '#9ca3af' : '#6b7280',
+                      borderRadius: '6px',
+                      width: '28px',
+                      height: '28px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 0,
+                    }}
+                  >
+                    {getThemedIcon('ui', 'x', 14, isDark ? '#9ca3af' : '#6b7280')}
+                  </button>
+                </PortalTooltip>
+              )}
+              <PortalTooltip content={t('academic_filters') || 'Academic Filters'} position="top">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowAdvanced(!showAdvanced) }}
+                  style={{
+                    background: showAdvanced ? 'rgba(128,0,32,0.12)' : 'transparent',
+                    border: `1px solid ${showAdvanced ? 'var(--color-primary, #800020)' : (isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb')}`,
+                    color: showAdvanced ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'),
+                    borderRadius: '6px',
+                    padding: '4px 8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    fontSize: 'var(--font-size-xs)',
+                    fontWeight: showAdvanced ? 600 : 400,
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {getThemedIcon('ui', 'sliders_horizontal', 14, showAdvanced ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'))}
+                  <span>{t('filters') || 'Filters'}</span>
+                </button>
+              </PortalTooltip>
+            </span>
           </div>
 
           {/* Workflow status legend chips */}
           {Object.values(workflowStatusCounts).some((c) => c > 0) && (
-            <div style={{
-              display: 'flex',
-              gap: '0.35rem',
-              flexWrap: 'wrap',
-              marginBottom: '0.5rem',
-              alignItems: 'center',
-            }}>
-              <button
-                type="button"
-                onClick={() => setFilterWorkflowStatus('all')}
-                style={{
-                  background: filterWorkflowStatus === 'all' ? 'rgba(128,0,32,0.12)' : 'transparent',
-                  border: `1px solid ${filterWorkflowStatus === 'all' ? 'var(--color-primary, #800020)' : (isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb')}`,
-                  color: filterWorkflowStatus === 'all' ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'),
-                  borderRadius: '999px',
-                  padding: '3px 10px',
-                  cursor: 'pointer',
-                  fontSize: '0.72rem',
-                  fontWeight: filterWorkflowStatus === 'all' ? 700 : 500,
-                }}
-              >
-                {t('notifications_all_statuses') || 'All'}
-              </button>
-              {WORKFLOW_NOTIFICATION_STATUS_FILTERS.filter((chip) => {
-                if (chip.hideForHR && isHR && !isAdmin && !isSuperAdmin) return false;
-                return true;
-              }).map((chip) => {
-                const active = filterWorkflowStatus === chip.id;
-                const count = workflowStatusCounts[chip.id] || 0;
-                return (
-                  <button
-                    key={chip.id}
-                    type="button"
-                    onClick={() => setFilterWorkflowStatus(active ? 'all' : chip.id)}
-                    style={{
-                      background: active ? `${chip.color}22` : 'transparent',
-                      border: `1px solid ${active ? chip.color : (isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb')}`,
-                      color: active ? chip.color : (isDark ? '#9ca3af' : '#6b7280'),
-                      borderRadius: '999px',
-                      padding: '3px 10px',
-                      cursor: 'pointer',
-                      fontSize: '0.72rem',
-                      fontWeight: active ? 700 : 500,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                    }}
-                  >
-                    <span style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      background: chip.color,
-                      flexShrink: 0,
-                    }} />
-                    {t(chip.labelKey) || chip.id}
-                    <span style={{
-                      minWidth: 18,
-                      height: 18,
-                      borderRadius: '50%',
-                      background: chip.color,
-                      color: '#fff',
-                      fontSize: '0.62rem',
-                      fontWeight: 700,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '0 4px',
-                      flexShrink: 0,
-                      opacity: count > 0 ? 1 : 0.55,
-                    }}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
+            <div style={{ marginBottom: '0.5rem' }}>
+              <GridQuickFilterChips
+                activeId={filterWorkflowStatus}
+                onChange={setFilterWorkflowStatus}
+                chips={(() => {
+                  const allCount = Object.values(workflowStatusCounts).reduce((a, b) => a + b, 0);
+                  const chips = [
+                    { id: 'all', label: t('notifications_all_statuses') || 'All', count: allCount, color: '#800020' },
+                  ];
+                  WORKFLOW_NOTIFICATION_STATUS_FILTERS.filter((chip) => {
+                    if (chip.hideForHR && isHR && !isAdmin && !isSuperAdmin) return false;
+                    return true;
+                  }).forEach((chip) => {
+                    const count = workflowStatusCounts[chip.id] || 0;
+                    if (count > 0) {
+                      let chipIcon;
+                      if (chip.id === 'UNDER_ADMIN_REVIEW') {
+                        chipIcon = getUserRoleIcon('admin');
+                      } else if (chip.id === 'UNDER_HR_REVIEW') {
+                        chipIcon = getUserRoleIcon('hr');
+                      } else if (chip.id === 'SUBMITTED') {
+                        chipIcon = getThemedIcon('ui', 'check_circle', 12, theme);
+                      } else if (chip.id === 'DRAFT') {
+                        chipIcon = getThemedIcon('ui', 'edit', 12, theme);
+                      } else if (chip.id === 'APPROVED') {
+                        chipIcon = getThemedIcon('ui', 'success', 12, theme);
+                      } else if (chip.id === 'REJECTED') {
+                        chipIcon = getThemedIcon('ui', 'x_circle', 12, theme);
+                      } else {
+                        chipIcon = <span style={{ width: 8, height: 8, borderRadius: '50%', background: chip.color, flexShrink: 0 }} />;
+                      }
+                      chips.push({
+                        id: chip.id,
+                        label: t(chip.labelKey) || chip.id,
+                        count,
+                        color: chip.color,
+                        icon: chipIcon,
+                      });
+                    }
+                  });
+                  return chips;
+                })()}
+              />
             </div>
           )}
 
-          {hasActiveFilters && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.4rem' }}>
-              <button
-                type="button"
-                onClick={clearAllFilters}
-                style={{
-                  background: 'transparent',
-                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : '#e5e7eb'}`,
-                  color: isDark ? '#9ca3af' : '#6b7280',
-                  borderRadius: '999px',
-                  padding: '3px 10px',
-                  cursor: 'pointer',
-                  fontSize: '0.72rem',
-                  fontWeight: 500,
-                }}
-              >
-                {t('operations_board_clear_filters') || 'Clear all'}
-              </button>
-            </div>
-          )}
 
           {/* Collapsible Academic Filters */}
           <AnimatePresence>
@@ -838,7 +996,12 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
                     onChange={(e) => { const v = e.target.value || 'all'; setFilterProgram(v); if (v === 'all') { setFilterSubject('all'); setFilterClass('all'); } }}
                     options={[
                       { value: 'all', label: t('all_programs') },
-                      ...(programs || []).map(p => ({ value: p.docId || p.id, label: p.nameEn || p.name || p.code || p.docId }))
+                      ...(programs || []).map(p => {
+                        const label = lang === 'ar'
+                          ? (p.nameAr || p.nameEn || p.name || p.code || p.docId)
+                          : (p.nameEn || p.nameAr || p.name || p.code || p.docId);
+                        return { value: p.docId || p.id, label };
+                      })
                     ]}
                     size="small" searchable fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
                   />
@@ -858,59 +1021,61 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
                         }
                         return true;
                       }).map(c => {
-                      const rawName = c.name || c.code || 'Unnamed';
-                      const termDisplay = c.term ? getLocalizedTermDisplay(c.term, lang) : ''
-                      const yearPart = c.year || (c.term && c.term.includes('-') ? c.term.split('-').find(p => !Number.isNaN(Number(p))) : (c.term && c.term.includes(' ') ? c.term.split(' ').find(p => !Number.isNaN(Number(p))) : null));
-                      // Clean the class name by removing embedded year/term parts
-                      let cleanName = rawName;
-                      if (c.term) cleanName = cleanName.replace(c.term, '');
-                      if (yearPart) cleanName = cleanName.replace(new RegExp(`\\b${yearPart}\\b`, 'g'), '');
-                      const termName = c.term ? formatTermDisplay(c.term) : ''
-                      if (termName && termName !== c.term) cleanName = cleanName.replace(new RegExp(`\\b${termName}\\b`, 'gi'), '');
-                      cleanName = cleanName.replace(/\s+/g, ' ').replace(/\s+-$/, '').replace(/^-\s+/, '').trim() || rawName;
-                      const suffix = [termDisplay, yearPart].filter(Boolean).join(' ')
-                      return { value: c.id || c.docId, label: suffix ? `${cleanName} (${suffix})` : cleanName }
+                      const baseName = lang === 'ar'
+                        ? (c.nameAr || c.nameEn || c.code || '')
+                        : (c.nameEn || c.nameAr || c.code || '');
+                      const className = baseName || (t('unnamed_class') || 'Unnamed');
+
+                      let year = c.year ? String(c.year).trim() : '';
+                      const term = c.term ? String(c.term).trim() : '';
+                      if (!year && term) {
+                        const yearMatch = term.match(/\b\d{4}\b/);
+                        if (yearMatch) year = yearMatch[0];
+                      }
+
+                      const termPart = term ? formatTermDisplay(term) : '';
+                      const localizedTerm = term ? getLocalizedTermDisplay(term, lang) : '';
+                      const displayYear = year
+                        ? Number(year).toLocaleString(lang === 'ar' ? 'ar' : 'en', { useGrouping: false })
+                        : '';
+                      const termDisplay = [localizedTerm, displayYear].filter(Boolean).join(' ');
+
+                      // Avoid duplicating the term/year when they are already embedded in the class name
+                      const nameForCheck = (lang === 'ar' ? c.nameAr : c.nameEn) || className;
+                      const lowerName = nameForCheck.toLowerCase();
+                      const fallbackLower = lang === 'ar' ? (c.nameEn || '').toLowerCase() : '';
+                      const yearAr = year ? Number(year).toLocaleString('ar', { useGrouping: false }) : '';
+                      const termEng = termPart.toLowerCase();
+                      const termLocal = localizedTerm.toLowerCase();
+
+                      const yearInName = year && (
+                        lowerName.includes(year) ||
+                        lowerName.includes(yearAr) ||
+                        fallbackLower.includes(year) ||
+                        fallbackLower.includes(yearAr)
+                      );
+                      const termInName = (termEng && (
+                        lowerName.includes(termEng) ||
+                        fallbackLower.includes(termEng)
+                      )) || (termLocal && (
+                        lowerName.includes(termLocal) ||
+                        fallbackLower.includes(termLocal)
+                      ));
+                      const termAlreadyInName = yearInName || termInName;
+
+                      const subtext = termDisplay && !termAlreadyInName ? termDisplay : '';
+                      const searchText = `${className} ${c.code || ''} ${termDisplay}`.trim();
+
+                      return {
+                        value: c.id || c.docId,
+                        label: className,
+                        displayLabel: className,
+                        subtext,
+                        searchText,
+                      };
                     })
                     ]}
                     size="small" searchable fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
-                  />
-                </div>
-                {/* Year + Semester — one row */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '0.3rem'
-                }}>
-                  <Select
-                    value={filterYear}
-                    onChange={(e) => setFilterYear(e.target.value || 'all')}
-                    options={[
-                      { value: 'all', label: t('notifications.all_years') },
-                      ...Array.from(new Set((classes || []).map(c => {
-                        if (c.year) return String(c.year);
-                        if (c.term) {
-                          if (c.term.includes(' ')) {
-                            const parts = c.term.split(' ');
-                            if (parts.length > 1 && !isNaN(parts[parts.length - 1])) return parts[parts.length - 1];
-                          }
-                          if (c.term.includes('-')) {
-                            const yearPart = c.term.split('-').find(p => !Number.isNaN(Number(p)));
-                            if (yearPart) return yearPart;
-                          }
-                        }
-                        return null;
-                      }).filter(Boolean))).sort((a, b) => Number(b) - Number(a)).map(y => ({ value: y, label: y }))
-                    ]}
-                    size="small" fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
-                  />
-                  <Select
-                    value={filterSemester}
-                    onChange={(e) => setFilterSemester(e.target.value || 'all')}
-                    options={[
-                      { value: 'all', label: t('notifications.all_semesters') },
-                      ...Array.from(new Set((classes || []).map(c => c.term ? formatTermDisplay(c.term) : null).filter(Boolean))).map(v => ({ value: v, label: getLocalizedTermDisplay(v, lang) }))
-                    ]}
-                    size="small" fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
                   />
                 </div>
               </motion.div>
@@ -934,7 +1099,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
             }}>
               {getThemedIcon('ui', 'bell', 48, theme)}
               <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem' }}>
-                {searchTerm || filterType !== 'all' || filterProgram !== 'all' || filterSubject !== 'all' || filterClass !== 'all' || filterYear !== 'all' || filterSemester !== 'all' || filterWorkflowStatus !== 'all'
+                {searchTerm || filterType !== 'all' || filterProgram !== 'all' || filterSubject !== 'all' || filterClass !== 'all' || filterWorkflowStatus !== 'all'
                   ? t('no_notifications_match_filters')
                   : t('no_notifications_yet')}
               </p>

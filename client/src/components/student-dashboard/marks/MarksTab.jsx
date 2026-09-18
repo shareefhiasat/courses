@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { useToast } from '@ui';
 import { Card, CardBody, Button, Badge, AdvancedDataGrid, SimpleLoading, EmptyState } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -196,9 +197,11 @@ const MarksTab = React.memo(({
           const prevValue = row.previousAttempt?.[field] || 0;
           const max = marksDistribution?.[field] || maxDefault;
           return (
-            <span style={{ opacity: 0.5 }} title={t('previous_attempt')}>
-              {prevValue}/{max}
-            </span>
+            <ColoredTooltip title={t('previous_attempt')}>
+              <span style={{ opacity: 0.5 }}>
+                {prevValue}/{max}
+              </span>
+            </ColoredTooltip>
           );
         }
         const value = params.value || 0;

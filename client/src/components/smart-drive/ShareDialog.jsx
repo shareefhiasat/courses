@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Joyride from 'react-joyride';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { getModalJoyrideProps, modalTourStep } from '@utils/tourConfig';
 import { useModalTour } from '@hooks/useModalTour';
 import { usePermissions } from '@hooks/usePermissions';
@@ -211,27 +212,28 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
             variant="default"
             size="md"
           />
-          <button
-            data-tour="share-help-btn"
-            onClick={startTour}
-            title={t('tour.replay')}
-            aria-label={t('tour.replay')}
-            style={{
-              flexShrink: 0,
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              border: '1px solid var(--border, #e5e7eb)',
-              background: 'var(--background-secondary, #f9fafb)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--color-primary, #800020)',
-            }}
-          >
-            {getIconWithColor('ui', 'help', 18, 'currentColor')}
-          </button>
+          <ColoredTooltip title={t('tour.replay')}>
+            <button
+              data-tour="share-help-btn"
+              onClick={startTour}
+              aria-label={t('tour.replay')}
+              style={{
+                flexShrink: 0,
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                border: '1px solid var(--border, #e5e7eb)',
+                background: 'var(--background-secondary, #f9fafb)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--color-primary, #800020)',
+              }}
+            >
+              {getIconWithColor('ui', 'help', 18, 'currentColor')}
+            </button>
+          </ColoredTooltip>
         </div>
 
         <div style={{ minHeight: 'min(70vh, 600px)', overflowY: 'auto' }}>

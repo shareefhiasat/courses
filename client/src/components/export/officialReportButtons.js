@@ -51,7 +51,7 @@ export const OFFICIAL_REPORT_BUTTONS = [
     icon: 'calendar',
     labelKey: 'weekly_schedule',
     labelAr: 'الجدول الأسبوعي',
-    labelEn: 'Weekly Schedule',
+    labelEn: 'Weekly Schedule Template',
     group: 'scheduling',
   },
 ];

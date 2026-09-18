@@ -165,7 +165,13 @@ export const useChatActions = (user, state, toast, t) => {
     if (e) e.preventDefault();
     
     if (!newMessage.trim() && !audioBlob && !attachedFile || isUploading) return;
-    
+
+    // Instructors without elevated staff roles cannot post to the global chat
+    const instructorAdminOnly = state?.isInstructor && !state?.isAdmin && !state?.isSuperAdmin && !state?.isHR;
+    if (instructorAdminOnly && (selectedClass === 'global' || selectedClass === CHAT_TYPES.GLOBAL)) {
+      return;
+    }
+
     setIsUploading(true);
     
     // Check user participation (skip for staff roles and global chat)

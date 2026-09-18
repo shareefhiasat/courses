@@ -29,7 +29,7 @@ import { ok, err } from '../utils/result.js';
 async function sendWorkflowNotification(eventType, instance, additionalPayload, actor) {
   const actorUser = actor?.userId ? await prisma.user.findUnique({
     where: { id: actor.userId },
-    select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+    select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, keycloakId: true }
   }) : null;
 
   const notificationData = {
@@ -221,7 +221,7 @@ export async function startWorkflow(input, actor) {
     // Notify approvers for first stage
     const starterUser = actor?.userId ? await prisma.user.findUnique({
       where: { id: actor.userId },
-      select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+      select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, keycloakId: true }
     }) : null;
     const approverUsers = await prisma.user.findMany({
       where: { roles: { hasSome: firstStage.approverRoles } },
@@ -353,7 +353,7 @@ export async function approveStage(instanceId, input, actor) {
 
         // Notify initiator of approval
         const [approver, initiator] = await Promise.all([
-          prisma.user.findUnique({ where: { id: actor.userId }, select: { id: true, name: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true } }),
+          prisma.user.findUnique({ where: { id: actor.userId }, select: { id: true, name: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, keycloakId: true } }),
           prisma.user.findUnique({ where: { id: instance.initiatedById }, select: { id: true, email: true, name: true } }),
         ]);
         if (initiator) {
@@ -406,7 +406,7 @@ export async function approveStage(instanceId, input, actor) {
 
         // Notify initiator of final approval and completion
         const [approver, initiator] = await Promise.all([
-          prisma.user.findUnique({ where: { id: actor.userId }, select: { id: true, name: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true } }),
+          prisma.user.findUnique({ where: { id: actor.userId }, select: { id: true, name: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, keycloakId: true } }),
           prisma.user.findUnique({ where: { id: instance.initiatedById }, select: { id: true, email: true, name: true } }),
         ]);
         if (initiator) {
@@ -517,7 +517,7 @@ export async function rejectStage(instanceId, input, actor) {
 
     // Notify initiator of rejection
     const [rejecter, initiator] = await Promise.all([
-      prisma.user.findUnique({ where: { id: actor.userId }, select: { id: true, name: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true } }),
+      prisma.user.findUnique({ where: { id: actor.userId }, select: { id: true, name: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, keycloakId: true } }),
       prisma.user.findUnique({ where: { id: instance.initiatedById }, select: { id: true, email: true, name: true } }),
     ]);
     if (initiator) {
@@ -685,7 +685,7 @@ export async function submitWorkflow(instanceId, actor) {
 
     const actorUser = actor?.userId ? await prisma.user.findUnique({
       where: { id: actor.userId },
-      select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+      select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, keycloakId: true }
     }) : null;
 
     // Notify initiator
@@ -757,7 +757,7 @@ export async function sendForReview(instanceId, { assignedUserId, assignedRole, 
       if (assignee) {
         const senderUser = actor?.userId ? await prisma.user.findUnique({
           where: { id: actor.userId },
-          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, keycloakId: true }
         }) : null;
         await notificationGateway.emit(EVENTS.WORKFLOW_SENT_FOR_REVIEW, {
           ...buildNotificationNameVars(senderUser, 'Unknown User'),
@@ -774,7 +774,7 @@ export async function sendForReview(instanceId, { assignedUserId, assignedRole, 
       // Notify all users with the role
       const senderUser = actor?.userId ? await prisma.user.findUnique({
         where: { id: actor.userId },
-        select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, keycloakId: true }
       }) : null;
       const assignees = await prisma.user.findMany({
         where: { roleAssignments: { some: { role: { code: assignedRole } } } },
@@ -847,7 +847,7 @@ export async function sendForApproval(instanceId, { assignedUserId, assignedRole
       if (assignee) {
         const senderUser = actor?.userId ? await prisma.user.findUnique({
           where: { id: actor.userId },
-          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, keycloakId: true }
         }) : null;
         await notificationGateway.emit(EVENTS.WORKFLOW_SENT_FOR_APPROVAL, {
           ...buildNotificationNameVars(senderUser, 'Unknown User'),
@@ -863,7 +863,7 @@ export async function sendForApproval(instanceId, { assignedUserId, assignedRole
     } else if (assignedRole) {
       const senderUser = actor?.userId ? await prisma.user.findUnique({
         where: { id: actor.userId },
-        select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, keycloakId: true }
       }) : null;
       const assignees = await prisma.user.findMany({
         where: { roleAssignments: { some: { role: { code: assignedRole } } } },
@@ -939,7 +939,7 @@ export async function approveWorkflow(instanceId, { comment }, actor) {
     // Notify initiator
     const approverUser = actor?.userId ? await prisma.user.findUnique({
       where: { id: actor.userId },
-      select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+      select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, keycloakId: true }
     }) : null;
 
     await notificationGateway.emit(EVENTS.WORKFLOW_APPROVED, {

@@ -541,6 +541,11 @@ export const AuthProvider = ({ children }) => {
             if (data.success && data.data) {
               userObj.dbId = data.data.id;
               userObj.profileImageUrl = data.data.profileImageUrl || null;
+              userObj.displayNameAr = data.data.displayNameAr || data.data.nameAr || null;
+              userObj.firstNameAr = data.data.firstNameAr || null;
+              userObj.lastNameAr = data.data.lastNameAr || null;
+              userObj.rankEn = data.data.rankEn || null;
+              userObj.rankAr = data.data.rankAr || null;
               console.log('[AuthContext] Fetched dbId:', userObj.dbId);
             } else {
               console.warn('[AuthContext] /users/me returned non-success:', data);
@@ -643,18 +648,20 @@ export const AuthProvider = ({ children }) => {
       document.cookie = 'kc_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       console.log('[AuthContext] 🧹 Storage cleared');
 
-      // Use Keycloak's logout method with redirect to app login page
+      // Use Keycloak's logout method with redirect back to the app
       // This properly clears the Keycloak session and redirects back to the app
-      await keycloak.logout({
-        redirectUri: window.location.origin + '/login'
-      });
+      const redirectUri = window.location.origin + '/welcome';
+      console.log('[AuthContext] 🚪 Calling keycloak.logout with redirectUri:', redirectUri);
+      await keycloak.logout({ redirectUri });
+      console.log('[AuthContext] ✅ keycloak.logout resolved (no redirect happened)');
     } catch (error) {
       error('Logout error:', error);
-      // As a fallback, just clear everything and redirect to app login page
-      console.log('[AuthContext] 🔄 Fallback: clearing session and redirecting to app');
+      // As a fallback, just clear everything and redirect to app
+      const fallbackUrl = window.location.origin + '/welcome';
+      console.log('[AuthContext] 🔄 Fallback: clearing session and redirecting to', fallbackUrl);
       localStorage.clear();
       sessionStorage.clear();
-      window.location.href = window.location.origin + '/login';
+      window.location.href = fallbackUrl;
     }
   }, [keycloak]);
 

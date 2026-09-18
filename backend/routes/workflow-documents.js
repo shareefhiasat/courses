@@ -48,6 +48,15 @@ function adminCanDeleteWorkflow(req, res, next) {
   return wfOps.delete(req, res, next);
 }
 
+function requireWorkflowCreate(req, res, next) {
+  if (!req.user) return res.status(401).json({ success: false, error: 'Authentication required' });
+  const roles = getEffectiveRoles(req.user.roles || []);
+  if (isSuperAdmin(roles) || hasRole(roles, LMS_ROLES.ADMIN) || hasRole(roles, LMS_ROLES.HR)) {
+    return next();
+  }
+  return wfOps.create(req, res, next);
+}
+
 /**
  * @swagger
  * components:
@@ -178,7 +187,7 @@ function adminCanDeleteWorkflow(req, res, next) {
  *       500:
  *         description: Internal server error
  */
-router.post('/', wfOps.create, createWorkflowDocumentController);
+router.post('/', requireWorkflowCreate, createWorkflowDocumentController);
 
 /**
  * @swagger

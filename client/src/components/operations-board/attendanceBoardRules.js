@@ -59,17 +59,13 @@ const ROLE_WORKFLOW_EDIT_STATUSES = {
  * Enforce workflow ownership for attendance edits.
  * Instructors may edit while the workflow is still with them (DRAFT).
  * Admins may edit at any stage the workflow is with the instructor or with them (DRAFT/SUBMITTED/UNDER_ADMIN_REVIEW).
- * Admins can freely change status to any status.
  * HR may edit only while the workflow is under HR review.
  * Super-admins may always edit.
- * When no workflow exists yet, admins are allowed to initiate attendance (starts at DRAFT).
+ * When no workflow exists yet, instructors and admins are allowed to create the first attendance record.
  */
 export function canEditAttendanceForWorkflow(workflowStatus, roleContext = {}) {
   const { isInstructor, isAdmin, isHR, isSuperAdmin } = roleContext;
   if (isSuperAdmin) return true;
-  if (isAdmin) return true;
-  const isInstructorOnly = isInstructor && !isAdmin && !isHR && !isSuperAdmin;
-  if (isInstructorOnly) return true;
   if (!workflowStatus) {
     return isInstructor || isAdmin;
   }

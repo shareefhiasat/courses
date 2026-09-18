@@ -129,8 +129,62 @@ export async function getAllAmendments(filters) {
   return await getAllAttendanceAmendments(filters);
 }
 
+/**
+ * Approve the excuse for an attendance record.
+ * Sets excuseApprovedAt and creates an attendance amendment audit record.
+ */
+export async function approveAttendanceExcuse(data) {
+  try {
+    const { attendanceId, reason, attachmentUrl, attachmentName, attachmentType, amendedBy } = data;
+
+    const attendance = await prisma.attendance.findUnique({
+      where: { id: attendanceId },
+      include: { status: true, user: true, class: true },
+    });
+
+    if (!attendance) {
+      return { success: false, error: 'Attendance record not found' };
+    }
+
+    if (attendance.excuseApprovedAt) {
+      return { success: false, error: 'Attendance record has already been approved' };
+    }
+
+    const amendment = await createAttendanceAmendment({
+      attendanceId,
+      fromStatusId: attendance.statusId,
+      toStatusId: attendance.statusId,
+      reason,
+      attachmentUrl,
+      attachmentName,
+      attachmentType,
+      amendedBy,
+    });
+
+    if (!amendment.success) {
+      return amendment;
+    }
+
+    const updatedAttendance = await prisma.attendance.update({
+      where: { id: attendanceId },
+      data: {
+        excuseApprovedAt: new Date(),
+        updatedBy: amendedBy,
+        updatedAt: new Date(),
+      },
+      include: { status: true, user: true, class: true },
+    });
+
+    return { success: true, data: { amendment: amendment.data, attendance: updatedAttendance } };
+  } catch (error) {
+    console.error('Error approving attendance excuse:', error);
+    return { success: false, error: 'Internal server error' };
+  }
+}
+
 export default {
   amendAttendance,
+  approveAttendanceExcuse,
   getAmendmentsForAttendance,
   getAllAmendments
 };

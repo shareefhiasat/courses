@@ -1,10 +1,13 @@
 import React, { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import Joyride from 'react-joyride';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Calendar from '@toast-ui/react-calendar';
 import '@toast-ui/calendar/dist/toastui-calendar.min.css';
 import { formatDateTime, formatForDateInput, getQatarDateParts } from '@utils/date-formatter.js';
+import { isOnboardingTourEnabled, endManualTour } from '@utils/tourConfig.js';
+import MiniChatBalloon from '@components/ui/MiniChatBalloon/MiniChatBalloon';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -286,7 +289,7 @@ const SchedulingCalendarPage = () => {
     { target: '[data-tour="sched-calendar"]', content: t('tour.sched_calendar_conflict'), disableBeacon: true, placement: 'top' },
     { target: '[data-tour="sched-stats"]',    content: t('tour.sched_calendar_today'),   disableBeacon: true, placement: 'bottom' },
   ].filter(s => !!document.querySelector(s.target)), [t]);
-  const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
+  const startTour = useCallback(() => { if (!isOnboardingTourEnabled()) return; const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
   useEffect(() => {
     window.addEventListener('app:joyride', startTour);
     window.addEventListener('app:help', startTour);
@@ -295,7 +298,7 @@ const SchedulingCalendarPage = () => {
   useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour]);
   const handleTourCallback = useCallback((data) => {
     const { status, action } = data || {};
-    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); endManualTour(); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
   }, [tourSeenKey]);
   const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
   // ──────────────────────────────────────────────────────────────────────────
@@ -2847,7 +2850,6 @@ const SchedulingCalendarPage = () => {
                 size="sm"
                 onClick={() => navigate('/summary-dashboard')}
                 data-testid="view-summary-btn"
-                title={t('view_summary')}
                 aria-label={t('view_summary')}
               >
                 <LayoutDashboard size={16} />
@@ -2861,7 +2863,6 @@ const SchedulingCalendarPage = () => {
                 padding: '0.125rem',
                 flexShrink: 0
               }}
-              title={showStats ? t('collapse') : t('expand')}
             >
               {showStats
                 ? <ChevronUp size={16} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
@@ -2982,7 +2983,6 @@ const SchedulingCalendarPage = () => {
                 <>
                   <button
                     onClick={() => { setSessionsScope('all'); setSelectedInstructor(null); setSelectedRoom(null); }}
-                    title={t('all_sessions')}
                     style={{
                       padding: '0.5rem 0.75rem',
                       backgroundColor: scopeMode === 'all' ? '#3b82f6' : 'transparent',
@@ -2995,7 +2995,6 @@ const SchedulingCalendarPage = () => {
                   </button>
                   <button
                     onClick={() => { setSessionsScope('instructor'); setSelectedRoom(null); }}
-                    title={t('by_instructor')}
                     style={{
                       padding: '0.5rem',
                       backgroundColor: scopeMode === 'instructor' ? '#3b82f6' : 'transparent',
@@ -3009,7 +3008,6 @@ const SchedulingCalendarPage = () => {
                   </button>
                   <button
                     onClick={() => { setSessionsScope('room'); setSelectedInstructor(null); }}
-                    title={t('by_room')}
                     style={{
                       padding: '0.5rem',
                       backgroundColor: scopeMode === 'room' ? '#3b82f6' : 'transparent',
@@ -3035,7 +3033,6 @@ const SchedulingCalendarPage = () => {
                       key={mode}
                       type="button"
                       onClick={() => setAvailabilityDataMode(mode)}
-                      title={t(titleKey)}
                       aria-label={t(titleKey)}
                       style={{
                         padding: '0.5rem',
@@ -3065,7 +3062,6 @@ const SchedulingCalendarPage = () => {
                           key={mode}
                           type="button"
                           onClick={() => setWorkloadViewMode(mode)}
-                          title={t(titleKey)}
                           aria-label={t(titleKey)}
                           style={{
                             padding: '0.5rem',
@@ -3092,7 +3088,6 @@ const SchedulingCalendarPage = () => {
                   <button
                     type="button"
                     onClick={() => setClassesViewMode('semester')}
-                    title={t('semester_overview')}
                     aria-label={t('semester_overview')}
                     style={{
                       padding: '0.5rem',
@@ -3110,7 +3105,6 @@ const SchedulingCalendarPage = () => {
                   <button
                     type="button"
                     onClick={() => setClassesViewMode('grid')}
-                    title={t('grid_view')}
                     aria-label={t('grid_view')}
                     style={{
                       padding: '0.5rem',
@@ -3160,7 +3154,6 @@ const SchedulingCalendarPage = () => {
                     return next;
                   }, { replace: true });
                 }}
-                title={t('clear_class_filter')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -3186,9 +3179,11 @@ const SchedulingCalendarPage = () => {
                 <button type="button" onClick={toolbarNavPrev} style={navBtnStyle} aria-label={t('previous')}>
                   <ChevronLeft size={16} />
                 </button>
-                <button type="button" onClick={toolbarNavToday} style={navBtnStyle} title={t('today')}>
-                  <CalendarIcon size={16} />
-                </button>
+                <ColoredTooltip title={t('today')}>
+                  <button type="button" onClick={toolbarNavToday} style={navBtnStyle}>
+                    <CalendarIcon size={16} />
+                  </button>
+                </ColoredTooltip>
                 <button type="button" onClick={toolbarNavNext} style={navBtnStyle} aria-label={t('next')}>
                   <ChevronRight size={16} />
                 </button>
@@ -3220,7 +3215,6 @@ const SchedulingCalendarPage = () => {
                     backgroundColor: hideWeekends ? toolbarAccent : navBtnStyle.backgroundColor,
                     color: hideWeekends ? '#ffffff' : navBtnStyle.color
                   }}
-                  title={t('hide_weekends')}
                 >
                   <CalendarOff size={16} />
                 </button>
@@ -3267,7 +3261,6 @@ const SchedulingCalendarPage = () => {
                   type="date"
                   value={definedAvailFrom}
                   onChange={(e) => setDefinedAvailFrom(e.target.value)}
-                  title={t('availability_from')}
                   aria-label={t('availability_from')}
                   style={{
                     padding: '0.5rem',
@@ -3283,7 +3276,6 @@ const SchedulingCalendarPage = () => {
                   type="date"
                   value={definedAvailTo}
                   onChange={(e) => setDefinedAvailTo(e.target.value)}
-                  title={t('availability_to')}
                   aria-label={t('availability_to')}
                   style={{
                     padding: '0.5rem',
@@ -3299,7 +3291,7 @@ const SchedulingCalendarPage = () => {
 
             {/* Status Filter - Icon Buttons */}
             {mainTab !== 'availability' && !isClassesTab && (
-              <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexShrink: 0 }} title={t('filter_by_status')}>
+              <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexShrink: 0 }}>
                 {SESSION_STATUS_OPTIONS.map(opt => {
                   const IconComponent = opt.iconName === 'List' ? List : 
                                        opt.iconName === 'Calendar' ? CalendarIcon :
@@ -3308,8 +3300,8 @@ const SchedulingCalendarPage = () => {
                                        opt.iconName === 'XCircle' ? XCircle : List;
                   
                   return (
+                    <ColoredTooltip key={opt.value} title={t(opt.labelKey)}>
                     <button
-                      key={opt.value}
                       onClick={() => setStatusFilter(opt.value)}
                       style={{
                         padding: '0.5rem',
@@ -3322,10 +3314,10 @@ const SchedulingCalendarPage = () => {
                         alignItems: 'center',
                         flexShrink: 0
                       }}
-                      title={t(opt.labelKey)}
                     >
                       <IconComponent size={16} />
                     </button>
+                    </ColoredTooltip>
                   );
                 })}
               </div>
@@ -3348,7 +3340,6 @@ const SchedulingCalendarPage = () => {
                     end.setHours(9, 45, 0, 0);
                     setCalendarEventDialog({ open: true, mode: 'create', eventType: 'break', event: null, initialStart: start, initialEnd: end });
                   }}
-                  title={t('add_break')}
                   aria-label={t('add_break')}
                   style={{
                     padding: '0.5rem 0.75rem',
@@ -3382,7 +3373,6 @@ const SchedulingCalendarPage = () => {
                     end.setHours(23, 59, 59, 999);
                     setCalendarEventDialog({ open: true, mode: 'create', eventType: 'holiday', event: null, initialStart: start, initialEnd: end });
                   }}
-                  title={t('add_holiday')}
                   aria-label={t('add_holiday')}
                   style={{
                     padding: '0.5rem 0.75rem',
@@ -3445,7 +3435,6 @@ const SchedulingCalendarPage = () => {
             <button
               type="button"
               onClick={() => setShowScheduleExportDialog(true)}
-              title={t('weekly_schedule', 'Weekly Schedule')}
               style={{
                 marginInlineStart: isAvailTimeline ? undefined : 'auto',
                 background: 'linear-gradient(135deg, #800020 0%, #5c0017 100%)',
@@ -3580,11 +3569,10 @@ const SchedulingCalendarPage = () => {
                         const classroom = classrooms.find((c) => c.id === classItem.classroomId);
                         const missing = !instructor || !classroom;
                         return (
+                          <ColoredTooltip key={classItem.id} title={missing ? (!instructor ? t('missing_instructor') : t('missing_classroom')) : undefined}>
                           <div
-                            key={classItem.id}
                             draggable
                             onDragStart={(e) => handleClassDragStart(e, classItem)}
-                            title={missing ? (!instructor ? t('missing_instructor') : t('missing_classroom')) : undefined}
                             style={{
                               flexShrink: 0,
                               minWidth: '130px',
@@ -3611,6 +3599,7 @@ const SchedulingCalendarPage = () => {
                               </div>
                             )}
                           </div>
+                          </ColoredTooltip>
                         );
                       })
                     )}
@@ -3894,7 +3883,6 @@ const SchedulingCalendarPage = () => {
                                   <button
                                     type="button"
                                     disabled={sessionCount === 0}
-                                    title={sessionCount === 0 ? t('no_sessions_to_show') : t('show_on_calendar')}
                                     onClick={() => handleShowOnCalendar(instructor.id)}
                                     style={{
                                       padding: '0.25rem 0.5rem',
@@ -4027,7 +4015,6 @@ const SchedulingCalendarPage = () => {
                                     <button
                                       type="button"
                                       disabled={sessionCount === 0}
-                                      title={sessionCount === 0 ? t('no_sessions_to_show') : t('show_on_calendar')}
                                       onClick={() => handleShowOnCalendar(instructor.id)}
                                       style={{
                                         padding: '0.25rem 0.5rem',
@@ -4202,7 +4189,6 @@ const SchedulingCalendarPage = () => {
                                   <button
                                     type="button"
                                     disabled={sessionCount === 0}
-                                    title={sessionCount === 0 ? t('no_sessions_to_show') : t('show_on_calendar')}
                                     onClick={() => handleShowRoomOnCalendar(classroom.id)}
                                     style={{
                                       padding: '0.25rem 0.5rem',
@@ -4340,7 +4326,6 @@ const SchedulingCalendarPage = () => {
                                     <button
                                       type="button"
                                       disabled={sessionCount === 0}
-                                      title={sessionCount === 0 ? t('no_sessions_to_show') : t('show_on_calendar')}
                                       onClick={() => handleShowRoomOnCalendar(classroom.id)}
                                       style={{
                                         padding: '0.25rem 0.5rem',
@@ -5083,6 +5068,7 @@ const SchedulingCalendarPage = () => {
         onSuccess={(msg) => toast?.success?.(msg)}
         onError={(msg) => toast?.error?.(msg)}
       />
+      <MiniChatBalloon groupLabel={t('mini_chat_title') || 'Chat'} />
     </div>
   );
 };

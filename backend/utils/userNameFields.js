@@ -21,10 +21,14 @@ export const USER_NAME_SELECT_WITH_ID = {
   ...USER_NAME_SELECT_WITH_EMAIL,
 };
 
-export const USER_NAME_SELECT_WITH_ROLE = {
+export const USER_NAME_SELECT_WITH_IMAGE = {
   ...USER_NAME_SELECT_WITH_ID,
   keycloakId: true,
   profileImageUrl: true,
+};
+
+export const USER_NAME_SELECT_WITH_ROLE = {
+  ...USER_NAME_SELECT_WITH_IMAGE,
   roleAssignments: { include: { role: true } },
 };
 
@@ -41,8 +45,10 @@ export const normalizeProfileImageUrl = (user) => {
   if (!user) return user;
   if (!user.profileImageUrl) return user;
   if (user.profileImageUrl.startsWith('http') || user.profileImageUrl.startsWith('/api/')) return user;
+  const proxyId = user.keycloakId || user.id;
+  if (!proxyId) return user;
   return {
     ...user,
-    profileImageUrl: `/api/v1/user-images/proxy/${user.keycloakId}/profile`,
+    profileImageUrl: `/api/v1/user-images/proxy/${proxyId}/profile`,
   };
 };

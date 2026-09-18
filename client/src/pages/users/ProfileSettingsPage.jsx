@@ -643,7 +643,6 @@ const ProfileSettingsPage = () => {
                         className={`${styles.colorOption} ${profileData.messageColor === color ? styles.selected : ''}`}
                         style={{ backgroundColor: color }}
                         onClick={() => handleColorSelection(color)}
-                        title={color}
                       />
                     ))}
                   </div>

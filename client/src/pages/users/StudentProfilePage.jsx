@@ -1071,7 +1071,6 @@ const StudentProfilePage = () => {
                   style={{
                     cursor: isEarned ? 'pointer' : 'default'
                   }}
-                  title={badge.description}
                 >
                   {/* Badge Icon */}
                   <div className="text-center mb-2">

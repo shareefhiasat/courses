@@ -40,7 +40,7 @@ const STATUS_CONFIG = {
 };
 
 function WorkflowHistory({ statusHistory }) {
-  const { t, lang } = useLang();
+  const { t, lang, isRTL } = useLang();
 
   if (!statusHistory || statusHistory.length === 0) return null;
 
@@ -120,7 +120,6 @@ function WorkflowHistory({ statusHistory }) {
                       border: '1.5px solid var(--panel, white)',
                       boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
                     }}
-                      title={t(`roles.${role}`, role)}
                     >
                       {React.cloneElement(roleIcon, { color: roleColor, size: 10 })}
                     </div>
@@ -140,13 +139,13 @@ function WorkflowHistory({ statusHistory }) {
                     {formatQatarDate(history.createdAt, 'dd/MM/yyyy HH:mm')}
                   </span>
                 </div>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-gray-600" style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
                   {history.fromStatus ? (
                     <span className="line-through text-gray-400">{getLocalizedStatus(history.fromStatus)}</span>
                   ) : (
                     <span className="text-gray-400">-</span>
                   )}{' '}
-                  →{' '}
+                  {isRTL ? '←' : '→'}{' '}
                   <span 
                     className="font-medium px-2 py-0.5 rounded"
                     style={{ color: toConfig.color, background: toConfig.bgColor }}

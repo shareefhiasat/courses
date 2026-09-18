@@ -10,6 +10,7 @@ function scalePx(base, fontScale = 100) {
 export default function BoardStudentAvatar({
   name,
   profileImageUrl,
+  cacheBuster,
   size = 'md',
   className,
   style,
@@ -18,7 +19,7 @@ export default function BoardStudentAvatar({
 }) {
   const initials = useMemo(() => getAvatarInitials(name), [name]);
   const color = useMemo(() => getAvatarColor(name || ''), [name]);
-  const imageSrc = profileImageUrl ? normalizeProfileImageUrl(profileImageUrl) : null;
+  const imageSrc = profileImageUrl ? normalizeProfileImageUrl(profileImageUrl, cacheBuster) : null;
 
   const baseSize = {
     sm: 24,

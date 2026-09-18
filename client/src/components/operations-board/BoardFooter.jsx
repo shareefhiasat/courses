@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { IconButton, Tabs, Tab } from '@mui/material';
-import { KanbanSquare, Table2, Maximize2, Minimize2, History } from 'lucide-react';
+import { KanbanSquare, Table2, Maximize2, Minimize2, History, FileText, FileSpreadsheet, CalendarDays, Star } from 'lucide-react';
+import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
 import BoardLegend from './BoardLegend.jsx';
+import { BOARD_LANE } from './operationsBoardConstants.js';
+import { canViewParticipation } from './hrAttendancePrivacy.js';
+import { BOARD_PARTICIPATION_COLOR } from '@constants/workspaceStatusColors.js';
 
 const VIEW_ICONS = {
   kanban: KanbanSquare,
@@ -24,9 +28,16 @@ function FooterControls({
   embedded,
   expanded,
   onToggleExpand,
+  onExportDailyTemplate,
+  onExportWeeklySchedule,
+  exportingKey,
   hideViewToggle = false,
   hideExpand = false,
+  showNotesToggle = false,
+  showParticipationToggle = false,
 }) {
+  const [includeNotes, setIncludeNotes] = useState(false);
+  const [includeParticipation, setIncludeParticipation] = useState(false);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
       {!hideViewToggle && (
@@ -36,15 +47,17 @@ function FooterControls({
         aria-label={t('operations_board_view_mode')}
         data-tour="operations-board-view-mode"
         sx={{
-          minHeight: 30,
+          minHeight: 24,
           '& .MuiTab-root': {
-            minHeight: 30,
+            minHeight: 24,
+            width: 24,
+            height: 24,
             textTransform: 'none',
             fontSize: '0.78rem',
-            px: 1,
-            py: 0.25,
+            px: 0,
+            py: 0,
             minWidth: 'auto',
-            gap: 0.5,
+            gap: 0,
             color: isDark ? '#94a3b8' : '#64748b',
           },
           '& .MuiTab-root.Mui-selected': {
@@ -64,8 +77,8 @@ function FooterControls({
               data-testid={`operations-board-view-${opt.key}`}
               icon={(
                 <ColoredTooltip title={opt.label} color={isDark ? '#94a3b8' : '#64748b'} placement="top">
-                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon size={18} />
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24 }}>
+                    <Icon size={14} />
                   </span>
                 </ColoredTooltip>
               )}
@@ -88,8 +101,8 @@ function FooterControls({
             data-testid="operations-board-open-logs"
             aria-label={t('operations_board_class_logs') || 'Class logs'}
             sx={{
-              width: 28,
-              height: 28,
+              width: 24,
+              height: 24,
               borderRadius: 0,
               bgcolor: isDark ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.8)',
               color: isDark ? '#94a3b8' : '#64748b',
@@ -100,6 +113,154 @@ function FooterControls({
           >
             <History size={14} />
           </IconButton>
+        </ColoredTooltip>
+      )}
+
+      {onExportDailyTemplate && showNotesToggle && (
+        <ColoredTooltip
+          title={includeNotes ? (t('export_exclude_notes') || 'Exclude notes column') : (t('export_include_notes') || 'Include notes column')}
+          color="#ef4444"
+          placement="top"
+        >
+          <IconButton
+            size="small"
+            onClick={() => setIncludeNotes((prev) => !prev)}
+            data-testid="daily-template-notes-toggle"
+            aria-label={includeNotes ? (t('export_exclude_notes') || 'Exclude notes column') : (t('export_include_notes') || 'Include notes column')}
+            sx={{
+              width: 24,
+              height: 24,
+              borderRadius: 0,
+              bgcolor: isDark ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.8)',
+              color: '#ef4444',
+              '&:hover': {
+                bgcolor: isDark ? 'rgba(51,65,85,0.8)' : 'rgba(241,245,249,1)',
+              },
+            }}
+          >
+            <Star size={14} fill={includeNotes ? '#ef4444' : 'none'} />
+          </IconButton>
+        </ColoredTooltip>
+      )}
+
+      {onExportDailyTemplate && showParticipationToggle && (
+        <ColoredTooltip
+          title={includeParticipation ? (t('export_exclude_participation') || 'Exclude participation column') : (t('export_include_participation') || 'Include participation column')}
+          color={BOARD_PARTICIPATION_COLOR}
+          placement="top"
+        >
+          <IconButton
+            size="small"
+            onClick={() => setIncludeParticipation((prev) => !prev)}
+            data-testid="daily-template-participation-toggle"
+            aria-label={includeParticipation ? (t('export_exclude_participation') || 'Exclude participation column') : (t('export_include_participation') || 'Include participation column')}
+            sx={{
+              width: 24,
+              height: 24,
+              borderRadius: 0,
+              bgcolor: isDark ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.8)',
+              color: BOARD_PARTICIPATION_COLOR,
+              '&:hover': {
+                bgcolor: isDark ? 'rgba(51,65,85,0.8)' : 'rgba(241,245,249,1)',
+              },
+            }}
+          >
+            <Star size={14} fill={includeParticipation ? BOARD_PARTICIPATION_COLOR : 'none'} />
+          </IconButton>
+        </ColoredTooltip>
+      )}
+
+      {onExportDailyTemplate && (
+        <ColoredTooltip
+          title={
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, padding: '4px 0' }}>
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>{t('daily_template') || 'Daily Template'}</div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#e53935' }}
+                  onClick={(e) => { e.stopPropagation(); onExportDailyTemplate(EXPORT_FORMAT.PDF, { includeNotes, includeParticipation }); }}
+                >
+                  <FileText size={14} /> PDF
+                </span>
+                <span
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#43a047' }}
+                  onClick={(e) => { e.stopPropagation(); onExportDailyTemplate(EXPORT_FORMAT.EXCEL, { includeNotes, includeParticipation }); }}
+                >
+                  <FileSpreadsheet size={14} /> Excel
+                </span>
+              </div>
+            </div>
+          }
+          color="#64748b"
+          placement="top"
+        >
+          <span>
+            <IconButton
+              size="small"
+              disabled={exportingKey?.startsWith('daily-template-')}
+              onClick={() => onExportDailyTemplate(EXPORT_FORMAT.PDF, { includeNotes, includeParticipation })}
+              aria-label={t('daily_template') || 'Daily Template'}
+              sx={{
+                width: 24,
+                height: 24,
+                borderRadius: 0,
+                bgcolor: isDark ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.8)',
+                color: isDark ? '#94a3b8' : '#64748b',
+                '&:hover': {
+                  bgcolor: isDark ? 'rgba(51,65,85,0.8)' : 'rgba(241,245,249,1)',
+                },
+              }}
+            >
+              <FileText size={14} />
+            </IconButton>
+          </span>
+        </ColoredTooltip>
+      )}
+
+      {onExportWeeklySchedule && (
+        <ColoredTooltip
+          title={
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, padding: '4px 0' }}>
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>{t('weekly_schedule') || 'Weekly Schedule'}</div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#e53935' }}
+                  onClick={(e) => { e.stopPropagation(); onExportWeeklySchedule(EXPORT_FORMAT.PDF); }}
+                >
+                  <FileText size={14} /> PDF
+                </span>
+                <span
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#43a047' }}
+                  onClick={(e) => { e.stopPropagation(); onExportWeeklySchedule(EXPORT_FORMAT.EXCEL); }}
+                >
+                  <FileSpreadsheet size={14} /> Excel
+                </span>
+              </div>
+            </div>
+          }
+          color="#64748b"
+          placement="top"
+        >
+          <span>
+            <IconButton
+              size="small"
+              onClick={() => onExportWeeklySchedule(EXPORT_FORMAT.PDF)}
+              data-testid="board-footer-weekly-schedule-btn"
+              aria-label={t('weekly_schedule') || 'Weekly Schedule'}
+              sx={{
+                width: 24,
+                height: 24,
+                borderRadius: 0,
+                bgcolor: isDark ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.8)',
+                color: isDark ? '#94a3b8' : '#64748b',
+                '&:hover': {
+                  bgcolor: isDark ? 'rgba(51,65,85,0.8)' : 'rgba(241,245,249,1)',
+                },
+              }}
+            >
+              <CalendarDays size={14} />
+            </IconButton>
+          </span>
         </ColoredTooltip>
       )}
 
@@ -126,7 +287,7 @@ function FooterControls({
               },
             }}
           >
-            {expanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+            {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </IconButton>
         </ColoredTooltip>
       )}
@@ -136,12 +297,15 @@ function FooterControls({
 
 export default function BoardFooter({
   columns = [],
-  lane = 'attendance',
+  lane = BOARD_LANE.ATTENDANCE,
   view,
   onViewChange,
   embedded = false,
   expanded = false,
   onToggleExpand,
+  onExportDailyTemplate,
+  onExportWeeklySchedule,
+  exportingKey,
   showLegend = true,
   onOpenHistory = null,
   classInfo = null,
@@ -184,12 +348,17 @@ export default function BoardFooter({
       embedded={embedded}
       expanded={expanded}
       onToggleExpand={onToggleExpand}
+      onExportDailyTemplate={onExportDailyTemplate}
+      onExportWeeklySchedule={onExportWeeklySchedule}
+      exportingKey={exportingKey}
       hideViewToggle={isCalendarTab || isInstructor}
       hideExpand={isInstructor}
+      showNotesToggle={Boolean(roleContext?.isAdmin || roleContext?.isSuperAdmin)}
+      showParticipationToggle={canViewParticipation(roleContext)}
     />
   );
 
-  const showWorkflowLegend = isCalendarTab || lane === 'status';
+  const showWorkflowLegend = isCalendarTab || lane === BOARD_LANE.STATUS;
 
   return (
     <div
@@ -204,8 +373,8 @@ export default function BoardFooter({
             showAttendance
             showWorkflow={showWorkflowLegend}
             includeNotTaken={isCalendarTab}
-            showScheduleExtras={isCalendarTab && isInstructor}
-            showYourClassOnly={isCalendarTab && isInstructor}
+            showScheduleExtras={isInstructor}
+            showYourClassOnly={isInstructor}
             roleContext={roleContext}
             style={{ flex: 1, minWidth: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.35rem' }}
             data-tour="operations-board-legend"

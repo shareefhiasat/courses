@@ -9,6 +9,7 @@ import { ColorThemeProvider } from '@contexts/ColorThemeContext';
 import MuiAppThemeProvider from './providers/MuiAppThemeProvider';
 import { GlobalLoadingProvider, GlobalLoadingFallback } from '@contexts/GlobalLoadingContext';
 import HelpCommandPalette from './components/help/HelpCommandPalette.jsx';
+import { FeatureFlagWrapper } from '@/components/ui/FeatureFlagWrapper';
 import HelpRedirect from './components/help/HelpRedirect.jsx';
 import { info, error, warn, debug } from './services/utils/logger.js';
 import { drawerTlog } from '@utils/drawerTlog';
@@ -16,6 +17,7 @@ import { installTourEventRouter } from '@utils/tourScheduler';
 import { ROLE_STRINGS } from './utils/userUtils.js';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import ErrorBoundary from './components/ui/ErrorBoundary.jsx';
+import MaintenanceModePage from './pages/system/MaintenanceModePage';
 import './App.css';
 import './styles/colors.css';
 import './styles/tokens.css';
@@ -28,6 +30,7 @@ import './utils/userRoleManager';
 import Navbar from '@ui/Navbar/Navbar';
 import SideDrawer from '@ui/SideDrawer/SideDrawer';
 import LoadingProgress from '@ui/LoadingProgress/LoadingProgress';
+import ExportLoadingOverlay from '@components/export/ExportLoadingOverlay.jsx';
 import ToastProvider from '@ui/ToastProvider.jsx';
 import StudentQuickActionModal from '@ui/StudentQuickActionModal.jsx';
 import StudentQRCodeDisplay from '@ui/StudentQRCodeDisplay/StudentQRCodeDisplay';
@@ -279,7 +282,9 @@ const AppContent = () => {
             />
           </>
         )}
-        {user && <HelpCommandPalette />}
+        <FeatureFlagWrapper featureId="HELP_COMMAND_PALETTE">
+          {user && <HelpCommandPalette />}
+        </FeatureFlagWrapper>
         <main className="main-content">
         <Suspense fallback={<GlobalLoadingFallback />}>
         <Routes>
@@ -345,6 +350,25 @@ const AppContent = () => {
   );
 };
 
+function MaintenanceGuard({ children }) {
+  const { user } = useAuth();
+  const { pathname } = useLocation();
+  const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
+  const allowedEmail = import.meta.env.VITE_MAINTENANCE_ADMIN_EMAIL || 'shareef.hiasat@gmail.com';
+
+  if (
+    isMaintenance &&
+    pathname !== '/login' &&
+    pathname !== '/silent-check-sso.html' &&
+    user &&
+    user.email !== allowedEmail
+  ) {
+    return <MaintenanceModePage />;
+  }
+
+  return children;
+}
+
 function App() {
   return (
     <ErrorBoundary>
@@ -356,13 +380,16 @@ function App() {
               <ColorThemeProvider>
                 <MuiAppThemeProvider>
                 <GlobalLoadingProvider>
+                  <ExportLoadingOverlay />
                   <Router>
                     <ErrorBoundary>
-                      <Routes>
-                        <Route path="/help" element={<HelpRedirect />} />
-                        <Route path="/operations/board" element={<OperationsBoardShell />} />
-                        <Route path="*" element={<AppContent />} />
-                      </Routes>
+                      <MaintenanceGuard>
+                        <Routes>
+                          <Route path="/help" element={<HelpRedirect />} />
+                          <Route path="/operations/board" element={<OperationsBoardShell />} />
+                          <Route path="*" element={<AppContent />} />
+                        </Routes>
+                      </MaintenanceGuard>
                     </ErrorBoundary>
                   </Router>
                 </GlobalLoadingProvider>

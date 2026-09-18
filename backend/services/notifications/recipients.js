@@ -189,8 +189,41 @@ export const byEnrollment = async ({ subjectId, programId }) => {
  * @param {number} criteria.programId - Program ID (with enrollment)
  * @returns {Promise<Array>} Array of recipient objects
  */
+const PRIVILEGED_ROLES = ['admin', 'hr', 'super_admin'];
+
+function hasOnlyInstructorRole(assignments) {
+  const codes = new Set(assignments.map((a) => a.role?.code?.toLowerCase()).filter(Boolean));
+  const hasInstructor = codes.has('instructor');
+  const hasPrivileged = PRIVILEGED_ROLES.some((r) => codes.has(r));
+  return hasInstructor && !hasPrivileged;
+}
+
+async function excludeInstructorOnlyRecipients(recipients) {
+  if (!recipients?.length) return [];
+  const userIds = recipients.map((r) => r.userId).filter(Boolean);
+  if (!userIds.length) return recipients;
+
+  const assignments = await prisma.userRoleAssignment.findMany({
+    where: { userId: { in: userIds } },
+    include: { role: { select: { code: true } } },
+  });
+
+  const byUser = new Map();
+  assignments.forEach((a) => {
+    const list = byUser.get(a.userId) || [];
+    list.push(a);
+    byUser.set(a.userId, list);
+  });
+
+  return recipients.filter((r) => {
+    const userAssignments = byUser.get(r.userId) || [];
+    return !hasOnlyInstructorRole(userAssignments);
+  });
+}
+
 export const resolveRecipients = async (criteria) => {
-  const { userId, userIds, role, classId, subjectId, programId, scopedRole, scopedClassId } = criteria;
+  const { userId, userIds, role, classId, subjectId, programId, scopedRole, scopedClassId, excludeInstructors } = criteria;
+  let recipients;
 
   if (scopedRole && scopedClassId) {
     const roleUsers = await byRole(scopedRole);
@@ -215,31 +248,29 @@ export const resolveRecipients = async (criteria) => {
         filtered.push(u);
       }
     }
-    return filtered;
+    recipients = filtered;
+  } else if (userId) {
+    recipients = await byUserId(userId);
+  } else if (userIds && userIds.length > 0) {
+    recipients = await byUserIds(userIds);
+  } else if (role) {
+    recipients = await byRole(role);
+  } else if (classId) {
+    recipients = await byClass(classId);
+  } else if (subjectId || programId) {
+    recipients = await byEnrollment({ subjectId, programId });
   }
-  
-  if (userId) {
-    return await byUserId(userId);
+
+  if (recipients === undefined) {
+    log.warn('No valid recipient criteria provided', { criteria });
+    return [];
   }
-  
-  if (userIds && userIds.length > 0) {
-    return await byUserIds(userIds);
+
+  if (excludeInstructors) {
+    recipients = await excludeInstructorOnlyRecipients(recipients);
   }
-  
-  if (role) {
-    return await byRole(role);
-  }
-  
-  if (classId) {
-    return await byClass(classId);
-  }
-  
-  if (subjectId || programId) {
-    return await byEnrollment({ subjectId, programId });
-  }
-  
-  log.warn('No valid recipient criteria provided', { criteria });
-  return [];
+
+  return recipients;
 };
 
 export default {

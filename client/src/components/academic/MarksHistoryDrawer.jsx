@@ -1,5 +1,6 @@
 import React, { memo, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { SimpleLoading } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -313,28 +314,29 @@ const MarksHistoryDrawer = memo(({
               aria-label={t('search_history')}
             />
             {searchTerm && (
-              <button
-                onClick={clearSearch}
-                style={{
-                  position: 'absolute',
-                  [isRTL ? 'left' : 'right']: '0.5rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--muted)',
-                  cursor: 'pointer',
-                  padding: '0.25rem',
-                  borderRadius: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                title={t('history_clear_search')}
-                aria-label={t('history_clear_search')}
-              >
-                {getThemedIcon('ui', 'x', 14, theme)}
-              </button>
+              <ColoredTooltip title={t('history_clear_search')}>
+                <button
+                  onClick={clearSearch}
+                  style={{
+                    position: 'absolute',
+                    [isRTL ? 'left' : 'right']: '0.5rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--muted)',
+                    cursor: 'pointer',
+                    padding: '0.25rem',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  aria-label={t('history_clear_search')}
+                >
+                  {getThemedIcon('ui', 'x', 14, theme)}
+                </button>
+              </ColoredTooltip>
             )}
           </div>
         </div>

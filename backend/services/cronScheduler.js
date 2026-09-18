@@ -9,6 +9,7 @@ import cron from 'node-cron';
 import { runAttendanceThresholdCheck } from '../scripts/attendanceThresholdCheck.js';
 import { runSlaMonitor } from '../scripts/slaMonitor.js';
 import { ensureDailyWorkflows } from '../services/workflowDocumentService.js';
+import { warmupAllMetrics } from '../ai/dataCache.js';
 
 const jobs = [];
 
@@ -67,6 +68,52 @@ export function initCronJobs() {
   });
 
   jobs.push({ name: 'ensureDailyWorkflows', job: ensureDailyJob });
+
+  // AI metric cache warm-up — high-rate refresh with setInterval for sub-minute intervals
+  const fastMode = process.env.AI_FAST_MODE !== 'false';
+  const refreshSeconds = parseInt(process.env.AI_CACHE_REFRESH_SECONDS || '60', 10);
+  if (fastMode && refreshSeconds > 0) {
+    // Run once shortly after startup
+    setTimeout(() => {
+      warmupAllMetrics().catch(err => console.error('[CronScheduler] Initial AI warm-up failed:', err.message));
+    }, 5000);
+
+    let isWarming = false;
+    const aiWarmupFn = async () => {
+      if (isWarming) {
+        console.log('[CronScheduler] AI warm-up already running, skipping this tick');
+        return;
+      }
+      isWarming = true;
+      console.log('[CronScheduler] Running AI metric warm-up...');
+      try {
+        await warmupAllMetrics();
+        console.log('[CronScheduler] AI metric warm-up completed');
+      } catch (error) {
+        console.error('[CronScheduler] AI metric warm-up error:', error.message);
+      } finally {
+        isWarming = false;
+      }
+    };
+
+    if (refreshSeconds < 60) {
+      // Cron only supports minute-level; use setInterval for high-rate invalidation (e.g. every 30s)
+      const intervalMs = refreshSeconds * 1000;
+      const intervalId = setInterval(aiWarmupFn, intervalMs);
+      jobs.push({
+        name: 'aiMetricWarmup',
+        job: { stop: () => clearInterval(intervalId), getStatus: () => 'scheduled' },
+      });
+      console.log(`[CronScheduler] AI metric warm-up scheduled every ${refreshSeconds}s via setInterval`);
+    } else {
+      const aiWarmupJob = cron.schedule(`*/${Math.max(1, Math.floor(refreshSeconds / 60))} * * * *`, aiWarmupFn, {
+        scheduled: true,
+        timezone: 'Asia/Riyadh',
+      });
+      jobs.push({ name: 'aiMetricWarmup', job: aiWarmupJob });
+      console.log(`[CronScheduler] AI metric warm-up scheduled every ${Math.max(1, Math.floor(refreshSeconds / 60))} minute(s) via cron`);
+    }
+  }
 
   console.log(`[CronScheduler] ${jobs.length} jobs initialized successfully`);
 }

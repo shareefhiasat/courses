@@ -13,6 +13,13 @@ const STATUS_LABELS = {
   draft: 'Draft',
   taken: 'Attendance Taken',
   submitted: 'Daily Official Submitted',
+  under_review: 'In Review',
+  under_admin_review: 'Admin Review',
+  under_hr_review: 'HR Review',
+  approved: 'Approved',
+  admin_approved: 'Approved',
+  rejected: 'Rejected',
+  amended: 'Amended',
 };
 
 const ClassCell = ({ session, status, onClick }) => {
@@ -40,7 +47,10 @@ const ClassCell = ({ session, status, onClick }) => {
   const statusKey = resolveScheduleWorkflowKey(status);
   const statusColor = {
     bg: SCHEDULE_WORKFLOW_COLORS[statusKey],
-    label: t(`workspace_status_${statusKey}`) || STATUS_LABELS[statusKey] || statusKey,
+    label: t(`workspace_status_${statusKey}`)
+      || t(`workflow.status.${statusKey}`)
+      || STATUS_LABELS[statusKey]
+      || statusKey,
   };
 
   return (

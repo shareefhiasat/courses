@@ -29,7 +29,7 @@ import {
 } from '@constants/scheduleFontScale';
 
 import { info, error, warn, debug } from '@services/utils/logger.js';
-import { isOnboardingTourEnabled } from '@utils/tourConfig.js';
+import { beginManualTour } from '@utils/tourConfig.js';
 
 const ACCENT_FALLBACK = DEFAULT_ACCENT;
 
@@ -48,6 +48,8 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   const [firstNameAr, setFirstNameAr] = useState('');
   const [lastNameAr, setLastNameAr] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
+  const [rankEn, setRankEn] = useState('');
+  const [rankAr, setRankAr] = useState('');
   const [userImages, setUserImages] = useState({
     profile: null,
     qid: null,
@@ -118,9 +120,9 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
     if (!showDropdown) return;
     const onDocClick = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowDropdown(false); };
     const onKey = (e) => { if (e.key === 'Escape') setShowDropdown(false); };
-    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('click', onDocClick);
     document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', onDocClick); document.removeEventListener('keydown', onKey); };
+    return () => { document.removeEventListener('click', onDocClick); document.removeEventListener('keydown', onKey); };
   }, [showDropdown]);
 
   // Load user profile data on mount (for dropdown display)
@@ -136,6 +138,8 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
           setFirstNameAr(me.firstNameAr || '');
           setLastNameAr(me.lastNameAr || '');
           setStudentNumber(me.studentNumber || '');
+          setRankEn(me.rankEn || '');
+          setRankAr(me.rankAr || '');
           setPhoneNumber(me.phoneNumber || '');
         }
       } catch (e) { /* noop */ }
@@ -161,12 +165,25 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
     loadUserImages();
   }, [user]);
 
-  const handleSignOut = useCallback(async () => {
+  const handleSignOut = useCallback(async (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    console.log('[Navbar] Sign out clicked, logout:', typeof logout);
     try {
-      await logout();
+      if (typeof logout === 'function') {
+        await logout();
+      } else {
+        console.warn('[Navbar] logout not available, clearing storage manually');
+        localStorage.clear();
+        sessionStorage.clear();
+        document.cookie = 'kc_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      }
       navigate('/');
-    } catch (error) {
-      error('Error signing out:', error);
+    } catch (err) {
+      console.error('[Navbar] Sign out error:', err);
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = window.location.origin + '/login';
     }
   }, [logout, navigate]);
 
@@ -204,6 +221,8 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
       setFirstNameAr(me?.firstNameAr || '');
       setLastNameAr(me?.lastNameAr || '');
       setStudentNumber(me?.studentNumber || '');
+      setRankEn(me?.rankEn || '');
+      setRankAr(me?.rankAr || '');
       setNotifLang(me?.notifLang || 'auto');
       setTimeFormat(getTimeFormatPreference());
       setShowProfile(true);
@@ -255,13 +274,13 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
 
           {/* Collapse/Expand Navbar Button */}
           <ColoredTooltip title={isNavbarCollapsed ? t('expand_navbar') : t('collapse_navbar')} placement="bottom" color={DEFAULT_ACCENT}>
-          <button
-            onClick={toggleNavbar}
-            className="navbar-collapse-btn"
-            aria-label={isNavbarCollapsed ? (t('expand_navbar')) : (t('collapse_navbar'))}
-          >
-            {getThemedIcon('ui', isNavbarCollapsed ? 'chevron_down' : 'chevron_up', 18, '#D4AF37')}
-          </button>
+            <button
+              onClick={toggleNavbar}
+              className="navbar-collapse-btn"
+              aria-label={isNavbarCollapsed ? (t('expand_navbar')) : (t('collapse_navbar'))}
+            >
+              {getThemedIcon('ui', isNavbarCollapsed ? 'chevron_down' : 'chevron_up', 18, '#D4AF37')}
+            </button>
           </ColoredTooltip>
 
           {/* Brand */}
@@ -295,11 +314,19 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 color="#D4AF37"
                 placement="bottom"
               >
-                <button
+                <div
                   id="welcome-navbar-title"
-                  type="button"
-                  onClick={() => {
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
                     window.dispatchEvent(new CustomEvent('welcome-open-context-switcher'));
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      window.dispatchEvent(new CustomEvent('welcome-open-context-switcher'));
+                    }
                   }}
                   style={{
                     minWidth: 0,
@@ -350,7 +377,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     } : undefined}>
                       {(() => {
                         const d = wizardNav.workingDate ? new Date(wizardNav.workingDate) : new Date();
-                        if (wizardNav.tab === 'schedule') {
+                        if (wizardNav.tab === 'schedule' || (wizardNav.tab === 'operations' && wizardNav.viewMode === 'week')) {
                           const ws = new Date(d);
                           ws.setDate(ws.getDate() - ws.getDay());
                           const we = new Date(ws);
@@ -368,13 +395,14 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       <>
                         <span style={{ opacity: 0.6 }}>·</span>
                         <div style={{
+                          position: 'relative',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '4px',
                           padding: '2px 8px',
                           borderRadius: '10px',
                           background: 'rgba(255, 255, 255, 0.15)',
-                          border: '1px solid rgba(255, 255, 255, 0.25)',
+                          border: '1px solid #D4AF37',
                           fontSize: '0.65rem',
                           fontWeight: 600,
                           color: '#fff',
@@ -387,7 +415,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     )}
                   </div>
                 </span>
-              </button>
+              </div>
               </ColoredTooltip>
             )}
           </div>
@@ -405,30 +433,30 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
           {/* Impersonation Banner */}
           {impersonating && (
             <ColoredTooltip title={t('exit_impersonation')} placement="bottom" color="#f59e0b">
-            <button
-              onClick={() => {
-                stopImpersonation();
-                navigate('/dashboard');
-              }}
-              style={{
-                padding: '0.5rem 1rem',
-                background: '#ff9800',
-                color: 'white',
-                border: 'none',
-                borderRadius: '20px',
-                fontSize: 'var(--font-size-sm)',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-              }}
-              onMouseEnter={(e) => e.target.style.background = '#f57c00'}
-              onMouseLeave={(e) => e.target.style.background = '#ff9800'}
-            >
-              {getThemedIcon('ui', 'user', 16, theme === 'light' ? 'white' : theme)} {t('viewing_as_student')} <span style={{ marginLeft: '0.5rem' }}>✕</span>
-            </button>
+              <button
+                onClick={() => {
+                  stopImpersonation();
+                  navigate('/dashboard');
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: '#ff9800',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '20px',
+                  fontSize: 'var(--font-size-sm)',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => e.target.style.background = '#f57c00'}
+                onMouseLeave={(e) => e.target.style.background = '#ff9800'}
+              >
+                {getThemedIcon('ui', 'user', 16, theme === 'light' ? 'white' : theme)} {t('viewing_as_student')} <span style={{ marginLeft: '0.5rem' }}>✕</span>
+              </button>
             </ColoredTooltip>
           )}
 
@@ -498,128 +526,38 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 {!isStudent && (
                   <ColoredTooltip title={t('welcome')} placement="bottom" color={DEFAULT_ACCENT}>
                     <button
-                      type="button"
-                      className="nav-icon-btn"
-                      onClick={() => navigate('/welcome')}
-                      aria-label={t('welcome')}
-                      data-testid="navbar-welcome-btn"
-                      style={{
-                        border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
-                        background: location.pathname === '/welcome'
-                          ? 'var(--color-primary, #3b82f6)'
-                          : (theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)'),
-                        borderRadius: '50%',
-                        width: '28px',
-                        height: '28px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        color: location.pathname === '/welcome' ? '#fff' : (theme === 'light' ? 'var(--text-primary)' : '#fff'),
-                      }}
-                    >
-                      {getThemedIcon('ui', 'home', 16, 'currentColor')}
-                    </button>
+                        type="button"
+                        className="nav-icon-btn"
+                        onClick={() => navigate('/welcome')}
+                        aria-label={t('welcome')}
+                        data-testid="navbar-welcome-btn"
+                        style={{
+                          border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+                          background: location.pathname === '/welcome'
+                            ? 'var(--color-primary, #3b82f6)'
+                            : (theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)'),
+                          borderRadius: '50%',
+                          width: '28px',
+                          height: '28px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          color: location.pathname === '/welcome' ? '#fff' : (theme === 'light' ? 'var(--text-primary)' : '#fff'),
+                        }}
+                      >
+                        {getThemedIcon('ui', 'home', 16, 'currentColor')}
+                      </button>
                   </ColoredTooltip>
                 )}
 
                 {!isInstructor && <NotificationBell />}
 
                 <ColoredTooltip title={lang === 'en' ? 'العربية' : 'English'} placement="bottom" color={DEFAULT_ACCENT}>
-                <button
-                  className="nav-icon-btn nav-help"
-                  onClick={toggleLang}
-                  aria-label={lang === 'en' ? t('switch_to_arabic') : t('switch_to_english')}
-                  style={{
-                    border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
-                    background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
-                    borderRadius: '50%',
-                    width: '28px',
-                    height: '28px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: theme === 'light' ? 'var(--text-primary)' : '#fff'
-                  }}
-                >
-                  {lang === 'en' ? getThemedIcon('ui', 'globe', 15, theme === 'light' ? 'var(--text-primary)' : '#fff') : getThemedIcon('ui', 'globe2', 15, theme === 'light' ? 'var(--text-primary)' : '#fff')}
-                </button>
-                </ColoredTooltip>
-
-                {!isInstructor && (
-                <ColoredTooltip title={t('my_data_access')} placement="bottom" color={DEFAULT_ACCENT}>
-                <button
-                  className="nav-icon-btn nav-help"
-                  onClick={() => setShowAccessDrawer(true)}
-                  aria-label={t('my_data_access')}
-                  style={{
-                    border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
-                    background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
-                    borderRadius: '50%',
-                    width: '28px',
-                    height: '28px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: theme === 'light' ? 'var(--text-primary)' : '#fff'
-                  }}
-                >
-                  {getThemedIcon('ui', 'shield', 15, theme === 'light' ? 'var(--text-primary)' : '#fff')}
-                </button>
-                </ColoredTooltip>
-                )}
-
-                {isOnboardingTourEnabled() && (
-                <ColoredTooltip title={tourBadgeCount > 0 ? t('tour_help_count', { count: tourBadgeCount }) : t('tour_help')} placement="bottom" color={DEFAULT_ACCENT}>
-                <button
-                  className="nav-icon-btn nav-help"
-                  onClick={() => {
-                    try {
-                      const fullPath = location?.pathname || '/';
-                      const search = location?.search || '';
-                      const hash = location?.hash || '';
-                      window.dispatchEvent(new CustomEvent('app:joyride', { detail: { route: fullPath, search, hash } }));
-                    } catch {}
-                  }}
-                  aria-label={tourBadgeCount > 0 ? t('tour_help_count', { count: tourBadgeCount }) : t('tour_help')}
-                  style={{
-                    position: 'relative',
-                    border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
-                    background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
-                    borderRadius: '50%',
-                    width: '28px',
-                    height: '28px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: theme === 'light' ? 'var(--text-primary)' : '#fff'
-                  }}
-                >
-                  {getThemedIcon('ui', 'help_circle', 15, theme === 'light' ? 'var(--text-primary)' : '#fff')}
-                  {tourBadgeCount > 0 && (
-                    <span style={{
-                      position: 'absolute', top: -4, insetInlineEnd: -4,
-                      minWidth: 16, height: 16, padding: '0 4px',
-                      borderRadius: 999, background: 'var(--color-primary, #800020)', color: '#fff',
-                      fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      lineHeight: 1, boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                    }}>
-                      {tourBadgeCount}
-                    </span>
-                  )}
-                </button>
-                </ColoredTooltip>
-                )}
-
-                {isSuperAdmin && (
-                  <ColoredTooltip title={t('help_center')} placement="bottom" color={DEFAULT_ACCENT}>
                   <button
-                    className="nav-icon-btn"
-                    onClick={() => window.open(`${import.meta.env.VITE_HELP_URL || 'http://localhost:3000'}/${lang}`, '_blank', 'noopener,noreferrer')}
-                    aria-label={t('information')}
+                    className="nav-icon-btn nav-help"
+                    onClick={toggleLang}
+                    aria-label={lang === 'en' ? t('switch_to_arabic') : t('switch_to_english')}
                     style={{
                       border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
                       background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
@@ -633,30 +571,119 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                     }}
                   >
-                    {getThemedIcon('ui', 'info', 16, theme === 'light' ? 'var(--text-primary)' : '#fff')}
+                    {lang === 'en' ? getThemedIcon('ui', 'globe', 15, theme === 'light' ? 'var(--text-primary)' : '#fff') : getThemedIcon('ui', 'globe2', 15, theme === 'light' ? 'var(--text-primary)' : '#fff')}
                   </button>
+                </ColoredTooltip>
+
+                {!isInstructor && (
+                <ColoredTooltip title={t('my_data_access')} placement="bottom" color={DEFAULT_ACCENT}>
+                  <button
+                    className="nav-icon-btn nav-help"
+                    onClick={() => setShowAccessDrawer(true)}
+                    aria-label={t('my_data_access')}
+                    style={{
+                      border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+                      background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
+                      borderRadius: '50%',
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      color: theme === 'light' ? 'var(--text-primary)' : '#fff'
+                    }}
+                  >
+                    {getThemedIcon('ui', 'shield', 15, theme === 'light' ? 'var(--text-primary)' : '#fff')}
+                  </button>
+                </ColoredTooltip>
+                )}
+
+                <ColoredTooltip title={tourBadgeCount > 0 ? t('tour_help_count', { count: tourBadgeCount }) : t('tour_help')} placement="bottom" color={DEFAULT_ACCENT}>
+                  <button
+                    className="nav-icon-btn nav-help"
+                    onClick={() => {
+                      try {
+                        beginManualTour();
+                        const fullPath = location?.pathname || '/';
+                        const search = location?.search || '';
+                        const hash = location?.hash || '';
+                        window.dispatchEvent(new CustomEvent('app:joyride', { detail: { route: fullPath, search, hash } }));
+                      } catch {}
+                    }}
+                    aria-label={tourBadgeCount > 0 ? t('tour_help_count', { count: tourBadgeCount }) : t('tour_help')}
+                    style={{
+                      position: 'relative',
+                      border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+                      background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
+                      borderRadius: '50%',
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      color: theme === 'light' ? 'var(--text-primary)' : '#fff'
+                    }}
+                  >
+                    {getThemedIcon('ui', 'help_circle', 15, theme === 'light' ? 'var(--text-primary)' : '#fff')}
+                    {tourBadgeCount > 0 && (
+                      <span style={{
+                        position: 'absolute', top: -4, insetInlineEnd: -4,
+                        minWidth: 16, height: 16, padding: '0 4px',
+                        borderRadius: 999, background: 'var(--color-primary, #800020)', color: '#fff',
+                        fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        lineHeight: 1, boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                      }}>
+                        {tourBadgeCount}
+                      </span>
+                    )}
+                  </button>
+                </ColoredTooltip>
+
+                {isSuperAdmin && (
+                  <ColoredTooltip title={t('help_center')} placement="bottom" color={DEFAULT_ACCENT}>
+                    <button
+                      className="nav-icon-btn"
+                      onClick={() => window.open(`${import.meta.env.VITE_HELP_URL || 'http://localhost:3000'}/${lang}`, '_blank', 'noopener,noreferrer')}
+                      aria-label={t('information')}
+                      style={{
+                        border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+                        background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
+                        borderRadius: '50%',
+                        width: '28px',
+                        height: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: theme === 'light' ? 'var(--text-primary)' : '#fff'
+                      }}
+                    >
+                      {getThemedIcon('ui', 'info', 16, theme === 'light' ? 'var(--text-primary)' : '#fff')}
+                    </button>
                   </ColoredTooltip>
                 )}
 
                 <ColoredTooltip title={theme==='light'?t('dark_mode'):t('light_mode')} placement="bottom" color={DEFAULT_ACCENT}>
-                <button
-                  className="nav-icon-btn"
-                  onClick={toggleTheme}
-                  style={{
-                    border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
-                    background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
-                    borderRadius: '50%',
-                    width: '28px',
-                    height: '28px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: theme === 'light' ? 'var(--text-primary)' : '#fff'
-                  }}
-                >
-                  {theme==='light'?getThemedIcon('ui', 'moon', 15, 'var(--text-primary)'):getThemedIcon('ui', 'sun', 15, '#fff')}
-                </button>
+                  <button
+                    className="nav-icon-btn"
+                    onClick={toggleTheme}
+                    style={{
+                      border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+                      background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
+                      borderRadius: '50%',
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      color: theme === 'light' ? 'var(--text-primary)' : '#fff'
+                    }}
+                  >
+                    {theme==='light'?getThemedIcon('ui', 'moon', 15, 'var(--text-primary)'):getThemedIcon('ui', 'sun', 15, '#fff')}
+                  </button>
                 </ColoredTooltip>
                 {/* Temporarily hidden - Minified filter toggle button
                 <button
@@ -669,7 +696,6 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       window.dispatchEvent(new CustomEvent('filter-view-mode-changed', { detail: { filterViewMode: next } }));
                     } catch {}
                   }}
-                  title={(() => {
                     try {
                       const current = localStorage.getItem('filterViewMode') || 'full';
                       return current === 'full' ? (t('minified_filters')) : (t('full_filters'));
@@ -693,7 +719,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               {/* Profile Avatar with Super Admin badge and dropdown */}
               <div ref={menuRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
                 <div
-                  onClick={() => setShowDropdown(v=>!v)}
+                  onClick={() => { console.log('[Navbar] Avatar clicked, toggling dropdown'); setShowDropdown(v=>!v); }}
                   style={{
                     width: '34px',
                     height: '34px',
@@ -787,8 +813,13 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                         {user?.email || ''}
                       </div>
                       {studentNumber && (
-                        <div className="student-number" style={{ fontSize: '0.8rem', color: '#666', marginBottom: 8 }}>
+                        <div className="student-number" style={{ fontSize: '0.8rem', color: '#666', marginBottom: 4 }}>
                           {t('student_number')}: {studentNumber}
+                        </div>
+                      )}
+                      {(rankEn || rankAr) && (
+                        <div className="user-rank" style={{ fontSize: '0.8rem', color: '#666', marginBottom: 8 }}>
+                          {t('rank', 'Rank')}: {[rankEn, rankAr].filter(Boolean).join(' / ')}
                         </div>
                       )}
                       <div className="role-badge" style={{ display:'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems:'center' }}>
@@ -817,12 +848,44 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                         )}
                       </div>
                     </div>
+                    <button
+                      type="button"
+                      className="dropdown-item sign-out-btn"
+                      onClick={async () => {
+                        console.log('[Navbar] Sign out clicked');
+                        try { await logout(); console.log('[Navbar] logout() resolved'); } catch (e) { console.warn('[Navbar] logout() threw:', e); }
+                        const target = window.location.origin + '/welcome';
+                        console.log('[Navbar] Redirecting to', target);
+                        localStorage.clear();
+                        sessionStorage.clear();
+                        window.location.href = target;
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        color: '#dc2626',
+                        fontWeight: 600,
+                        borderTop: '1px solid rgba(0,0,0,0.08)',
+                        marginTop: '0.25rem',
+                        paddingTop: '0.6rem',
+                        cursor: 'pointer',
+                        width: '100%',
+                        textAlign: 'left',
+                        background: 'none',
+                        border: 'none',
+                        padding: '0.75rem 1rem',
+                      }}
+                    >
+                      {getThemedIcon('ui', 'log_out', 14, '#dc2626')}
+                      {t('sign_out')}
+                    </button>
                   </div>
                 )}
               </div>
             </div>
           )}
-          
+
           <div className="navbar-menu" style={{ display: 'none' }}>
             {user ? (
               <>
@@ -866,22 +929,22 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               {!isInstructor && <NotificationBell />}
               
               <ColoredTooltip title={lang==='en'?'العربية':'English'} placement="bottom" color={DEFAULT_ACCENT}>
-              <button onClick={toggleLang} className="icon-btn">
-                {lang==='en'?'EN':'AR'}
-              </button>
+                <button onClick={toggleLang} className="icon-btn">
+                  {lang==='en'?'EN':'AR'}
+                </button>
               </ColoredTooltip>
               <ColoredTooltip title={density==='compact'?t('normal_view'):t('compact_view')} placement="bottom" color={DEFAULT_ACCENT}>
-              <button onClick={()=>setDensity(d=>d==='compact'?'normal':'compact')} className="icon-btn">
-                {density==='compact'?getThemedIcon('ui', 'zoom_in', 16, theme === 'light' ? 'var(--text-primary)' : theme):getThemedIcon('ui', 'ruler', 16, theme === 'light' ? 'var(--text-primary)' : theme)}
-              </button>
+                <button onClick={()=>setDensity(d=>d==='compact'?'normal':'compact')} className="icon-btn">
+                  {density==='compact'?getThemedIcon('ui', 'zoom_in', 16, theme === 'light' ? 'var(--text-primary)' : theme):getThemedIcon('ui', 'ruler', 16, theme === 'light' ? 'var(--text-primary)' : theme)}
+                </button>
               </ColoredTooltip>
               <ColoredTooltip title={theme==='light'?t('dark_mode'):t('light_mode')} placement="bottom" color={DEFAULT_ACCENT}>
-              <button onClick={toggleTheme} className="icon-btn">
-                {theme==='light'?getThemedIcon('ui', 'moon', 16, 'var(--text-primary)'):getThemedIcon('ui', 'sun', 16, theme)}
-              </button>
+                <button onClick={toggleTheme} className="icon-btn">
+                  {theme==='light'?getThemedIcon('ui', 'moon', 16, 'var(--text-primary)'):getThemedIcon('ui', 'sun', 16, theme)}
+                </button>
               </ColoredTooltip>
               
-              <div className="navbar-user" onClick={() => setShowDropdown(!showDropdown)} ref={menuRef}>
+              <div className="navbar-user" onClick={() => setShowDropdown(!showDropdown)}>
                 <div className="user-avatar" style={{ overflow: 'hidden' }}>
                   {userImages?.profile?.url ? (
                     <img src={userImages.profile.url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -901,8 +964,13 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                         </div>
                       )}
                       {studentNumber && (
-                        <div className="student-number" style={{ fontSize: '0.8rem', color: '#666', marginBottom: 8 }}>
+                        <div className="student-number" style={{ fontSize: '0.8rem', color: '#666', marginBottom: 4 }}>
                           {t('student_number')}: {studentNumber}
+                        </div>
+                      )}
+                      {(rankEn || rankAr) && (
+                        <div className="user-rank" style={{ fontSize: '0.8rem', color: '#666', marginBottom: 8 }}>
+                          {t('rank', 'Rank')}: {[rankEn, rankAr].filter(Boolean).join(' / ')}
                         </div>
                       )}
                       <div className="role-badge" style={{ display:'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems:'center' }}>
@@ -1050,48 +1118,48 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
       {/* Floating restore button when navbar is collapsed */}
       {isNavbarCollapsed && (
         <ColoredTooltip title={t('expand_navbar')} placement="left" color={DEFAULT_ACCENT}>
-        <button
-          onClick={toggleNavbar}
-          aria-label={t('expand_navbar')}
-          style={{
-            position: 'fixed',
-            top: isMobile ? '6px' : '8px',
-            right: isMobile ? '6px' : '8px',
-            zIndex: 1000,
-            background: theme === 'light' ? 'rgba(255, 255, 255, 0.45)' : 'rgba(15, 23, 42, 0.45)',
-            backdropFilter: 'saturate(150%) blur(6px)',
-            border: theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '50%',
-            width: isMobile ? '22px' : '26px',
-            height: isMobile ? '22px' : '26px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            color: theme === 'light' ? 'var(--text-primary)' : '#fff',
-            boxShadow: theme === 'light'
-              ? '0 2px 4px rgba(0, 0, 0, 0.08)'
-              : '0 2px 4px rgba(0, 0, 0, 0.2)',
-            transition: 'all 0.2s ease',
-            opacity: 0.85,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.1)';
-            e.currentTarget.style.opacity = '1';
-            e.currentTarget.style.boxShadow = theme === 'light'
-              ? '0 4px 8px rgba(0, 0, 0, 0.12)'
-              : '0 4px 8px rgba(0, 0, 0, 0.35)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.opacity = '0.85';
-            e.currentTarget.style.boxShadow = theme === 'light'
-              ? '0 2px 4px rgba(0, 0, 0, 0.08)'
-              : '0 2px 4px rgba(0, 0, 0, 0.2)';
-          }}
-        >
-          {getThemedIcon('ui', 'chevron_down', isMobile ? 12 : 14, theme)}
-        </button>
+          <button
+            onClick={toggleNavbar}
+            aria-label={t('expand_navbar')}
+            style={{
+              position: 'fixed',
+              top: isMobile ? '6px' : '8px',
+              right: isMobile ? '6px' : '8px',
+              zIndex: 1000,
+              background: theme === 'light' ? 'rgba(255, 255, 255, 0.45)' : 'rgba(15, 23, 42, 0.45)',
+              backdropFilter: 'saturate(150%) blur(6px)',
+              border: theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '50%',
+              width: isMobile ? '22px' : '26px',
+              height: isMobile ? '22px' : '26px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: theme === 'light' ? 'var(--text-primary)' : '#fff',
+              boxShadow: theme === 'light'
+                ? '0 2px 4px rgba(0, 0, 0, 0.08)'
+                : '0 2px 4px rgba(0, 0, 0, 0.2)',
+              transition: 'all 0.2s ease',
+              opacity: 0.85,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.1)';
+              e.currentTarget.style.opacity = '1';
+              e.currentTarget.style.boxShadow = theme === 'light'
+                ? '0 4px 8px rgba(0, 0, 0, 0.12)'
+                : '0 4px 8px rgba(0, 0, 0, 0.35)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.opacity = '0.85';
+              e.currentTarget.style.boxShadow = theme === 'light'
+                ? '0 2px 4px rgba(0, 0, 0, 0.08)'
+                : '0 2px 4px rgba(0, 0, 0, 0.2)';
+            }}
+          >
+            {getThemedIcon('ui', 'chevron_down', isMobile ? 12 : 14, theme)}
+          </button>
         </ColoredTooltip>
       )}
 

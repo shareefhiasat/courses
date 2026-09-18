@@ -11,7 +11,7 @@ import {
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import { buildSerialNumber } from './serialNumber.js';
 import { OFFICIAL_HEADER } from '../shared/officialHeader.js';
-import { formatOfficialReportDate } from '../shared/officialDateFormat.js';
+import { formatOfficialReportDate, formatOfficialReportDateTime } from '../shared/officialDateFormat.js';
 
 const FAIL_THRESHOLD = 60;
 
@@ -182,7 +182,7 @@ export function prepareSemesterCertificateData({
       program: programName,
       year: metadata.year || '',
       term: metadata.term || '',
-      generatedAt: formatOfficialReportDate(new Date()),
+      generatedAt: formatOfficialReportDateTime(new Date(), lang),
       serial,
     },
     failThreshold: FAIL_THRESHOLD,

@@ -1,40 +1,40 @@
 import React from 'react';
 import { OFFICIAL_HEADER } from '../shared/officialHeader.js';
-import { buildWatermarkLines } from '../engine/watermark.js';
+import { buildWatermarkLines, buildStatusWatermark } from '../engine/watermark.js';
+import { formatDateTime } from '@utils/date-formatter.js';
 import styles from './officialReport.module.css';
 
 export function AttendanceWarningTemplate({ data, showWatermark = true }) {
-  const { pages, lang, serial, isAr } = data;
-  const wm = buildWatermarkLines(data.watermarkUser);
-
-  const genDateTime = new Date().toLocaleDateString(isAr ? 'ar-SA' : 'en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+  const { pages, lang, serial } = data;
+  const statusWm = data.watermarkStatus
+    ? buildStatusWatermark(data.watermarkStatus, data.approvedByUser, data.lang, data.approvedAt, data.watermarkUser, data.serial)
+    : null;
+  const fallbackWm = buildWatermarkLines(data.watermarkUser);
+  const wm = statusWm || fallbackWm;
 
   return (
     <>
-      {pages.map((page) => (
-        <div
-          key={page.studentId}
-          data-official-page
-          className={`${styles.officialPage} ${isAr ? styles.officialPageRtl : ''} ${styles.arabicShapedText}`}
-          lang={isAr ? 'ar' : 'en'}
-        >
+      {pages.map((page, i) => {
+        const isAr = page.isAr;
+        const genDateTime = formatDateTime(new Date(), isAr ? 'ar' : 'en');
+
+        return (
+          <div
+            key={`${page.studentId}-${page.lang}`}
+            data-official-page
+            className={`${styles.officialPage} ${isAr ? styles.officialPageRtl : ''} ${styles.arabicShapedText}`}
+            lang={isAr ? 'ar' : 'en'}
+          >
           {showWatermark && (wm.en || wm.ar || wm.uuid) && (
-            <div className={styles.officialWatermark} aria-hidden>
-              {wm.en && <div>{wm.en}</div>}
-              {wm.ar && wm.ar !== wm.en && <div>{wm.ar}</div>}
-              {wm.uuid && <div style={{ fontSize: '7px', opacity: 0.5, marginTop: '12px' }}>{wm.uuid}</div>}
+            <div className={`${styles.officialWatermark} ${wm?.status === 'approved' ? styles.officialWatermarkApproved : ''} ${wm?.status && wm?.status !== 'approved' ? styles.officialWatermarkDraft : ''}`} style={{ color: wm?.color }} aria-hidden>
+              {wm.en && String(wm.en).split(' — ').map((line, i) => <div key={`e-${i}`}>{line}</div>)}
+              {wm.ar && wm.ar !== wm.en && String(wm.ar).split(' — ').map((line, i) => <div key={`a-${i}`}>{line}</div>)}
+              {wm.uuid && <div>{wm.uuid}</div>}
             </div>
           )}
           <div className={styles.officialContentFlex}>
             <div className={styles.serialLine}>
-              {isAr ? 'الرقم التسلسلي' : 'Serial'}: {serial}
+              {isAr ? 'الرقم التسلسلي' : 'Serial'}: <bdi>{serial}</bdi>
             </div>
 
             <div
@@ -85,7 +85,7 @@ export function AttendanceWarningTemplate({ data, showWatermark = true }) {
                 marginBottom: 24,
               }}
             >
-              <div style={{ flex: 1, textAlign: 'left' }}>
+              <div style={{ flex: 1, textAlign: isAr ? 'right' : 'left' }} dir={isAr ? 'rtl' : 'ltr'}>
                 {[
                   [isAr ? 'الرقم' : 'Number', page.studentNumber],
                   [isAr ? 'الرتبة' : 'Rank', page.rank],
@@ -97,15 +97,24 @@ export function AttendanceWarningTemplate({ data, showWatermark = true }) {
                   </div>
                 ))}
               </div>
-              <div style={{ flex: 1, textAlign: 'right' }}>
+              <div style={{ flex: 1, textAlign: isAr ? 'left' : 'right' }} dir={isAr ? 'rtl' : 'ltr'}>
                 {[
                   [isAr ? 'الدورة' : 'Program', page.programName],
                   [isAr ? 'الشعبة' : 'Class', page.className],
                   [isAr ? 'المادة' : 'Subject', page.subjectName],
                 ].map(([label, value]) => (
                   <div key={label}>
-                    <span style={{ color: '#b91c1c', fontWeight: 700 }}>{label}: </span>
-                    <span>{value}</span>
+                    {isAr ? (
+                      <>
+                        <span style={{ color: '#b91c1c', fontWeight: 700 }}>{label}: </span>
+                        <span>{value}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{value}</span>
+                        <span style={{ color: '#b91c1c', fontWeight: 700 }}> : {label}</span>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
@@ -152,14 +161,15 @@ export function AttendanceWarningTemplate({ data, showWatermark = true }) {
               </div>
 
               <div className={styles.officialPageFooter}>
-                <span>{isAr ? 'الرقم التسلسلي' : 'Serial'}: {serial}</span>
+                <span>{isAr ? 'الرقم التسلسلي' : 'Serial'}: <bdi>{serial}</bdi></span>
                 <span>{isAr ? 'تاريخ الإصدار' : 'Generated'}: {genDateTime}</span>
-                <span>{isAr ? 'صفحة' : 'Page'} 1 / 1</span>
+                <span>{isAr ? 'صفحة' : 'Page'} {i + 1} / {pages.length}</span>
               </div>
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
     </>
   );
 }

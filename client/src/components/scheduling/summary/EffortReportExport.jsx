@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { jsPDF } from 'jspdf';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import ExcelJS from 'exceljs';
 import { useLang } from '@contexts/LangContext';
 import { FileDown, FileSpreadsheet } from 'lucide-react';
@@ -123,28 +124,30 @@ export default function EffortReportExport({ report, canExport }) {
 
   return (
     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-      <button
-        type="button"
-        onClick={exportPDF}
-        disabled={!report}
-        data-testid="export-effort-pdf"
-        title={t('export_pdf')}
-        aria-label={t('export_pdf')}
-        style={buttonStyle}
-      >
-        <FileDown size={16} />
-      </button>
-      <button
-        type="button"
-        onClick={exportExcel}
-        disabled={!report}
-        data-testid="export-effort-excel"
-        title={t('export_excel')}
-        aria-label={t('export_excel')}
-        style={buttonStyle}
-      >
-        <FileSpreadsheet size={16} />
-      </button>
+      <ColoredTooltip title={t('export_pdf')}>
+        <button
+          type="button"
+          onClick={exportPDF}
+          disabled={!report}
+          data-testid="export-effort-pdf"
+          aria-label={t('export_pdf')}
+          style={buttonStyle}
+        >
+          <FileDown size={16} />
+        </button>
+      </ColoredTooltip>
+      <ColoredTooltip title={t('export_excel')}>
+        <button
+          type="button"
+          onClick={exportExcel}
+          disabled={!report}
+          data-testid="export-effort-excel"
+          aria-label={t('export_excel')}
+          style={buttonStyle}
+        >
+          <FileSpreadsheet size={16} />
+        </button>
+      </ColoredTooltip>
     </div>
   );
 }

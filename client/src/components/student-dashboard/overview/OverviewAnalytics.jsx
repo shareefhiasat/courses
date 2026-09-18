@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
@@ -111,7 +112,6 @@ export default function OverviewAnalytics({
                 type="button"
                 onClick={() => setWidgetCategory(cat.id)}
                 data-testid={`widget-cat-${cat.id}`}
-                title={label}
                 aria-label={label}
                 style={{
                   display: 'inline-flex',
@@ -135,63 +135,65 @@ export default function OverviewAnalytics({
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center', justifyContent: 'flex-end' }}>
           <StudentDashboardExport dashData={dashData} lookupData={lookupData} isRTL={isRTL} />
-          <button type="button" onClick={onReload} style={iconBtnStyle('#6b7280')} title={t('refresh')} aria-label={t('refresh')}>
-            {getThemedIcon('ui', 'rotate_cw', 16, theme)}
-          </button>
+          <ColoredTooltip title={t('refresh')}>
+            <button type="button" onClick={onReload} style={iconBtnStyle('#6b7280')} aria-label={t('refresh')}>
+              {getThemedIcon('ui', 'rotate_cw', 16, theme)}
+            </button>
+          </ColoredTooltip>
           <button
             type="button"
             onClick={guard.handleToggleEditLayout}
             style={iconBtnStyle(accentColor, editLayout)}
-            title={editLayout ? t('exit_edit_layout') : t('edit_layout')}
             aria-label={editLayout ? t('exit_edit_layout') : t('edit_layout')}
           >
             {getThemedIcon('ui', 'layout_dashboard', 16, theme)}
           </button>
           {!autoSave && editLayout && (
-            <button
-              type="button"
-              onClick={guard.handleSaveChanges}
-              style={iconBtnStyle('#10b981')}
-              title={t('save_layout')}
-              aria-label={t('save_layout')}
-            >
-              <Save size={16} strokeWidth={2} />
-            </button>
+            <ColoredTooltip title={t('save_layout')}>
+              <button
+                type="button"
+                onClick={guard.handleSaveChanges}
+                style={iconBtnStyle('#10b981')}
+                aria-label={t('save_layout')}
+              >
+                <Save size={16} strokeWidth={2} />
+              </button>
+            </ColoredTooltip>
           )}
           {!autoSave && editLayout && (
-            <button
-              type="button"
-              onClick={guard.handleDiscardChanges}
-              style={iconBtnStyle('#ef4444')}
-              title={t('discard_changes')}
-              aria-label={t('discard_changes')}
-            >
-              <Trash2 size={16} strokeWidth={2} />
-            </button>
+            <ColoredTooltip title={t('discard_changes')}>
+              <button
+                type="button"
+                onClick={guard.handleDiscardChanges}
+                style={iconBtnStyle('#ef4444')}
+                aria-label={t('discard_changes')}
+              >
+                <Trash2 size={16} strokeWidth={2} />
+              </button>
+            </ColoredTooltip>
           )}
           <button
             type="button"
             onClick={guard.toggleAutoSave}
             style={iconBtnStyle(autoSave ? '#10b981' : '#6b7280', !autoSave)}
-            title={autoSave ? t('auto_save_on') : t('auto_save_off')}
             aria-label={t('auto_save')}
           >
             <Save size={16} strokeWidth={2} />
           </button>
-          <button
-            type="button"
-            onClick={handleAddWidget}
-            style={iconBtnStyle(accentColor)}
-            title={t('add_widget')}
-            aria-label={t('add_widget')}
-          >
-            {getThemedIcon('ui', 'plus', 16, theme)}
-          </button>
+          <ColoredTooltip title={t('add_widget')}>
+            <button
+              type="button"
+              onClick={handleAddWidget}
+              style={iconBtnStyle(accentColor)}
+              aria-label={t('add_widget')}
+            >
+              {getThemedIcon('ui', 'plus', 16, theme)}
+            </button>
+          </ColoredTooltip>
           <button
             type="button"
             onClick={() => engineRef.current?.resetToDefaults?.()}
             style={iconBtnStyle('#ef4444')}
-            title={t('reset_to_system_default')}
             aria-label={t('reset_to_system_default')}
           >
             <History size={16} strokeWidth={2} />

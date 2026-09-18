@@ -74,6 +74,12 @@ async function enrichScopeDetails(scope, userId) {
   const subjectIds = (scope.subjectIds || []).map(Number).filter(Boolean);
   const classIds = (scope.classIds || []).map(Number).filter(Boolean);
 
+  // For admin/HR with category-level UCA (programs resolved from categories, but no explicit subjects/classes),
+  // fetch all subjects and classes belonging to those programs so the UI shows full data.
+  const isAdminOrHr = scope.source === 'admin_restricted' || scope.source === 'hr_restricted';
+  const needAllSubjectsForPrograms = isAdminOrHr && programIds.length > 0 && subjectIds.length === 0;
+  const needAllClassesForPrograms = isAdminOrHr && programIds.length > 0 && classIds.length === 0;
+
   const [programs, subjects, classes] = await Promise.all([
     programIds.length
       ? prisma.program.findMany({
@@ -88,14 +94,26 @@ async function enrichScopeDetails(scope, userId) {
           select: { id: true, code: true, nameEn: true, nameAr: true, programId: true },
           orderBy: { code: 'asc' },
         })
-      : [],
+      : needAllSubjectsForPrograms
+        ? prisma.subject.findMany({
+            where: { programId: { in: programIds }, isActive: true },
+            select: { id: true, code: true, nameEn: true, nameAr: true, programId: true },
+            orderBy: { code: 'asc' },
+          })
+        : [],
     classIds.length
       ? prisma.class.findMany({
           where: { id: { in: classIds }, isActive: true },
           select: classSelect,
           orderBy: { code: 'asc' },
         })
-      : [],
+      : needAllClassesForPrograms
+        ? prisma.class.findMany({
+            where: { programId: { in: programIds }, isActive: true },
+            select: classSelect,
+            orderBy: { code: 'asc' },
+          })
+        : [],
   ]);
 
   const instructorClassIds = userId
@@ -125,8 +143,10 @@ async function enrichScopeDetails(scope, userId) {
 router.get('/data-scope', requireAuth, async (req, res) => {
   try {
     const scope = await getEffectiveDataScope(req.user.dbId, req.user.roles || []);
+    console.log('[me/data-scope] dbId:', req.user.dbId, '| roles:', req.user.roles, '| unrestricted:', scope.unrestricted, '| source:', scope.source, '| unlimited:', scope.unlimited);
     if (req.query.details === '1') {
       const enriched = await enrichScopeDetails(scope, req.user.dbId);
+      console.log('[me/data-scope] enriched.unlimited:', enriched.unlimited, '| programs:', enriched.programs?.length, '| subjects:', enriched.subjects?.length, '| classes:', enriched.classes?.length);
       return res.json({ success: true, data: enriched });
     }
     res.json({ success: true, data: scope });

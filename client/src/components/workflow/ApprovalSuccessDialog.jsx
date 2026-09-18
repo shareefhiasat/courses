@@ -9,7 +9,7 @@ import {
   Typography,
   Alert,
 } from '@mui/material';
-import { CheckCircle2, FileText, ExternalLink, Calendar, User } from 'lucide-react';
+import { CheckCircle2, FileText, ExternalLink, Calendar, User } from '@utils/icons.jsx';
 
 /**
  * Post-approval success dialog showing the generated weekly attendance violation report snapshot.

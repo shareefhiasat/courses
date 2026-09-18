@@ -11,6 +11,8 @@
  *   registerTourAvailability('my-page', { tourSeenKey: (lang) => `..._${lang}`, getStepCount })
  */
 
+import { isOnboardingTourEnabled, endManualTour } from '@utils/tourConfig.js';
+
 const pageTourStack = [];
 const tourProviders = new Map();
 let tourRouterInstalled = false;
@@ -42,6 +44,7 @@ function drainTourQueue() {
  * Ensures tours always play one-after-another — never two overlays at once.
  */
 export function requestTourStart(id, startFn) {
+  if (!isOnboardingTourEnabled()) return;
   if (activeTourId === id) return;
 
   if (activeTourId) {
@@ -60,6 +63,7 @@ export function requestTourStart(id, startFn) {
 export function releaseTour(id) {
   if (activeTourId !== id) return;
   activeTourId = null;
+  endManualTour();
 
   if (id === 'dashboard-shell') {
     window.dispatchEvent(new CustomEvent('dashboard-tour-finished'));
@@ -73,6 +77,7 @@ export function releaseTour(id) {
 export function cancelTour(id) {
   if (activeTourId === id) {
     activeTourId = null;
+    endManualTour();
     window.dispatchEvent(new CustomEvent('tour-ended', { detail: { id, cancelled: true } }));
     setTimeout(drainTourQueue, QUEUE_DRAIN_MS);
   }
@@ -167,6 +172,7 @@ export function registerPageTour(id, startTour, getStepCount) {
 
 /** Returns true when a nested page tour consumed the event. */
 export function dispatchPageTourIfRegistered() {
+  if (!isOnboardingTourEnabled()) return false;
   if (pageTourStack.length === 0) return false;
   const top = pageTourStack[pageTourStack.length - 1];
   top.startTour();
@@ -178,6 +184,7 @@ export function dispatchPageTourIfRegistered() {
  * Page tours never auto-start while the dashboard tour is still playing.
  */
 export function scheduleTourStart(tourSeenKey, lang, startTour) {
+  if (!isOnboardingTourEnabled()) return undefined;
   try {
     if (localStorage.getItem(tourSeenKey)) return undefined;
 

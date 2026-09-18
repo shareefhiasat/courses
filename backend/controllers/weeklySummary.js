@@ -54,7 +54,7 @@ export async function generateWeeklySummaryController(req, res) {
       try {
         const submitter = await prisma.user.findUnique({
           where: { id: user.dbId },
-          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true, profileImageUrl: true, keycloakId: true }
         });
         await emit(EVENTS.WORKFLOW_SUBMITTED, {
           ...buildNotificationNameVars(submitter, 'Unknown User'),

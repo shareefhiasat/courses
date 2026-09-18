@@ -42,11 +42,11 @@ export const getScheduleGrid = async (req, res) => {
 export const getProgramTerms = async (req, res) => {
   try {
     const { programId } = req.params;
-    const instructorId = req.query.instructorId || req.user?.dbId;
+    const instructorId = req.query.instructorId || null;
     if (!programId) {
       return res.status(400).json({ success: false, error: 'programId is required' });
     }
-    const result = await workspaceDb.getProgramTerms({ programId, instructorId: req.query.all === 'true' ? null : instructorId });
+    const result = await workspaceDb.getProgramTerms({ programId, instructorId });
     return res.json(result);
   } catch (err) {
     error(`${serviceName}:getProgramTerms:error`, { error: err.message });
@@ -63,7 +63,7 @@ export const getWeeklySchedule = async (req, res) => {
     const result = await workspaceDb.getWeeklySchedule({
       programId,
       academicTermId,
-      instructorId: instructorId || req.user?.dbId,
+      instructorId: instructorId || null,
     });
     return res.json(result);
   } catch (err) {

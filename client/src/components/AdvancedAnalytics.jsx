@@ -502,7 +502,6 @@ export default function AdvancedAnalytics({
           <button
             onClick={guard.toggleAutoSave}
             style={btnStyle(autoSave ? 'var(--color-success, #10b981)' : 'var(--text-muted, #6b7280)')}
-            title={autoSave ? t('auto_save_on') : t('auto_save_off')}
           >
             <Save size={16} />
             {t('auto_save')}

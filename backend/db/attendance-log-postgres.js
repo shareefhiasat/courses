@@ -1,5 +1,13 @@
 import prisma from '../db/prismaClient.js';
-import { normalizeProfileImageUrl } from '../utils/userNameFields.js';
+import { normalizeProfileImageUrl, USER_NAME_SELECT } from '../utils/userNameFields.js';
+
+const LOG_USER_SELECT = {
+  ...USER_NAME_SELECT,
+  id: true,
+  profileImageUrl: true,
+  keycloakId: true,
+  email: true,
+};
 
 /**
  * Get lecture log for a class+date — action history (marked, submitted, approved, rejected, returned)
@@ -17,10 +25,10 @@ export const getLectureLog = async ({ classId, date }) => {
           date: { gte: dayStart, lt: dayEnd },
         },
         include: {
-          submitter: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, keycloakId: true, email: true } },
+          submitter: { select: LOG_USER_SELECT },
           statusHistory: {
             include: {
-              actor: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, keycloakId: true, email: true } },
+              actor: { select: LOG_USER_SELECT },
             },
             orderBy: { createdAt: 'asc' },
           },
@@ -34,8 +42,8 @@ export const getLectureLog = async ({ classId, date }) => {
         },
         include: {
           status: { select: { id: true, code: true, nameEn: true, nameAr: true } },
-          user: { select: { id: true, displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true, profileImageUrl: true, keycloakId: true, email: true } },
-          creator: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, keycloakId: true, email: true } },
+          user: { select: LOG_USER_SELECT },
+          creator: { select: LOG_USER_SELECT },
         },
         orderBy: { createdAt: 'asc' },
       }),
@@ -49,12 +57,12 @@ export const getLectureLog = async ({ classId, date }) => {
         include: {
           attendance: {
             include: {
-              user: { select: { id: true, displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true, profileImageUrl: true, keycloakId: true, email: true } },
+              user: { select: LOG_USER_SELECT },
             },
           },
           fromStatus: { select: { id: true, code: true, nameEn: true, nameAr: true } },
           toStatus: { select: { id: true, code: true, nameEn: true, nameAr: true } },
-          changedByUser: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, keycloakId: true, email: true } },
+          changedByUser: { select: LOG_USER_SELECT },
         },
         orderBy: { changedAt: 'asc' },
       }),
@@ -131,12 +139,12 @@ export const getRecordHistory = async (attendanceId) => {
       include: {
         attendance: {
           include: {
-            user: { select: { id: true, displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true, profileImageUrl: true, keycloakId: true, email: true } },
+            user: { select: LOG_USER_SELECT },
           },
         },
         fromStatus: { select: { id: true, code: true, nameEn: true, nameAr: true } },
         toStatus: { select: { id: true, code: true, nameEn: true, nameAr: true } },
-        changedByUser: { select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true, keycloakId: true, email: true } },
+        changedByUser: { select: LOG_USER_SELECT },
       },
       orderBy: { changedAt: 'asc' },
     });
@@ -151,7 +159,7 @@ export const getRecordHistory = async (attendanceId) => {
 /**
  * Create a change log entry
  */
-export const createChangeLog = async ({ attendanceId, fromStatusId, toStatusId, changedBy, reason, source }) => {
+export const createChangeLog = async ({ attendanceId, fromStatusId, toStatusId, changedBy, reason, source, attachmentUrl, attachmentName, attachmentType }) => {
   try {
     const log = await prisma.attendanceChangeLog.create({
       data: {
@@ -161,6 +169,9 @@ export const createChangeLog = async ({ attendanceId, fromStatusId, toStatusId, 
         changedBy: changedBy ? parseInt(changedBy) : null,
         reason: reason || null,
         source: source || 'manual',
+        attachmentUrl: attachmentUrl || null,
+        attachmentName: attachmentName || null,
+        attachmentType: attachmentType || null,
       },
     });
     return { success: true, data: log };

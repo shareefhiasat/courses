@@ -3,16 +3,41 @@
  * Bridges legacy workflowType with approvalFlow + workflowCategory + attendanceSubtype.
  */
 
+const ATTENDANCE_SUBTYPE = Object.freeze({
+  DAILY: 'DAILY',
+  WEEKLY_SUMMARY: 'WEEKLY_SUMMARY',
+  EXCUSE: 'EXCUSE',
+  WARNING: 'WARNING',
+  WARNING_FIRST: 'WARNING_FIRST',
+  WARNING_FINAL: 'WARNING_FINAL',
+});
+const { DAILY, WEEKLY_SUMMARY, EXCUSE, WARNING, WARNING_FIRST, WARNING_FINAL } = ATTENDANCE_SUBTYPE;
+
 const WORKFLOW_TYPE_TO_TAXONOMY = {
   ATTENDANCE_DAILY: {
     workflowCategory: 'ATTENDANCE',
-    attendanceSubtype: 'DAILY',
+    attendanceSubtype: DAILY,
     approvalFlow: 'INSTRUCTOR_THEN_ADMIN_THEN_HR',
   },
   ATTENDANCE_WEEKLY: {
     workflowCategory: 'ATTENDANCE',
-    attendanceSubtype: 'WEEKLY_SUMMARY',
+    attendanceSubtype: WEEKLY_SUMMARY,
     approvalFlow: 'ADMIN_THEN_HR',
+  },
+  ATTENDANCE_WARNING: {
+    workflowCategory: 'ATTENDANCE',
+    attendanceSubtype: WARNING,
+    approvalFlow: 'HR_ONLY',
+  },
+  ATTENDANCE_WARNING_FIRST: {
+    workflowCategory: 'ATTENDANCE',
+    attendanceSubtype: WARNING_FIRST,
+    approvalFlow: 'HR_ONLY',
+  },
+  ATTENDANCE_WARNING_FINAL: {
+    workflowCategory: 'ATTENDANCE',
+    attendanceSubtype: WARNING_FINAL,
+    approvalFlow: 'HR_ONLY',
   },
   GENERAL_HR: {
     workflowCategory: 'GENERAL',
@@ -34,6 +59,20 @@ const WORKFLOW_TYPE_TO_TAXONOMY = {
     attendanceSubtype: null,
     approvalFlow: 'ADMIN_THEN_HR',
   },
+  MARKS_CERTIFICATE: {
+    workflowCategory: 'GENERAL',
+    workflowType: 'GENERAL_MIXED_ADMIN_HR',
+    attendanceSubtype: null,
+    approvalFlow: 'ADMIN_THEN_HR',
+    marksReportType: 'CERTIFICATE',
+  },
+  MARKS_SHEET: {
+    workflowCategory: 'GENERAL',
+    workflowType: 'GENERAL_MIXED_ADMIN_HR',
+    attendanceSubtype: null,
+    approvalFlow: 'ADMIN_THEN_HR',
+    marksReportType: 'MARKS_SHEET',
+  },
 };
 
 const APPROVAL_FLOW_TO_LEGACY_TYPE = {
@@ -47,10 +86,12 @@ const APPROVAL_FLOW_TO_LEGACY_TYPE = {
 
 const CATEGORY_DEFAULTS = {
   ATTENDANCE: {
-    DAILY: { approvalFlow: 'INSTRUCTOR_THEN_ADMIN_THEN_HR', workflowType: 'ATTENDANCE_DAILY' },
-    WEEKLY_SUMMARY: { approvalFlow: 'ADMIN_THEN_HR', workflowType: 'ATTENDANCE_WEEKLY' },
-    EXCUSE: { approvalFlow: 'HR_ONLY', workflowType: 'GENERAL_HR' },
-    WARNING: { approvalFlow: 'HR_ONLY', workflowType: 'GENERAL_HR' },
+    [DAILY]: { approvalFlow: 'INSTRUCTOR_THEN_ADMIN_THEN_HR', workflowType: 'ATTENDANCE_DAILY' },
+    [WEEKLY_SUMMARY]: { approvalFlow: 'ADMIN_THEN_HR', workflowType: 'ATTENDANCE_WEEKLY' },
+    [EXCUSE]: { approvalFlow: 'HR_ONLY', workflowType: 'GENERAL_HR' },
+    [WARNING]: { approvalFlow: 'HR_ONLY', workflowType: 'ATTENDANCE_WARNING' },
+    [WARNING_FIRST]: { approvalFlow: 'HR_ONLY', workflowType: 'ATTENDANCE_WARNING_FIRST' },
+    [WARNING_FINAL]: { approvalFlow: 'HR_ONLY', workflowType: 'ATTENDANCE_WARNING_FINAL' },
   },
   PENALTY: { approvalFlow: 'HR_ONLY', workflowType: 'GENERAL_HR' },
   BEHAVIOR: { approvalFlow: 'HR_ONLY', workflowType: 'GENERAL_HR' },
@@ -111,10 +152,24 @@ export function buildTaxonomyFields(input = {}) {
       resolvedLegacy = APPROVAL_FLOW_TO_LEGACY_TYPE[resolvedFlow] || 'GENERAL_HR';
     }
 
-    if (workflowCategory === 'ATTENDANCE' && attendanceSubtype === 'DAILY') {
+    if (workflowCategory === 'ATTENDANCE' && attendanceSubtype === DAILY) {
       resolvedLegacy = 'ATTENDANCE_DAILY';
-    } else if (workflowCategory === 'ATTENDANCE' && attendanceSubtype === 'WEEKLY_SUMMARY') {
+    } else if (workflowCategory === 'ATTENDANCE' && attendanceSubtype === WEEKLY_SUMMARY) {
       resolvedLegacy = 'ATTENDANCE_WEEKLY';
+    } else if (workflowCategory === 'ATTENDANCE' && attendanceSubtype === WARNING_FIRST) {
+      resolvedLegacy = 'ATTENDANCE_WARNING_FIRST';
+    } else if (workflowCategory === 'ATTENDANCE' && attendanceSubtype === WARNING_FINAL) {
+      resolvedLegacy = 'ATTENDANCE_WARNING_FINAL';
+    } else if (workflowCategory === 'ATTENDANCE' && attendanceSubtype?.startsWith(WARNING)) {
+      resolvedLegacy = 'ATTENDANCE_WARNING';
+    }
+
+    let marksReportType = null;
+    if (legacyType && WORKFLOW_TYPE_TO_TAXONOMY[legacyType]?.marksReportType) {
+      const marksMapped = WORKFLOW_TYPE_TO_TAXONOMY[legacyType];
+      marksReportType = marksMapped.marksReportType;
+      resolvedFlow = marksMapped.approvalFlow;
+      resolvedLegacy = marksMapped.workflowType || 'GENERAL_HR';
     }
 
     return {
@@ -122,16 +177,18 @@ export function buildTaxonomyFields(input = {}) {
       attendanceSubtype: workflowCategory === 'ATTENDANCE' ? attendanceSubtype || null : null,
       approvalFlow: resolvedFlow || 'HR_ONLY',
       workflowType: resolvedLegacy || 'GENERAL_HR',
+      marksReportType,
     };
   }
 
   if (legacyType) {
     const mapped = taxonomyFromWorkflowType(legacyType);
     return {
-      workflowType: legacyType,
+      workflowType: mapped.workflowType || legacyType,
       workflowCategory: mapped.workflowCategory,
       attendanceSubtype: mapped.attendanceSubtype,
       approvalFlow: approvalFlow || mapped.approvalFlow,
+      marksReportType: mapped.marksReportType || null,
     };
   }
 
@@ -184,8 +241,8 @@ export function isAdminAccessibleWorkflow(document) {
   const subtype = document?.attendanceSubtype;
   const flow = resolveApprovalFlow(document);
   return (
-    (category === 'ATTENDANCE' && subtype === 'WEEKLY_SUMMARY') ||
-    (category === 'ATTENDANCE' && subtype === 'DAILY') ||
+    (category === 'ATTENDANCE' && subtype === WEEKLY_SUMMARY) ||
+    (category === 'ATTENDANCE' && subtype === DAILY) ||
     flow === 'ADMIN_ONLY' ||
     flow === 'HR_THEN_ADMIN' ||
     flow === 'ADMIN_THEN_HR' ||
@@ -194,7 +251,10 @@ export function isAdminAccessibleWorkflow(document) {
   );
 }
 
+export { ATTENDANCE_SUBTYPE };
+
 export default {
+  ATTENDANCE_SUBTYPE,
   taxonomyFromWorkflowType,
   resolveApprovalFlow,
   resolveWorkflowCategory,

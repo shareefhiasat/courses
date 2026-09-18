@@ -72,6 +72,11 @@ const Select = forwardRef(({
     // console.log('🔵 [Select] handleClickOutside triggered');
     // console.log('🔵 [Select] Event target:', event.target);
 
+    // Don't close if clicking inside the portal dropdown (search input, options, etc.)
+    if (dropdownRef.current && dropdownRef.current.contains(event.target)) {
+      return;
+    }
+
     // Don't close if clicking on the select itself or its children
     if (containerRef.current && !containerRef.current.contains(event.target)) {
       // Check if the click is on a dropdown option or inside the dropdown portal
@@ -232,6 +237,7 @@ const Select = forwardRef(({
     : (onSearchChange && searchTerm ? searchTerm : localizedPlaceholder);
 
   const handleSelect = (optionValue) => {
+    console.log('[Select] handleSelect called', { optionValue, onChangeType: typeof onChange });
     try {
       // Normalize the value to ensure it's a string
       const normalizedValue = optionValue !== null && optionValue !== undefined 
@@ -258,6 +264,7 @@ const Select = forwardRef(({
             value: normalizedValue
           }
         };
+        console.log('[Select] calling onChange with', enhancedEvent);
         onChange(enhancedEvent);
       } else {
         error('❌ [Select] onChange is not a function:', onChange);
@@ -352,7 +359,7 @@ const Select = forwardRef(({
 
   // Searchable/Custom dropdown
   return (
-    <div className={wrapperClasses} ref={containerRef} style={style}>
+    <div className={wrapperClasses} ref={containerRef} style={style} {...rest}>
       {label && (
         <label className={styles.label}>
           {label}
@@ -435,6 +442,7 @@ const Select = forwardRef(({
                   ].filter(Boolean).join(' ');
 
                   const handleOptionClick = (e) => {
+                    console.log('[Select] handleOptionClick', { value: option.value, label: option.label });
                     // Prevent the event from bubbling up to document
                     e.stopPropagation();
                     if (e.nativeEvent) {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Joyride from 'react-joyride';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { usePageTour } from '@hooks/usePageTour';
 import { getJoyrideBaseProps, getTourStyles } from '@utils/tourConfig';
 import { info, error, warn, debug } from '@services/utils/logger.js';
@@ -1158,7 +1159,6 @@ const MarksPage = () => {
                       border: `1px solid ${chipColor}30`,
                       flexShrink: 0,
                     }}
-                    title={attemptLabel(m)}
                   >
                     {gradeLetterLabel(letter)}
                     <span style={{ opacity: 0.7, fontWeight: 400 }}>
@@ -1298,7 +1298,6 @@ const MarksPage = () => {
                             background: isAbsenceFail ? '#dc2626' : '#f59e0b',
                             flexShrink: 0,
                           }}
-                          title={isAbsenceFail ? `${absenceCount}/${failThreshold} absences — FB failure` : `${absenceCount}/${failThreshold} absences — warning`}
                         >
                           {getThemedIcon('ui', 'alert_triangle', 10, isAbsenceFail ? 'error' : 'warning')}
                           {absenceCount}/{failThreshold}
@@ -1512,7 +1511,6 @@ const MarksPage = () => {
                         justifyContent: 'center',
                         color: '#fff',
                       }}
-                      title={t('export', 'Export')}
                     >
                       {getThemedIcon('ui', 'download', 16, 'white')}
                     </button>
@@ -1546,9 +1544,11 @@ const MarksPage = () => {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text)', width: '150px', flexShrink: 0, whiteSpace: 'nowrap' }} title={sName}>
+                        <ColoredTooltip title={sName}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text)', width: '150px', flexShrink: 0, whiteSpace: 'nowrap' }}>
                           {displayName}
                         </span>
+                        </ColoredTooltip>
                         <div className={styles.distributionBar} style={{ flex: 1 }}>
                           {segments.map(s => {
                             const mark = sMarks[s.key] || 0;
@@ -1582,14 +1582,18 @@ const MarksPage = () => {
                           )}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, minWidth: '28px', wordWrap: 'break-word' }}>
-                          <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#f59e0b', whiteSpace: 'normal' }} title={t('subject_gpa')}>
-                            {subjGpa != null ? subjGpa.toFixed(2) : '—'}
-                          </span>
+                          <ColoredTooltip title={t('subject_gpa')}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#f59e0b', whiteSpace: 'normal' }}>
+                              {subjGpa != null ? subjGpa.toFixed(2) : '—'}
+                            </span>
+                          </ColoredTooltip>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, minWidth: '28px', wordWrap: 'break-word' }}>
-                          <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#10b981', whiteSpace: 'normal' }} title={t('cumulative_gpa')}>
-                            {cumGpa != null ? cumGpa.toFixed(2) : '—'}
-                          </span>
+                          <ColoredTooltip title={t('cumulative_gpa')}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#10b981', whiteSpace: 'normal' }}>
+                              {cumGpa != null ? cumGpa.toFixed(2) : '—'}
+                            </span>
+                          </ColoredTooltip>
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '0.3rem', marginTop: '2px' }}>
@@ -1961,7 +1965,6 @@ const MarksPage = () => {
                           border: `1px solid ${isActive ? item.color : 'var(--border)'}`,
                           background: isDarkMode ? '#111827' : '#ffffff',
                         }}
-                        title={`${item.label}: ${minVal} - ${maxVal}`}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
                           <span style={{ fontSize: '0.7rem', fontWeight: 600, color: item.color, whiteSpace: 'nowrap' }}>{item.label}</span>
@@ -2148,7 +2151,9 @@ const MarksPage = () => {
                       const isComp = gt === GRADE_TYPE.COMPLEMENTARY;
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <span style={{ opacity: isComp ? 0.5 : 1 }} title={isComp ? t('previous_attempt') : undefined}>{value}/{max}</span>
+                          <ColoredTooltip title={isComp ? t('previous_attempt') : ''}>
+                            <span style={{ opacity: isComp ? 0.5 : 1 }}>{value}/{max}</span>
+                          </ColoredTooltip>
                         </div>
                       );
                     }
@@ -2217,7 +2222,9 @@ const MarksPage = () => {
                       const isComp = gt === GRADE_TYPE.COMPLEMENTARY;
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <span style={{ opacity: isComp ? 0.5 : 1 }} title={isComp ? t('previous_attempt') : undefined}>{value}/{max}</span>
+                          <ColoredTooltip title={isComp ? t('previous_attempt') : ''}>
+                            <span style={{ opacity: isComp ? 0.5 : 1 }}>{value}/{max}</span>
+                          </ColoredTooltip>
                         </div>
                       );
                     }
@@ -2246,7 +2253,9 @@ const MarksPage = () => {
                       const isComp = gt === GRADE_TYPE.COMPLEMENTARY;
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <span style={{ opacity: isComp ? 0.5 : 1 }} title={isComp ? t('previous_attempt') : undefined}>{value}/{max}</span>
+                          <ColoredTooltip title={isComp ? t('previous_attempt') : ''}>
+                            <span style={{ opacity: isComp ? 0.5 : 1 }}>{value}/{max}</span>
+                          </ColoredTooltip>
                         </div>
                       );
                     }
@@ -2275,7 +2284,9 @@ const MarksPage = () => {
                       const isComp = gt === GRADE_TYPE.COMPLEMENTARY;
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <span style={{ opacity: isComp ? 0.5 : 1 }} title={isComp ? t('previous_attempt') : undefined}>{value}/{max}</span>
+                          <ColoredTooltip title={isComp ? t('previous_attempt') : ''}>
+                            <span style={{ opacity: isComp ? 0.5 : 1 }}>{value}/{max}</span>
+                          </ColoredTooltip>
                         </div>
                       );
                     }
@@ -2304,7 +2315,9 @@ const MarksPage = () => {
                       const isComp = gt === GRADE_TYPE.COMPLEMENTARY;
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <span style={{ opacity: isComp ? 0.5 : 1 }} title={isComp ? t('previous_attempt') : undefined}>{value}/{max}</span>
+                          <ColoredTooltip title={isComp ? t('previous_attempt') : ''}>
+                            <span style={{ opacity: isComp ? 0.5 : 1 }}>{value}/{max}</span>
+                          </ColoredTooltip>
                         </div>
                       );
                     }
@@ -2333,7 +2346,9 @@ const MarksPage = () => {
                       const isComp = gt === GRADE_TYPE.COMPLEMENTARY;
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <span style={{ opacity: isComp ? 0.5 : 1 }} title={isComp ? t('previous_attempt') : undefined}>{value}/{max}</span>
+                          <ColoredTooltip title={isComp ? t('previous_attempt') : ''}>
+                            <span style={{ opacity: isComp ? 0.5 : 1 }}>{value}/{max}</span>
+                          </ColoredTooltip>
                         </div>
                       );
                     }
@@ -2890,7 +2905,6 @@ const MarksPage = () => {
                               height: '100%',
                             }}
                             onClick={() => loadDeductionData(row)}
-                            title={`${total.toFixed(2)} deducted, ${count}/${failThreshold} absences`}
                           >
                             <div style={{
                               padding: '2px 8px',

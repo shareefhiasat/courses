@@ -108,15 +108,10 @@ export async function getEffectiveDataScope(userId, roles = []) {
       select: { id: true },
     });
 
-    // Also check visibility profile for explicit restrictions
-    const profile = await prisma.userDataScopeProfile.findUnique({ where: { userId } });
-    const hasVisibilityRestriction = profile && (
-      profile.programsMode === 'UCA' || profile.programsMode === 'EXPLICIT' ||
-      profile.subjectsMode === 'UCA' || profile.subjectsMode === 'EXPLICIT' ||
-      profile.classesMode === 'UCA' || profile.classesMode === 'EXPLICIT'
-    );
+    // Load visibility profile and explicit grants; default UCA with no active UCA rows is not a restriction.
+    const { visibility, explicitGrants } = await loadVisibilityContext(userId);
 
-    if (existingAccesses.length === 0 && !hasVisibilityRestriction) {
+    if (existingAccesses.length === 0 && explicitGrants.programIds.length === 0 && explicitGrants.subjectIds.length === 0 && explicitGrants.classIds.length === 0) {
       // No restrictions configured → unrestricted access
       return {
         unrestricted: true,

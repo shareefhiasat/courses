@@ -638,7 +638,17 @@ const CHAT_EVENTS = new Set([
 export const buildNotificationLink = (event, payload = {}) => {
   if (WORKFLOW_EVENTS.has(event)) {
     const docId = payload.documentId || payload.workflowId || payload.id;
-    if (docId) return `/operations/board?workflowId=${docId}`;
+    const params = new URLSearchParams();
+    if (docId) params.set('workflowId', String(docId));
+    if (payload.date) {
+      const d = new Date(payload.date);
+      if (!isNaN(d.getTime())) params.set('date', d.toISOString().slice(0, 10));
+    }
+    if (payload.programId) params.set('programId', String(payload.programId));
+    if (payload.termId) params.set('termId', String(payload.termId));
+    if (payload.classId) params.set('classId', String(payload.classId));
+    if (payload.subjectId) params.set('subjectId', String(payload.subjectId));
+    if (docId) return `/operations/board?${params.toString()}`;
     return '/operations/board';
   }
   if (DRIVE_EVENTS.has(event)) {
@@ -752,7 +762,7 @@ export const createTemplate = (event) => {
         bodyEn,
         bodyAr,
         link: buildNotificationLink(event, payload),
-        groupKey: event
+        groupKey: payload.documentId ? `${event}:${payload.documentId}` : (payload.instanceId ? `${event}:${payload.instanceId}` : event)
       };
     },
     renderEmail: (payload, lang = 'en') => {

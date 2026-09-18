@@ -78,7 +78,7 @@ export const formatDateTime = (value, fmt) => {
   
   // Handle other date formats (timestamps, Date objects)
   const d = value?.seconds ? new Date(value.seconds * 1000) : new Date(value);
-  return fmtDateTime(d, 'en');
+  return fmtDateTime(d, fmt || 'en');
 };
 
 /**

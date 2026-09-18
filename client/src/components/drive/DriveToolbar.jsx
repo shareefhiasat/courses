@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, Grid3x3, List, RefreshCw, Upload, Edit3, Share2, History, MoreVertical, SortAsc } from 'lucide-react';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { useLang } from '@contexts/LangContext';
 
 /**
@@ -90,34 +91,37 @@ const DriveToolbar = ({
 
         {/* Right: View Controls */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={onRefresh}
-            disabled={loading}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-            title={t('drive.refresh')}
-          >
-            <RefreshCw className={`w-5 h-5 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+          <ColoredTooltip title={t('drive.refresh')}>
+            <button
+              onClick={onRefresh}
+              disabled={loading}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-5 h-5 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </ColoredTooltip>
 
           <div className="flex items-center bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => onViewModeChange('grid')}
-              className={`p-1.5 rounded transition-colors ${
-                viewMode === 'grid' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'
-              }`}
-              title="Grid view"
-            >
-              <Grid3x3 className="w-4 h-4 text-gray-600" />
-            </button>
-            <button
-              onClick={() => onViewModeChange('list')}
-              className={`p-1.5 rounded transition-colors ${
-                viewMode === 'list' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'
-              }`}
-              title="List view"
-            >
-              <List className="w-4 h-4 text-gray-600" />
-            </button>
+            <ColoredTooltip title="Grid view">
+              <button
+                onClick={() => onViewModeChange('grid')}
+                className={`p-1.5 rounded transition-colors ${
+                  viewMode === 'grid' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'
+                }`}
+              >
+                <Grid3x3 className="w-4 h-4 text-gray-600" />
+              </button>
+            </ColoredTooltip>
+            <ColoredTooltip title="List view">
+              <button
+                onClick={() => onViewModeChange('list')}
+                className={`p-1.5 rounded transition-colors ${
+                  viewMode === 'list' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'
+                }`}
+              >
+                <List className="w-4 h-4 text-gray-600" />
+              </button>
+            </ColoredTooltip>
           </div>
 
           {!selectedFile && (

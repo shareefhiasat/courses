@@ -2,6 +2,7 @@ import React from 'react';
 import { getLocalizedTermDisplay } from '@constants/gradingStandards';
 import { OFFICIAL_HEADER } from '../shared/officialHeader.js';
 import { buildWatermarkLines } from '../engine/watermark.js';
+import { formatDateTime } from '@utils/date-formatter.js';
 import styles from './officialReport.module.css';
 
 const SIGNATURE_BLOCKS = [
@@ -56,14 +57,7 @@ export function SemesterCertificateTemplate({ data, showWatermark = true }) {
   const isAr = lang === 'ar';
   const wm = buildWatermarkLines(data.watermarkUser);
 
-  const genDateTime = new Date().toLocaleDateString(isAr ? 'ar-SA' : 'en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+  const genDateTime = formatDateTime(new Date(), isAr ? 'ar' : 'en');
 
   const pageChunks = [];
   for (let i = 0; i < rows.length; i += ROWS_PER_PAGE) {

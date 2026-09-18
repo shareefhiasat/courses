@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -8,10 +8,11 @@ import {
   Alert,
   Box,
   Typography,
+  TextField,
 } from '@mui/material';
 import { AlertTriangle, ArrowRight, Workflow as WorkflowIcon, ClipboardCheck } from 'lucide-react';
 import { shortenWorkflowDisplayName } from './operationsBoardDisplayUtils.js';
-import { resolveWorkflowNotifyMeta } from './workflowBoardRules.js';
+import { resolveWorkflowNotifyMeta, WORKFLOW_STATUS } from './workflowBoardRules.js';
 
 /**
  * Confirmation dialog before a workflow board status move.
@@ -29,6 +30,8 @@ export default function WorkflowMoveConfirmDialog({
   roleContext = {},
   workflowType = '',
   attendanceSubtype = '',
+  dailyApprovedCount = null,
+  dailyRequiredCount = null,
   t,
   lang = 'en',
 }) {
@@ -65,6 +68,16 @@ export default function WorkflowMoveConfirmDialog({
   const lockWarningText = meta.lockWarning
     ? (t(meta.lockWarningKey) || t('operations_board_move_admin_lock_warning'))
     : null;
+
+  const showComment = isOverride || Boolean(meta?.notifyKey || meta?.roles?.length);
+  const [comment, setComment] = useState('');
+  useEffect(() => {
+    if (open) setComment('');
+  }, [open]);
+
+  const handleConfirmClick = () => {
+    onConfirm?.(showComment ? (comment.trim() || null) : null);
+  };
 
   return (
     <Dialog
@@ -119,16 +132,18 @@ export default function WorkflowMoveConfirmDialog({
             </Box>
           </Box>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>{body}</Typography>
-          {fromColumn === 'UNDER_HR_REVIEW' && toColumn === 'APPROVED' && (workflowType === 'ATTENDANCE_WEEKLY' || attendanceSubtype === 'WEEKLY_SUMMARY') && (
+          {fromColumn === WORKFLOW_STATUS.UNDER_HR_REVIEW && toColumn === WORKFLOW_STATUS.APPROVED && (workflowType === 'ATTENDANCE_WEEKLY' || attendanceSubtype === 'WEEKLY_SUMMARY') && (
             <Alert
-              severity="info"
+              severity={dailyApprovedCount > 0 ? 'info' : 'warning'}
               icon={<ClipboardCheck size={18} />}
               data-testid="workflow-move-snapshot-alert"
             >
-              {t('workflow_snapshot_info_weekly', 'A weekly attendance violation report will be generated and attached as a back-reference to this workflow.')}
+              {dailyApprovedCount > 0
+                ? `${t('weekly_approval_daily_count', '{approved} of {total} daily attendance summaries are approved for this week').replace('{approved}', dailyApprovedCount).replace('{total}', dailyRequiredCount || 0)} — ${t('workflow_snapshot_info_weekly', 'A weekly attendance report snapshot will be generated and attached as a back-reference to this workflow.')}`
+                : t('weekly_approval_requires_at_least_one_daily', 'At least one daily attendance summary for the week must be approved before approving the weekly summary.')}
             </Alert>
           )}
-          {fromColumn === 'UNDER_HR_REVIEW' && toColumn === 'APPROVED' && (workflowType === 'ATTENDANCE_DAILY' || attendanceSubtype === 'DAILY') && (
+          {fromColumn === WORKFLOW_STATUS.UNDER_HR_REVIEW && toColumn === WORKFLOW_STATUS.APPROVED && (workflowType === 'ATTENDANCE_DAILY' || attendanceSubtype === 'DAILY') && (
             <Alert
               severity="info"
               icon={<ClipboardCheck size={18} />}
@@ -147,6 +162,20 @@ export default function WorkflowMoveConfirmDialog({
               {lockWarningText}
             </Alert>
           )}
+          {showComment && (
+            <TextField
+              fullWidth
+              multiline
+              minRows={2}
+              maxRows={4}
+              label={t('operations_board_move_comment_label') || 'Comment (optional)'}
+              placeholder={t('operations_board_move_comment_placeholder') || 'Add a note for the next reviewer...'}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              disabled={loading}
+              inputProps={{ 'data-testid': 'workflow-move-comment-input' }}
+            />
+          )}
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2.5, pt: 1 }}>
@@ -156,8 +185,8 @@ export default function WorkflowMoveConfirmDialog({
         <Button
           variant="contained"
           color={isOverride ? 'error' : 'primary'}
-          onClick={onConfirm}
-          disabled={loading}
+          onClick={handleConfirmClick}
+          disabled={loading || (fromColumn === WORKFLOW_STATUS.UNDER_HR_REVIEW && toColumn === WORKFLOW_STATUS.APPROVED && (workflowType === 'ATTENDANCE_WEEKLY' || attendanceSubtype === 'WEEKLY_SUMMARY') && !(dailyApprovedCount > 0))}
           data-testid="workflow-move-confirm"
         >
           {loading

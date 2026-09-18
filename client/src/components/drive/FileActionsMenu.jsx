@@ -54,7 +54,6 @@ const FileActionsMenu = ({ file, onView, onEdit, onShare, onComment, onDownload,
           setIsOpen(!isOpen);
         }}
         className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-        title={t('drive.hover.more')}
       >
         <MoreVertical className="w-4 h-4 text-gray-600" />
       </button>

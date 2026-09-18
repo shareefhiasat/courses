@@ -48,7 +48,6 @@ const RoleBadge = ({
         flexShrink: 0,
         ...style,
       }}
-      title={label}
     >
       {icon}
       {showLabel && label}

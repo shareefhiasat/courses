@@ -58,16 +58,30 @@ export function toQatarTime(date) {
 }
 
 /**
+ * Replace AM/PM with Arabic letters ص/م.
+ * @param {string} formatted
+ * @returns {string}
+ */
+function applyArabicAmPm(formatted) {
+  return formatted
+    .replace(/\bAM\b/g, 'ص')
+    .replace(/\bPM\b/g, 'م');
+}
+
+/**
  * Format date in Qatar timezone for display
  * @param {Date|Timestamp|string|number} date - Date to format
- * @param {string} formatString - date-fns format string (default: 'dd/MM/yyyy, HH:mm')
+ * @param {string} formatString - date-fns format string (default: 'dd/MM/yyyy, h:mm a')
+ * @param {'en'|'ar'} [lang] - Language override; falls back to localStorage then 'en'
  * @returns {string} Formatted date string
  */
-export function formatQatarDate(date, formatString = 'dd/MM/yyyy, h:mm a') {
+export function formatQatarDate(date, formatString = 'dd/MM/yyyy, h:mm a', lang) {
   if (!date) return 'N/A';
   const qatarDate = toQatarTime(date);
   if (!qatarDate) return 'N/A';
-  return format(qatarDate, formatString);
+  const formatted = format(qatarDate, formatString);
+  const useLang = lang || (typeof window !== 'undefined' ? localStorage.getItem('lang') : '') || 'en';
+  return useLang === 'ar' ? applyArabicAmPm(formatted) : formatted;
 }
 
 /**

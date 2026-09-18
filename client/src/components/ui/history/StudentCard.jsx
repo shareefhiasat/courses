@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useIsMobile } from '@hooks/useIsMobile';
 import { Button } from '@ui';
 import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
@@ -6,7 +7,7 @@ import { ACTIVITY_COLORS } from '@constants';
 import StudentRosterHistory from './StudentRosterHistory';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { getUserRoleFromObject } from '@utils/userUtils';
-import { CircleIcon, ZapIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon } from '@utils/icons.jsx';
+import { Circle, Zap, Check, Clock, X } from '@utils/icons.jsx';
 import { useNavigate } from 'react-router-dom';
 import PortalTooltip from '@ui/PortalTooltip';
 import { WORKFLOW_STATUS } from '@constants/workflowStatusTypes.jsx';
@@ -161,7 +162,6 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
                   border: '1.5px solid var(--panel, white)',
                   boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
                 }}
-                  title={t(`roles.${role}`, role)}
                 >
                   {React.cloneElement(roleIcon, { color: roleColor, size: 10 })}
                 </div>
@@ -195,13 +195,6 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      title={
-                        student.linkedWorkflow.status === WORKFLOW_STATUS.APPROVED
-                          ? (t('alibi_approved')) + ` — #${student.linkedWorkflow.id}`
-                          : student.linkedWorkflow.status === WORKFLOW_STATUS.REJECTED
-                          ? (t('alibi_rejected')) + ` — #${student.linkedWorkflow.id}`
-                          : (t('alibi_in_progress')) + ` — #${student.linkedWorkflow.id}`
-                      }
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -212,19 +205,24 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
                       }}
                     >
                       {student.linkedWorkflow.status === WORKFLOW_STATUS.APPROVED ? (
-                        <CheckSmallIcon style={{ width: '14px', height: '14px', stroke: '#10b981' }} />
+                        <Check size={14} strokeWidth={3} color="#10b981" />
                       ) : student.linkedWorkflow.status === WORKFLOW_STATUS.REJECTED ? (
-                        <XSmallIcon style={{ width: '14px', height: '14px', stroke: '#ef4444' }} />
+                        <X size={14} color="#ef4444" />
                       ) : (
-                        <ClockSmallIcon style={{ width: '14px', height: '14px', stroke: '#f59e0b' }} />
+                        <Clock size={14} color="#f59e0b" />
                       )}
                     </a>
                   )}
                 </div>
               )}
             </div>
-            <div style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-              ID: {student.studentNumber || student.studentId?.slice(-4) || '0000'}
+            <div style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted, #6b7280)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+              {(lang === 'ar' ? (student.rankAr || student.rankEn) : (student.rankEn || student.rankAr)) && (
+                <span>{lang === 'ar' ? (student.rankAr || student.rankEn) : (student.rankEn || student.rankAr)}</span>
+              )}
+              <span style={{ fontFamily: 'var(--font-family-mono)', direction: 'ltr' }}>
+                {student.studentNumber || student.studentId?.slice(-4) || '0000'}
+              </span>
             </div>
           </div>
         </div>
@@ -265,7 +263,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
             getAttendanceBadge(student.attendance)
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.125rem' : '0.25rem' }}>
-              <CircleIcon style={{ width: '16px', height: '16px', stroke: '#9ca3af' }} />
+              <Circle size={16} color="#9ca3af" />
               <span style={{ fontSize: 'var(--font-size-xs)', color: '#9ca3af', fontWeight: 500 }}>{t('none')}</span>
             </div>
           )}
@@ -496,7 +494,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
             style={isMobile ? {} : { flex: 1 }}
           >
             {isMobile ? (
-              <ZapIcon style={{ width: '16px', height: '16px', color: '#f59e0b' }} />
+              <Zap size={16} color="#f59e0b" />
             ) : t('actions')}
           </Button>
           </PortalTooltip>
@@ -530,9 +528,17 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
         </PortalTooltip>
       </div>
       
-      {isExpanded && studentHistory[student.id] && (
-        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border, #e5e7eb)' }}>
-          <StudentRosterHistory 
+      <AnimatePresence initial={false}>
+        {isExpanded && studentHistory[student.id] && (
+          <motion.div
+            key="card-history"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border, #e5e7eb)' }}
+          >
+            <StudentRosterHistory 
             student={student}
             studentHistory={studentHistory}
             expandedDays={expandedDays}
@@ -553,8 +559,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
             canDeleteAttendance={canDeleteAttendance}
             theme={theme}
           />
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

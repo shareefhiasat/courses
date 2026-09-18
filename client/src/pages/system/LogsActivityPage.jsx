@@ -2,6 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useCallback } from 'react'
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
 import { formatDateTime, getQatarDateParts } from '@utils/date-formatter.js';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -536,9 +537,11 @@ const LogsActivityPage = () => {
             style={{ minWidth: '150px' }}
           />
           {activityAutoRefreshMs > 0 && (
-            <div style={{ width: 120, height: 6, background: '#e5e7eb', borderRadius: 999, overflow: 'hidden' }} title="Next auto refresh">
-              <div style={{ height: '100%', width: `${Math.min(100, ((activityNowTick - activityLastUpdatedAt) % activityAutoRefreshMs) / activityAutoRefreshMs * 100)}%`, background: '#10b981', transition: 'width 0.25s linear' }} />
-            </div>
+            <ColoredTooltip title="Next auto refresh">
+              <div style={{ width: 120, height: 6, background: '#e5e7eb', borderRadius: 999, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${Math.min(100, ((activityNowTick - activityLastUpdatedAt) % activityAutoRefreshMs) / activityAutoRefreshMs * 100)}%`, background: '#10b981', transition: 'width 0.25s linear' }} />
+              </div>
+            </ColoredTooltip>
           )}
           <Button 
             onClick={() => {
@@ -547,7 +550,6 @@ const LogsActivityPage = () => {
             }} 
             variant="outline" 
             size="small" 
-            title={t('refresh')}
             icon={getThemedIcon('ui', 'refresh', 16)}
           >
             Refresh

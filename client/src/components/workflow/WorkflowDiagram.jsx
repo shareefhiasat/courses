@@ -7,6 +7,7 @@ import ReactFlow, {
   BackgroundVariant,
   applyNodeChanges
 } from 'reactflow';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import 'reactflow/dist/style.css';
 import dagre from 'dagre';
 import html2canvas from 'html2canvas';
@@ -16,7 +17,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { Tooltip } from '@ui';
 import { formatQatarDate } from '@utils/timezone';
-import { Send, RotateCcw, Download, Layout, Minimize, Maximize, X, Check, ArrowLeft, ArrowRight, Trash2, Eye, XCircle, List, GitBranch, MessageSquare, Grid3x3, CircleDot, Square, Plus } from 'lucide-react';
+import { Send, RotateCcw, Download, Layout, Minimize, Maximize, X, Check, ArrowLeft, ArrowRight, Trash2, Eye, XCircle, List, GitBranch, MessageSquare, Grid3x3, CircleDot, Square, Plus } from '@utils/icons.jsx';
 
 // Create Dagre graph instance
 const dagreGraph = new dagre.graphlib.Graph();
@@ -996,26 +997,26 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
                 cursor: 'pointer',
                 color: 'var(--text, #111827)'
               }}
-              title={bgVariants[bgVariantIndex].label}
             >
               {(() => { const BgIcon = bgVariants[bgVariantIndex].icon; return <BgIcon size={16} />; })()}
             </button>
           )}
           {viewMode === 'flow' && (
-            <button
-              onClick={handleResetLayout}
-              style={{
-                padding: '0.5rem',
-                background: 'var(--panel, white)',
-                border: '1px solid var(--border, #e5e7eb)',
-                borderRadius: '0.375rem',
-                cursor: 'pointer',
-                color: 'var(--text, #111827)'
-              }}
-              title={t('workflow.resetLayout', 'Reset Layout')}
-            >
-              <Layout size={16} />
-            </button>
+            <ColoredTooltip title={t('workflow.resetLayout', 'Reset Layout')}>
+              <button
+                onClick={handleResetLayout}
+                style={{
+                  padding: '0.5rem',
+                  background: 'var(--panel, white)',
+                  border: '1px solid var(--border, #e5e7eb)',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  color: 'var(--text, #111827)'
+                }}
+              >
+                <Layout size={16} />
+              </button>
+            </ColoredTooltip>
           )}
           <button
             onClick={() => setViewMode(viewMode === 'flow' ? 'timeline' : 'flow')}
@@ -1027,7 +1028,6 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
               cursor: 'pointer',
               color: 'var(--text, #111827)'
             }}
-            title={viewMode === 'flow' ? t('workflow.viewTimeline', 'View as Timeline') : t('workflow.viewFlow', 'View as Flow')}
           >
             {viewMode === 'flow' ? <List size={16} /> : <GitBranch size={16} />}
           </button>
@@ -1041,7 +1041,6 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
               cursor: 'pointer',
               color: 'var(--text, #111827)'
             }}
-            title={isFullscreen ? t('common.exitFullscreen', 'Exit Fullscreen') : t('common.fullscreen', 'Fullscreen')}
           >
             {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
           </button>
@@ -1263,24 +1262,25 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
             </h2>
             <div className="flex items-center gap-2">
               {viewMode === 'flow' && (
-                <button
-                  onClick={handleResetLayout}
-                  style={{
-                    padding: '0.5rem',
-                    background: 'transparent',
-                    color: '#111827',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.375rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                  title={t('workflow.resetLayout', 'Reset Layout')}
-                >
-                  <Layout size={20} />
-                </button>
+                <ColoredTooltip title={t('workflow.resetLayout', 'Reset Layout')}>
+                  <button
+                    onClick={handleResetLayout}
+                    style={{
+                      padding: '0.5rem',
+                      background: 'transparent',
+                      color: '#111827',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <Layout size={20} />
+                  </button>
+                </ColoredTooltip>
               )}
               <button
                 onClick={() => setIsFullscreen(false)}

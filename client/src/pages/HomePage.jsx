@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef, memo, useCallback, useLayoutEffect } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import JoyrideTour from '@ui/JoyrideTour';
+import { FeatureFlagWrapper } from '@/components/ui/FeatureFlagWrapper';
 import iconTypes from '@constants/iconTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { formatDateTime } from '@utils/date-formatter.js';
@@ -2057,16 +2058,18 @@ const HomePage = memo(() => {
       </div>
       
       {/* Joyride Help Tour */}
-      <JoyrideTour
-        run={runTour}
-        mode={mode}
-        activityType={activityType}
-        tourSeenKey={tourSeenKey}
-        onTourFinish={() => {
-          info('[HomePage] Tour finished/skipped, setting runTour to false');
-          setRunTour(false);
-        }}
-      />
+      <FeatureFlagWrapper featureId="JOYRIDE_TOUR">
+        <JoyrideTour
+          run={runTour}
+          mode={mode}
+          activityType={activityType}
+          tourSeenKey={tourSeenKey}
+          onTourFinish={() => {
+            info('[HomePage] Tour finished/skipped, setting runTour to false');
+            setRunTour(false);
+          }}
+        />
+      </FeatureFlagWrapper>
 
       {/* Announcement Modal */}
       {selectedAnnouncement && (() => {

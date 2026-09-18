@@ -345,7 +345,6 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
               height: 32,
               transition: 'all 0.2s'
             }}
-            title={t('emoji')}
             onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.borderColor='var(--brand)';}}
             onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.borderColor='var(--border)';}}
           >
@@ -374,7 +373,6 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                   height: 32,
                   transition: 'all 0.2s'
                 }}
-                title={t('create_poll')}
                 onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.borderColor='var(--brand)';}}
                 onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.borderColor='var(--border)';}}
               >

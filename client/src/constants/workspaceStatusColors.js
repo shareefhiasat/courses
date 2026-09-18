@@ -1,14 +1,22 @@
 import { ATTENDANCE_STATUS } from './attendanceTypes.js';
 
 /**
- * Shared status colors for welcome schedule dots and operations board lanes.
- * Schedule semantics: not taken → gray, taken → green, submitted → blue.
+ * Shared status colors for schedule dots, workflow icons, and operations board lanes.
+ * All dot and icon colors are kept in one palette (SCHEDULE_WORKFLOW_COLORS).
+ * WORKFLOW_STATUS_COLORS is a thin uppercase-keyed view of the same palette.
  */
 export const SCHEDULE_WORKFLOW_STATUS = {
   NOT_TAKEN: 'not_taken',
   DRAFT: 'draft',
   TAKEN: 'taken',
   SUBMITTED: 'submitted',
+  UNDER_REVIEW: 'under_review',
+  UNDER_ADMIN_REVIEW: 'under_admin_review',
+  UNDER_HR_REVIEW: 'under_hr_review',
+  APPROVED: 'approved',
+  ADMIN_APPROVED: 'admin_approved',
+  REJECTED: 'rejected',
+  AMENDED: 'amended',
 };
 
 export const SCHEDULE_WORKFLOW_COLORS = {
@@ -16,26 +24,30 @@ export const SCHEDULE_WORKFLOW_COLORS = {
   [SCHEDULE_WORKFLOW_STATUS.DRAFT]: '#9ca3af',
   [SCHEDULE_WORKFLOW_STATUS.TAKEN]: '#ca8a04',
   [SCHEDULE_WORKFLOW_STATUS.SUBMITTED]: '#3b82f6',
+  [SCHEDULE_WORKFLOW_STATUS.UNDER_REVIEW]: '#7c3aed',
+  [SCHEDULE_WORKFLOW_STATUS.UNDER_ADMIN_REVIEW]: '#A67B5B',
+  [SCHEDULE_WORKFLOW_STATUS.UNDER_HR_REVIEW]: '#7c3aed',
+  [SCHEDULE_WORKFLOW_STATUS.APPROVED]: '#166534',
+  [SCHEDULE_WORKFLOW_STATUS.REJECTED]: '#ef4444',
+  [SCHEDULE_WORKFLOW_STATUS.AMENDED]: '#ef4444',
 };
 
 export const WORKFLOW_STATUS_COLORS = {
   DRAFT: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.DRAFT],
   TAKEN: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.TAKEN],
   SUBMITTED: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.SUBMITTED],
-  UNDER_ADMIN_REVIEW: '#5c4033',
-  UNDER_HR_REVIEW: '#7c3aed',
-  APPROVED: '#166534',
-  REJECTED: '#ef4444',
+  UNDER_REVIEW: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.UNDER_REVIEW],
+  UNDER_ADMIN_REVIEW: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.UNDER_ADMIN_REVIEW],
+  UNDER_HR_REVIEW: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.UNDER_HR_REVIEW],
+  APPROVED: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.APPROVED],
+  ADMIN_APPROVED: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.APPROVED],
+  REJECTED: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.REJECTED],
+  AMENDED: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.AMENDED],
 };
 
-export const WORKFLOW_STATUS_BADGE_COLORS = {
-  APPROVED: { bg: '#16a34a', text: '#ffffff', border: '#16a34a' },
-  REJECTED: { bg: '#dc2626', text: '#ffffff', border: '#dc2626' },
-  DRAFT: { bg: '#6b7280', text: '#ffffff', border: '#6b7280' },
-  SUBMITTED: { bg: '#2563eb', text: '#ffffff', border: '#2563eb' },
-  UNDER_ADMIN_REVIEW: { bg: '#f59e0b', text: '#ffffff', border: '#f59e0b' },
-  UNDER_HR_REVIEW: { bg: '#e11d48', text: '#ffffff', border: '#e11d48' },
-};
+export const WORKFLOW_STATUS_BADGE_COLORS = Object.fromEntries(
+  Object.entries(WORKFLOW_STATUS_COLORS).map(([key, color]) => [key, { bg: color, text: '#ffffff', border: color }]),
+);
 
 export function getWorkflowBadgeColor(status) {
   return WORKFLOW_STATUS_BADGE_COLORS[status] || { bg: '#6b7280', text: '#ffffff', border: '#6b7280' };
@@ -43,6 +55,9 @@ export function getWorkflowBadgeColor(status) {
 
 /** Sky blue for participation indicators on the operations board */
 export const BOARD_PARTICIPATION_COLOR = '#38bdf8';
+
+/** Orange for comment indicators on the operations board */
+export const BOARD_COMMENT_COLOR = '#f97316';
 
 export const ATTENDANCE_BOARD_COLORS = {
   NOT_TAKEN: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.NOT_TAKEN],
@@ -53,24 +68,28 @@ export const ATTENDANCE_BOARD_COLORS = {
   HUMAN_CASE: '#8b5cf6',
 };
 
-const SUBMITTED_WORKFLOW_STATUSES = new Set([
-  'SUBMITTED',
-  'UNDER_ADMIN_REVIEW',
-  'UNDER_HR_REVIEW',
-  'APPROVED',
-  'ADMIN_APPROVED',
-]);
+export const SCHEDULE_WORKFLOW_STATUS_MAP = {
+  NOT_TAKEN: SCHEDULE_WORKFLOW_STATUS.NOT_TAKEN,
+  DRAFT: SCHEDULE_WORKFLOW_STATUS.DRAFT,
+  TAKEN: SCHEDULE_WORKFLOW_STATUS.TAKEN,
+  SUBMITTED: SCHEDULE_WORKFLOW_STATUS.SUBMITTED,
+  UNDER_REVIEW: SCHEDULE_WORKFLOW_STATUS.UNDER_REVIEW,
+  UNDER_ADMIN_REVIEW: SCHEDULE_WORKFLOW_STATUS.UNDER_ADMIN_REVIEW,
+  UNDER_HR_REVIEW: SCHEDULE_WORKFLOW_STATUS.UNDER_HR_REVIEW,
+  APPROVED: SCHEDULE_WORKFLOW_STATUS.APPROVED,
+  ADMIN_APPROVED: SCHEDULE_WORKFLOW_STATUS.APPROVED,
+  REJECTED: SCHEDULE_WORKFLOW_STATUS.REJECTED,
+  AMENDED: SCHEDULE_WORKFLOW_STATUS.AMENDED,
+};
 
 export function resolveScheduleWorkflowKey(status) {
   if (!status) return SCHEDULE_WORKFLOW_STATUS.NOT_TAKEN;
-  if (SUBMITTED_WORKFLOW_STATUSES.has(status.workflowStatus)) {
-    return SCHEDULE_WORKFLOW_STATUS.SUBMITTED;
+  const ws = status.workflowStatus;
+  if (ws && SCHEDULE_WORKFLOW_STATUS_MAP[ws]) {
+    return SCHEDULE_WORKFLOW_STATUS_MAP[ws];
   }
-  if (status.hasAttendance || status.workflowStatus === 'TAKEN') {
+  if (status.hasAttendance) {
     return SCHEDULE_WORKFLOW_STATUS.TAKEN;
-  }
-  if (status.workflowStatus === 'DRAFT') {
-    return SCHEDULE_WORKFLOW_STATUS.DRAFT;
   }
   return SCHEDULE_WORKFLOW_STATUS.NOT_TAKEN;
 }

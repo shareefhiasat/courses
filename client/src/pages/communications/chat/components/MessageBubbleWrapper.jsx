@@ -118,7 +118,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Messa
                 alignItems: 'center',
                 justifyContent: 'center',
                 lineHeight: 1
-              }} title={senderUser?.deleted ? t('deleted_user') : t('disabled_user')}>✕</span>
+              }} aria-label={senderUser?.deleted ? t('deleted_user') : t('disabled_user')}>✕</span>
             )}
           </div>
         )}

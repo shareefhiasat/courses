@@ -1,3 +1,7 @@
+import React from 'react';
+import { prepareAttendanceWarningData } from '../export/official-reports/engine/prepareAttendanceWarningData.js';
+import { AttendanceWarningTemplate } from '../export/official-reports/templates/attendanceWarning.template.jsx';
+import { renderOfficialPdf } from '../export/official-reports/renderers/pdfRenderer.js';
 import { exportAttendanceOfficialForScope } from '@services/business/accessScopeExportService.js';
 import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
 import { apiService } from '@services/api/apiService.js';
@@ -42,6 +46,13 @@ export async function generateWeeklyViolationSnapshot({
   programId,
   programName,
   classIds = [],
+  classId = null,
+  workflowStatus = null,
+  approvedBy = null,
+  approvedAt = null,
+  skipPersist = false,
+  download = false,
+  preview = false,
 }) {
   if (!document) {
     return { success: false, error: 'Document is required' };
@@ -93,10 +104,17 @@ export async function generateWeeklyViolationSnapshot({
       lang,
       user,
       format: EXPORT_FORMAT.PDF,
+      download,
       classIds: resolvedClassIds,
+      classId: classId || resolvedClassIds[0] || null,
+      workflowStatus,
+      approvedBy,
+      approvedAt,
+      skipPersist,
+      preview,
     });
 
-    if (!result?.fileId) {
+    if (!skipPersist && !result?.fileId) {
       return {
         success: false,
         error: 'Failed to upload snapshot PDF to Smart Drive',
@@ -107,8 +125,10 @@ export async function generateWeeklyViolationSnapshot({
 
     return {
       success: true,
-      fileId: result.fileId,
-      filename: result.filename,
+      fileId: result?.fileId || null,
+      filename: result?.filename || `weekly_official_${weekFrom}_${weekTo}.pdf`,
+      blob: result?.blob || null,
+      blobUrl: result?.blobUrl || null,
       weekFrom,
       weekTo,
     };
@@ -132,6 +152,9 @@ export async function generateDailyViolationSnapshot({
   classId,
   programId,
   programName,
+  workflowStatus = null,
+  approvedBy = null,
+  approvedAt = null,
 }) {
   if (!document) {
     return { success: false, error: 'Document is required' };
@@ -170,7 +193,12 @@ export async function generateDailyViolationSnapshot({
       lang,
       user,
       format: EXPORT_FORMAT.PDF,
+      download: false,
       classIds: classId ? [classId] : [],
+      classId,
+      workflowStatus,
+      approvedBy,
+      approvedAt,
     });
 
     if (!result?.fileId) {
@@ -313,3 +341,139 @@ export async function getInProgressWeeklyWorkflow({ weekFrom, weekTo, programId 
     return { success: false, error: err.message };
   }
 }
+
+/**
+ * Get all workflow documents for the weekly summary scope (including REJECTED).
+ * @param {{ weekFrom: string, weekTo: string, classId?: number, programId?: number }} params
+ * @returns {Promise<{ success: boolean, data?: object[], error?: string }>}
+ */
+export async function getWeeklyWorkflowHistory({ weekFrom, weekTo, classId, programId }) {
+  try {
+    const params = new URLSearchParams();
+    params.append('dateFrom', weekFrom);
+    params.append('dateTo', weekTo);
+    params.append('workflowCategory', 'ATTENDANCE');
+    params.append('attendanceSubtype', 'WEEKLY_SUMMARY');
+    if (classId) params.append('classId', String(classId));
+    if (programId) params.append('programId', String(programId));
+
+    const result = await apiService.get(`/workflow-documents/board?${params.toString()}`);
+    return { success: result.success, data: result.data || [], error: result.error };
+  } catch (err) {
+    console.error('[workflowSnapshotService] getWeeklyWorkflowHistory error:', err);
+    return { success: false, data: [], error: err.message };
+  }
+}
+
+/**
+ * Get all workflow documents for the daily attendance scope for a class + date (including REJECTED).
+ * @param {{ date: string, classId?: number, programId?: number }} params
+ * @returns {Promise<{ success: boolean, data?: object[], error?: string }>}
+ */
+export async function getDailyWorkflowHistory({ date, classId, programId }) {
+  try {
+    const params = new URLSearchParams();
+    if (date) params.append('date', date);
+    if (classId) params.append('classId', String(classId));
+    if (programId) params.append('programId', String(programId));
+    params.append('workflowCategory', 'ATTENDANCE');
+    params.append('attendanceSubtype', 'DAILY');
+
+    const result = await apiService.get(`/workflow-documents/board?${params.toString()}`);
+    return { success: result.success, data: result.data || [], error: result.error };
+  } catch (err) {
+    console.error('[workflowSnapshotService] getDailyWorkflowHistory error:', err);
+    return { success: false, data: [], error: err.message };
+  }
+}
+
+
+
+/**
+ * Generate a warning snapshot PDF for a single student in a class.
+ * Used for preview before initiating a warning workflow.
+ *
+ * @param {{ student: object, metadata: object, warningType: 'first'|'final', lang: 'ar'|'en', user: object, workflowStatus?: string }} params
+ */
+export async function generateWarningSnapshot({ student, metadata, warningType = 'first', lang = 'ar', user = null, workflowStatus = 'DRAFT' }) {
+  try {
+    const reportData = prepareAttendanceWarningData({
+      students: [student],
+      metadata,
+      lang,
+      warningType,
+    });
+
+    if (workflowStatus) {
+      reportData.watermarkStatus = workflowStatus;
+      reportData.approvedByUser = user || null;
+      reportData.approvedAt = new Date().toISOString();
+    }
+
+    const filename = `${reportData.serial}_${warningType}_warning_${sanitize(metadata.classCode)}.pdf`;
+    const blob = await renderOfficialPdf(
+      React.createElement(AttendanceWarningTemplate, { data: reportData, showWatermark: true }),
+      {
+        filename,
+        download: false,
+        serial: reportData.serial,
+        lang,
+      }
+    );
+
+    return { success: true, blob, filename };
+  } catch (err) {
+    console.error('[workflowSnapshotService] generateWarningSnapshot error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+function sanitize(str) {
+  return str ? String(str).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '';
+}
+
+/**
+ * Fetch all attendance warning workflows for a class + optional date range.
+ * @param {{ classId?: number, programId?: number, dateFrom?: string, dateTo?: string }} params
+ */
+export async function getWarningWorkflowHistory({ classId, programId, dateFrom, dateTo } = {}) {
+  try {
+    const baseParams = new URLSearchParams();
+    baseParams.append('workflowCategory', 'ATTENDANCE');
+    if (classId) baseParams.append('classId', String(classId));
+    if (programId) baseParams.append('programId', String(programId));
+    if (dateFrom) baseParams.append('dateFrom', dateFrom);
+    if (dateTo) baseParams.append('dateTo', dateTo);
+
+    const firstParams = new URLSearchParams(baseParams);
+    firstParams.append('attendanceSubtype', 'WARNING_FIRST');
+    const firstRes = await apiService.get(`/workflow-documents/board?${firstParams.toString()}`);
+
+    const finalParams = new URLSearchParams(baseParams);
+    finalParams.append('attendanceSubtype', 'WARNING_FINAL');
+    const finalRes = await apiService.get(`/workflow-documents/board?${finalParams.toString()}`);
+
+    const firstList = Array.isArray(firstRes?.data) ? firstRes.data : [];
+    const finalList = Array.isArray(finalRes?.data) ? finalRes.data : [];
+    const merged = [...firstList, ...finalList].sort(
+      (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+    );
+
+    return { success: true, data: merged };
+  } catch (err) {
+    console.error('[workflowSnapshotService] getWarningWorkflowHistory error:', err);
+    return { success: false, data: [], error: err.message };
+  }
+}
+
+export default {
+  generateWeeklyViolationSnapshot,
+  generateDailyViolationSnapshot,
+  getApprovedSnapshotForWeek,
+  getClosureStatus,
+  closePeriod,
+  reopenPeriod,
+  getInProgressWeeklyWorkflow,
+  getWeeklyWorkflowHistory,
+  getDailyWorkflowHistory,
+};

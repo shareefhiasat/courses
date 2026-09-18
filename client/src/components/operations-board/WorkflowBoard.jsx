@@ -6,14 +6,16 @@ import {
   KanbanCards,
   KanbanCard,
 } from '@/components/kibo-ui/kanban';
-import { Avatar, AvatarFallback } from '@/components/kibo/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/kibo/ui/avatar';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
-import { FileText, Workflow as WorkflowIcon, ShieldCheck, Calendar, User, Shield } from 'lucide-react';
+import { Workflow as WorkflowIcon, FilePenLine, GitBranch, GraduationCap, Lock } from 'lucide-react';
+import { getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { format, parseISO } from 'date-fns';
 import BoardLaneHeader from './BoardLaneHeader.jsx';
-import { parseWorkflowCardName } from './operationsBoardDisplayUtils.js';
+import { parseWorkflowCardName, resolveBoardClassName } from './operationsBoardDisplayUtils.js';
 import { isInstructorWorkflowLane, isInstructorOnly } from './workflowBoardRules.js';
 import { ATTENDANCE_BOARD_COLORS } from '@constants/workspaceStatusColors.js';
+import AttendanceStatusDots from './AttendanceStatusDots.jsx';
 
 const CARD_ORDER_KEY = 'operations_board_workflow_card_order';
 
@@ -60,6 +62,7 @@ function isDateLike(value) {
   if (!value) return false;
   return /^\d{4}-\d{2}-\d{2}$/.test(value) || /^\d{2}\/\d{2}\/\d{4}$/.test(value);
 }
+
 
 function WorkflowCardTitle({ name, context, isAttendanceWorkflow, summaryItems, dotSize }) {
   const parts = parseWorkflowCardName(name).filter((part) => !isDateLike(part));
@@ -111,29 +114,67 @@ function getInitials(name) {
   return name.slice(0, 2).toUpperCase();
 }
 
-function WorkflowAssigneeAvatar({ assignee, assigneeLabel, size = 'sm', fontScale = 100 }) {
+function WorkflowAssigneeAvatar({ assignee, assigneeLabel, role, image, size = 'sm', fontScale = 100 }) {
   if (!assignee) return null;
   const dim = scalePx(size === 'sm' ? 28 : 24, fontScale);
   const initials = getInitials(assignee);
+  const roleIcon = role ? getUserRoleIcon(role) : null;
+  const roleColor = role ? getUserRoleColor(role) : null;
+  const title = (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      {roleIcon && (
+        <span style={{ color: roleColor, display: 'inline-flex', alignItems: 'center' }}>
+          {React.cloneElement(roleIcon, { size: 14, color: roleColor })}
+        </span>
+      )}
+      <span>{assigneeLabel || assignee}</span>
+    </span>
+  );
   return (
-    <ColoredTooltip title={assigneeLabel || assignee} color="#64748b" placement="top">
-      <Avatar
+    <ColoredTooltip title={title} color="#64748b" placement="top">
+      <div
         className="shrink-0"
-        style={{ width: dim, height: dim }}
+        style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <AvatarFallback
-          className="font-semibold"
-          style={{ fontSize: scalePx(10, fontScale) }}
+        <Avatar
+          style={{ width: dim, height: dim, boxShadow: '0 0 0 2px var(--card-status-color)' }}
         >
-          {initials}
-        </AvatarFallback>
-      </Avatar>
+          {image && <AvatarImage src={image} alt={assignee} />}
+          <AvatarFallback
+            className="font-semibold"
+            style={{ fontSize: scalePx(10, fontScale) }}
+          >
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+        {roleIcon && (
+          <div
+            aria-label={role}
+            style={{
+              position: 'absolute',
+              bottom: -2,
+              right: -2,
+              width: 12,
+              height: 12,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: roleColor,
+              color: '#fff',
+              boxShadow: '0 0 0 1px #fff',
+            }}
+          >
+            {React.cloneElement(roleIcon, { size: 10, color: '#fff', fill: roleColor })}
+          </div>
+        )}
+      </div>
     </ColoredTooltip>
   );
 }
 
-function AttendanceCountsTooltip({ summary, t }) {
+function AttendanceCountsTooltip({ summary, t, textColor = '#111827' }) {
   if (!summary) return null;
   const items = [
     { label: t('present') || 'Present', count: summary.present, color: '#10b981' },
@@ -146,14 +187,11 @@ function AttendanceCountsTooltip({ summary, t }) {
   if (items.length === 0) return null;
   return (
     <div style={{ maxWidth: 200 }}>
-      <div style={{ fontWeight: 600, fontSize: '0.75rem', marginBottom: 4, color: '#374151' }}>
-        {t('attendance_summary') || 'Attendance Summary'}
-      </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {items.map((item) => (
           <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: item.color }} />
-            <span style={{ fontSize: '0.7rem', color: '#374151' }}>{item.count} {item.label}</span>
+            <AttendanceStatusDots items={[item]} dotSize={10} className="shrink-0" />
+            <span style={{ fontSize: '0.7rem', color: textColor }}>{item.count} {item.label}</span>
           </div>
         ))}
       </div>
@@ -166,54 +204,47 @@ function hasAttendanceCounts(summary) {
   return (summary.present + summary.late + summary.absent + summary.excused + summary.humanCase + summary.notTaken) > 0;
 }
 
-function WorkflowCardHoverTooltip({ item, column, summary, t }) {
-  const labelColor = '#374151';
-  const parts = parseWorkflowCardName(item.name).filter((part) => !isDateLike(part));
-  const statusLabel = t(column.i18nKey) || column.name;
-  const dateLabel = item.date
+export function WorkflowCardHoverTooltip({ item, column, summary, t, lang = 'en' }) {
+  const labelColor = '#111827';
+  const isWeeklySummary = item.workflowType === 'ATTENDANCE_WEEKLY' || item.attendanceSubtype === 'WEEKLY_SUMMARY';
+  const responsible = resolveDisplayLabel(item, t);
+  const showInstructorIcon = Boolean(item.classInstructorName);
+  const dateLabel = isWeeklySummary && item.dateFrom && item.dateTo
+    ? `${format(parseISO(item.dateFrom), 'dd/MM/yyyy')} - ${format(parseISO(item.dateTo), 'dd/MM/yyyy')}`
+    : item.date
     ? format(parseISO(item.date.slice(0, 10)), 'dd/MM/yyyy')
     : null;
-  
-  // Determine workflow type indicator
-  const isDailyAttendance = item.workflowType === 'ATTENDANCE_DAILY' || item.attendanceSubtype === 'DAILY';
-  const isWeeklySummary = item.workflowType === 'ATTENDANCE_WEEKLY' || item.attendanceSubtype === 'WEEKLY_SUMMARY';
-  const instructor = item.classInstructorName || (isWeeklySummary ? null : item.assignee);
+  const courseName = resolveBoardClassName(item, lang);
+
+  const sectionStyle = { paddingTop: 6, marginTop: 6, borderTop: '1px solid rgba(148,163,184,0.35)' };
 
   return (
     <div style={{ maxWidth: 220, fontSize: '0.75rem', lineHeight: 1.45, color: labelColor }}>
-      <div style={{ fontWeight: 700, marginBottom: 4, color: labelColor }}>{parts[0] || item.name}</div>
-      {parts[1] && <div style={{ marginBottom: 2, color: labelColor }}>{parts[1]}</div>}
+      <div style={{ fontWeight: 700, color: labelColor }}>{courseName}</div>
       {dateLabel && (
-        <div style={{ marginBottom: 2, color: labelColor }}>
-          {t('date') || 'Date'}: {dateLabel}
-        </div>
+        <div style={{ marginBottom: 2, color: labelColor }}>{dateLabel}</div>
       )}
-      {isDailyAttendance && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2, color: '#3b82f6' }}>
-          <Calendar size={12} />
-          <User size={12} />
-          <span style={{ fontWeight: 600 }}>{t('operations_board_daily_attendance') || 'Daily Attendance'}</span>
+      <div style={sectionStyle}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <WorkflowIcon size={12} style={{ color: column.color, flexShrink: 0 }} />
+          <span style={{ color: column.color, fontWeight: 600 }}>{t(column.i18nKey) || column.name}</span>
         </div>
-      )}
-      {isWeeklySummary && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2, color: '#8b5cf6' }}>
-          <Calendar size={12} />
-          <Shield size={12} />
-          <span style={{ fontWeight: 600 }}>{t('operations_board_weekly_summary') || 'Weekly Summary'}</span>
-        </div>
-      )}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
-        <WorkflowIcon size={12} style={{ color: column.color, flexShrink: 0 }} />
-        <span style={{ color: column.color, fontWeight: 600 }}>{statusLabel}</span>
       </div>
-      {instructor && (
-        <div style={{ marginBottom: 2, color: labelColor }}>
-          {t('operations_board_class_instructor') || 'Class instructor'}: {instructor}
+      {responsible && (
+        <div style={sectionStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: labelColor }}>
+            {showInstructorIcon ? (
+              <GraduationCap size={12} style={{ color: '#0ea5e9' }} />
+            ) : (
+              getUserRoleIcon(item.assigneeRole) || <WorkflowIcon size={12} style={{ color: '#8b5cf6' }} />
+            )}
+            <span>{responsible}</span>
+          </div>
         </div>
       )}
       {hasAttendanceCounts(summary) && (
-        <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid rgba(148,163,184,0.35)' }}>
-          <AttendanceCountsTooltip summary={summary} t={t} />
+        <div style={sectionStyle}>
+          <AttendanceCountsTooltip summary={summary} t={t} textColor={labelColor} />
         </div>
       )}
     </div>
@@ -222,6 +253,19 @@ function WorkflowCardHoverTooltip({ item, column, summary, t }) {
 
 function scalePx(base, fontScale = 100) {
   return Math.max(6, Math.round(base * fontScale / 100));
+}
+
+function resolveDisplayLabel(item, t) {
+  if (item.classInstructorName) return item.classInstructorName;
+  if (item.assigneeRole) {
+    return (
+      t(`role_label_${item.assigneeRole}`)
+      || t(`roles.${item.assigneeRole}`)
+      || t(`operations_board_role_${item.assigneeRole}`)
+      || (item.assigneeRole.charAt(0).toUpperCase() + item.assigneeRole.slice(1))
+    );
+  }
+  return item.assignee || null;
 }
 
 export default function WorkflowBoard({
@@ -233,13 +277,18 @@ export default function WorkflowBoard({
   orderKey = 'default',
   onLaneResize,
   onLaneWidthsReset,
+  onLaneAutoFit,
+  disableLaneReset = false,
   collapsedLanes = new Set(),
   onToggleLaneCollapse,
   canMoveToColumn,
   onBulkMove,
   roleContext = {},
+  isWorkflowLocked,
   t,
+  lang = 'en',
   fontScale = 100,
+  style,
 }) {
   const [boardData, setBoardData] = useState(() => applyStoredOrder(data, orderKey));
   const dragOriginRef = useRef(null);
@@ -365,6 +414,7 @@ export default function WorkflowBoard({
     setBoardData(applyStoredOrder(data, orderKey));
   }, [data, orderKey, draggingFromColumn]);
 
+
   return (
     <KanbanProvider
       columns={columns}
@@ -375,6 +425,7 @@ export default function WorkflowBoard({
       onDragCancel={handleDragCancel}
       collisionDetection={pointerWithin}
       className="operations-board-kanban"
+      style={style}
     >
       {(column) => {
         const collapsed = collapsedLanes.has(column.id);
@@ -401,10 +452,16 @@ export default function WorkflowBoard({
             key={column.id}
             data-testid={`operations-board-column-${column.id}`}
             className={`operations-board-lane ${laneClass}${collapsed ? ' operations-board-lane-collapsed' : ''}`}
-            style={{ '--lane-color': column.color || '#8b5cf6' }}
+            style={{ '--lane-color': column.color || '#8b5cf6', ...(collapsed ? { alignSelf: 'start', height: 'fit-content', minHeight: 0 } : {}) }}
           >
             {!collapsed && onLaneResize && (
-              <ColoredTooltip title={t('operations_board_resize_lane') || 'Drag to resize lane'} placement="top" color={column.color || '#8b5cf6'}>
+              <ColoredTooltip
+                title={disableLaneReset
+                  ? (t('operations_board_resize_lane_drag_only') || 'Drag to resize lane.')
+                  : (t('operations_board_resize_lane') || 'Drag to resize lane. Double-click to fit lane to content.')}
+                placement="top"
+                color={column.color || '#8b5cf6'}
+              >
                 <div
                   className="operations-board-lane-resize-handle"
                   role="separator"
@@ -414,10 +471,14 @@ export default function WorkflowBoard({
                     e.stopPropagation();
                     onLaneResize(column.id, e);
                   }}
-                  onDoubleClick={(e) => {
+                  onDoubleClick={disableLaneReset ? undefined : (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    onLaneWidthsReset?.();
+                    if (onLaneAutoFit) {
+                      onLaneAutoFit(column.id);
+                    } else {
+                      onLaneWidthsReset?.();
+                    }
                   }}
                   data-testid={`operations-board-lane-resize-${column.id}`}
                 />
@@ -435,8 +496,13 @@ export default function WorkflowBoard({
               canMoveTo={canMoveToColumn}
               fontScale={fontScale}
             />
-            <KanbanCards id={column.id} className={collapsed ? 'operations-board-lane-cards-collapsed' : undefined}>
+            <KanbanCards id={column.id} className={collapsed ? 'operations-board-lane-cards-collapsed !p-1' : undefined}>
               {(item) => {
+                const cardAssignee = resolveDisplayLabel(item, t);
+                const isLocked = isWorkflowLocked?.(item) || false;
+                const samePerson = item.submitterId && (item.classInstructorId || item.assigneeId)
+                  && String(item.submitterId) === String(item.classInstructorId || item.assigneeId);
+                const showSubmitter = Boolean(item.submitter) && !samePerson;
                 if (collapsed) {
                   return (
                     <KanbanCard
@@ -446,6 +512,8 @@ export default function WorkflowBoard({
                       name={item.name}
                       className="operations-board-card-collapsed operations-workflow-card"
                       dragColor={dragOriginColor}
+                      disabled={isLocked}
+                      style={{ padding: '4px 14px' }}
                     >
                       <div
                         className="flex flex-col items-center gap-1"
@@ -454,42 +522,33 @@ export default function WorkflowBoard({
                           onCardClick(item);
                         }}
                       >
-                        <WorkflowAssigneeAvatar assignee={item.assignee || item.name} size="sm" fontScale={fontScale} />
-                        {item.fileId && !item.snapshotFileId && (
-                          <FileText size={scalePx(12, fontScale)} className="text-gray-400" aria-hidden />
+                        {showSubmitter && (
+                          <WorkflowAssigneeAvatar assignee={item.submitter} role={item.submitterRole} image={item.submitterImage} size="sm" fontScale={fontScale} />
                         )}
-                        {item.snapshotFileId && (
-                          <ShieldCheck size={scalePx(12, fontScale)} style={{ color: '#16a34a' }} aria-hidden />
+                        {cardAssignee && (
+                          <WorkflowAssigneeAvatar
+                            assignee={cardAssignee}
+                            role={item.assigneeRole}
+                            image={item.assigneeImage}
+                            size="sm"
+                            fontScale={fontScale}
+                          />
                         )}
                       </div>
                     </KanbanCard>
                   );
                 }
-                const dotSize = scalePx(8, fontScale);
+                const dotSize = scalePx(11, fontScale);
                 const wfIconSize = scalePx(18, fontScale);
-                const pdfIconSize = scalePx(16, fontScale);
                 const summary = item.attendanceSummary;
-                const summaryItems = summary ? [
-                  { count: summary.present, color: '#10b981' },
-                  { count: summary.late, color: '#f59e0b' },
-                  { count: summary.absent, color: '#ef4444' },
-                  { count: summary.excused, color: '#ec4899' },
-                ].filter((s) => s.count > 0) : [];
                 const isAttendanceWorkflow = item.workflowType === 'ATTENDANCE_DAILY'
                   || item.workflowType === 'ATTENDANCE_WEEKLY'
                   || item.attendanceSubtype === 'DAILY'
                   || item.attendanceSubtype === 'WEEKLY_SUMMARY';
 
-                const parts = parseWorkflowCardName(item.name).filter((part) => !isDateLike(part));
-                const titleParts = isAttendanceWorkflow ? parts.slice(1) : parts;
-                const titleText = titleParts[0] || item.name;
-
-                const isWeeklyCard = item.workflowType === 'ATTENDANCE_WEEKLY' || item.attendanceSubtype === 'WEEKLY_SUMMARY';
-                const assigneeTooltip = item.classInstructorName
-                  ? `${t('operations_board_class_instructor') || 'Class instructor'}: ${item.classInstructorName}`
-                  : (isWeeklyCard && item.assignee
-                    ? `${t('operations_board_assigned_to') || 'Assigned to'}: ${item.assignee}`
-                    : item.assignee);
+                const titleText = isAttendanceWorkflow
+                  ? resolveBoardClassName(item, lang)
+                  : (parseWorkflowCardName(item.name).filter((part) => !isDateLike(part))[0] || item.name);
 
                 return (
                   <KanbanCard
@@ -498,11 +557,12 @@ export default function WorkflowBoard({
                     key={item.id}
                     name={item.name}
                     dragColor={dragOriginColor}
-                    className="operations-workflow-card p-2"
-                    style={{ marginBottom: '-4px' }}
+                    className="operations-workflow-card py-3 px-2"
+                    style={{ '--card-status-color': column.color, marginBottom: '-4px', padding: '12px 14px' }}
+                    disabled={isLocked}
                   >
                     <ColoredTooltip
-                      title={<WorkflowCardHoverTooltip item={item} column={column} summary={summary} t={t} />}
+                      title={<WorkflowCardHoverTooltip item={item} column={column} summary={summary} t={t} lang={lang} />}
                       color={column.color}
                     >
                     <div
@@ -514,56 +574,56 @@ export default function WorkflowBoard({
                     >
                       <div className="flex items-center justify-between gap-1.5 min-w-0">
                         <div className="flex items-center gap-1 min-w-0">
-                          <WorkflowIcon size={wfIconSize} className="shrink-0" style={{ color: column.color }} aria-hidden />
+                          <span
+                            className="shrink-0 rounded-full px-2 py-0.5 text-[0.65rem] font-bold text-white whitespace-nowrap border border-solid"
+                            style={{ backgroundColor: column.color, borderColor: column.color }}
+                          >
+                            {column.label}
+                          </span>
                           {(item.workflowType === 'ATTENDANCE_DAILY' || item.attendanceSubtype === 'DAILY') && (
                             <div className="flex items-center gap-0.5 shrink-0">
-                              <Calendar size={scalePx(14, fontScale)} className="text-blue-500" />
-                              <User size={scalePx(14, fontScale)} className="text-blue-500" />
+                              <FilePenLine size={scalePx(14, fontScale)} style={{ color: column.color }} />
                             </div>
+                          )}
+                          {isLocked && (
+                            <ColoredTooltip title={t('operations_board_attendance_locked_weekly') || 'Attendance locked — weekly workflow in progress for this week.'} color="#dc2626" placement="top">
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <Lock size={scalePx(14, fontScale)} color="#dc2626" />
+                              </div>
+                            </ColoredTooltip>
                           )}
                           {(item.workflowType === 'ATTENDANCE_WEEKLY' || item.attendanceSubtype === 'WEEKLY_SUMMARY') && (
                             <div className="flex items-center gap-0.5 shrink-0">
-                              <Calendar size={scalePx(14, fontScale)} className="text-purple-500" />
-                              <Shield size={scalePx(14, fontScale)} className="text-purple-500" />
+                              <GitBranch size={scalePx(14, fontScale)} style={{ color: column.color }} />
                             </div>
                           )}
-                          {summaryItems.length > 0 && (
-                            <div className="flex items-center shrink-0">
-                              {summaryItems.map((s, i) => (
-                                <span
-                                  key={i}
-                                  className="inline-block rounded-full"
-                                  style={{
-                                    width: dotSize,
-                                    height: dotSize,
-                                    backgroundColor: s.color,
-                                    marginLeft: i > 0 ? '-3px' : '0',
-                                  }}
-                                />
-                              ))}
-                            </div>
-                          )}
-                          {item.fileId && !item.snapshotFileId && (
-                            <FileText
-                              size={pdfIconSize}
-                              className="shrink-0 text-gray-400"
-                              data-testid={`workflow-card-pdf-${item.id}`}
-                            />
-                          )}
-                          {item.snapshotFileId && (
-                            <ShieldCheck
-                              size={pdfIconSize}
+                          {isAttendanceWorkflow && summary && (
+                            <AttendanceStatusDots
+                              summary={summary}
+                              dotSize={dotSize}
                               className="shrink-0"
-                              style={{ color: '#16a34a' }}
-                              data-testid={`workflow-card-snapshot-${item.id}`}
+                              ariaLabel={t('attendance_summary') || 'Attendance summary'}
                             />
                           )}
                         </div>
-                        <WorkflowAssigneeAvatar
-                          assignee={item.assignee}
-                          assigneeLabel={assigneeTooltip}
-                          fontScale={fontScale}
-                        />
+                        <div className="flex items-center gap-1">
+                          {showSubmitter && (
+                            <WorkflowAssigneeAvatar
+                              assignee={item.submitter}
+                              role={item.submitterRole}
+                              image={item.submitterImage}
+                              fontScale={fontScale}
+                            />
+                          )}
+                          {cardAssignee && (
+                            <WorkflowAssigneeAvatar
+                              assignee={cardAssignee}
+                              role={item.assigneeRole}
+                              image={item.assigneeImage}
+                              fontScale={fontScale}
+                            />
+                          )}
+                        </div>
                       </div>
                       <span className="truncate font-semibold leading-tight" style={{ fontSize: scalePx(11, fontScale) }}>
                         {titleText}

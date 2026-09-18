@@ -1,7 +1,7 @@
 import React from 'react';
 import Button from '@components/ui/Button';
 import PortalTooltip from '@ui/PortalTooltip';
-import { CheckSmallIcon, ClockSmallIcon, XSmallIcon } from '@utils/icons.jsx';
+import { Check, Clock, X } from '@utils/icons.jsx';
 import { ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY, getAttendanceColor } from '@constants/attendanceTypes.js';
 import { getThemedIcon } from '@constants/iconTypes';
 
@@ -81,7 +81,7 @@ const QuickAttendanceButtons = ({
             }
           }}
         >
-          <CheckSmallIcon style={{ width: '0.875rem', height: '0.875rem' }} />
+          <Check size={14} strokeWidth={3} />
         </Button>
       </PortalTooltip>
 
@@ -130,7 +130,7 @@ const QuickAttendanceButtons = ({
             }
           }}
         >
-          <ClockSmallIcon style={{ width: '0.875rem', height: '0.875rem' }} />
+          <Clock size={14} />
         </Button>
       </PortalTooltip>
 
@@ -180,7 +180,7 @@ const QuickAttendanceButtons = ({
               }
             }}
           >
-            <XSmallIcon style={{ width: '0.875rem', height: '0.875rem' }} />
+            <X size={14} />
           </Button>
         </PortalTooltip>
       )}

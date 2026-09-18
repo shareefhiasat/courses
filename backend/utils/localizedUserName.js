@@ -50,9 +50,24 @@ export function buildLocalizedNameFields(user, fallback = UNKNOWN) {
   };
 }
 
+function resolveImageUrl(user) {
+  if (!user?.profileImageUrl) return null;
+  const url = user.profileImageUrl;
+  if (url.startsWith('http') || url.startsWith('/api/')) return url;
+  const proxyId = user.keycloakId || user.id;
+  if (proxyId) return `/api/v1/user-images/proxy/${proxyId}/profile`;
+  return null;
+}
+
 /** Notification template vars: English body uses studentName; Arabic body uses Arabic name. */
 export function buildNotificationNameVars(user, fallback = UNKNOWN) {
   const fields = buildLocalizedNameFields(user, fallback);
+  const imageUrl = resolveImageUrl(user);
+  const userRole = typeof user?.role === 'string' ? user.role
+    : (user?.role?.code)
+    || (user?.roleAssignments?.[0]?.role?.code)
+    || (Array.isArray(user?.roles) && user.roles.length ? user.roles[0] : null)
+    || null;
   return {
     studentName: fields.nameEn,
     studentNameAr: fields.nameAr,
@@ -60,6 +75,9 @@ export function buildNotificationNameVars(user, fallback = UNKNOWN) {
     instructorNameAr: fields.nameAr,
     userName: fields.nameEn,
     userNameAr: fields.nameAr,
+    userImage: imageUrl,
+    userImageAr: imageUrl,
+    userRole: userRole ? userRole.toLowerCase() : null,
   };
 }
 

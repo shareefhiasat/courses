@@ -66,12 +66,13 @@
 .operations-board-content {
   flex: 1;
   min-height: 0;
-  min-width: var(--ops-grid-min-width, 100%);
+  min-width: max-content;
   width: max-content;
   height: 100%;
 }
 
-.operations-board-content:has([data-testid="operations-board-table"]) {
+.operations-board-content:has([data-testid="operations-board-table"]),
+.operations-board-content:has([data-testid="operations-board-loading"]) {
   width: 100% !important;
   min-width: 0 !important;
 }
@@ -95,14 +96,14 @@
 .operations-board-kanban {
   height: 100%;
   width: max-content !important;
-  min-width: 100%;
+  min-width: max-content !important;
   min-height: 0;
 }
 
 .operations-board-kanban.grid,
 .operations-board-page .operations-board-kanban {
   width: max-content !important;
-  min-width: var(--ops-grid-min-width, 100%);
+  min-width: max-content !important;
   height: 100%;
 }
 
@@ -110,45 +111,48 @@
   min-height: 0;
 }
 
+/* Auto-fit tracks to lane content, capped to match JS MAX_LANE_WIDTH */
+.operations-board-kanban,
+.operations-attendance-kanban {
+  grid-auto-columns: fit-content(560px) !important;
+}
+
+/* Lanes fill their track but stay capped to match JS MAX_LANE_WIDTH */
 .operations-board-kanban > div,
-.operations-board-page .operations-board-kanban {
-  grid-auto-columns: unset !important;
-  grid-template-columns: var(--ops-grid-columns, repeat(auto-fit, minmax(240px, 1fr))) !important;
+.operations-attendance-kanban > div {
   width: 100% !important;
-  min-width: max-content;
-  max-width: none !important;
+  min-width: 0 !important;
+  max-width: 560px !important;
   height: 100%;
 }
 
-.operations-attendance-kanban > div {
-  grid-auto-columns: unset !important;
-  grid-template-columns: var(--ops-grid-columns, repeat(auto-fit, minmax(240px, 1fr))) !important;
+/* Attendance cards fit their own content */
+.operations-board-page .operations-attendance-card {
   width: 100% !important;
-  min-width: max-content;
-  max-width: none !important;
+  max-width: 100% !important;
+  padding-inline-start: 0.5rem !important;
+  position: relative;
+  z-index: 0;
+  border: 1px solid var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) !important;
+  border-left: 3px solid var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) !important;
+  box-shadow: 0 0 0 2px var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) !important;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease !important;
 }
 
-.operations-board-page .operations-attendance-card {
-  max-width: 100%;
-  padding-inline-start: 0.5rem !important;
-  border-left: 3px solid var(--card-status-color, transparent) !important;
-  border-left-width: 3px !important;
-  border-left-style: solid !important;
-  border-left-color: var(--card-status-color, transparent) !important;
-  border-top: none !important;
-  border-bottom: none !important;
-  border-right: none !important;
+.operations-board-page .operations-workflow-card {
+  position: relative;
+  z-index: 0;
+  border: 1px solid var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) !important;
+  border-left: 3px solid var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) !important;
+  box-shadow: 0 0 0 2px var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) !important;
   transition: box-shadow 0.2s ease, border-color 0.2s ease !important;
 }
 
 .operations-board-page .operations-attendance-card:hover,
 .operations-board-page .operations-workflow-card:hover {
-  position: relative;
   z-index: 1;
-  box-shadow: 0 0 0 2px var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))),
+  box-shadow: 0 0 0 4px var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))),
               0 4px 14px -2px color-mix(in srgb, var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) 35%, transparent) !important;
-  border: 1px solid var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) !important;
-  border-left: 3px solid var(--card-status-color, hsl(var(--border))) !important;
 }
 
 .operations-board-page .operations-attendance-card > div {
@@ -322,7 +326,7 @@
 
 /* Kibo UI Kanban board styling to match the demo */
 .operations-board-page [class*="grid-flow-col"] {
-  gap: 0.5rem !important;
+  gap: var(--ops-grid-gap, 0.5rem) !important;
   grid-template-columns: var(--ops-grid-columns, repeat(auto-fit, minmax(240px, 1fr))) !important;
   width: 100% !important;
   min-width: max-content;
@@ -837,11 +841,11 @@
 /* Read-only lane: muted gray background */
 .operations-board-page .operations-board-lane-readonly,
 .operations-board-lane-readonly {
-  background-color: var(--background-secondary, #f8f9fa) !important;
+  background-color: rgba(248, 249, 250, 0.92) !important;
   border: 1px solid var(--lane-color, var(--border, #dee2e6)) !important;
   border-color: var(--lane-color, var(--border, #dee2e6)) !important;
   border-radius: 8px !important;
-  opacity: 0.5;
+  opacity: 1;
 }
 
 .operations-board-page .operations-board-lane-override,
@@ -941,20 +945,20 @@
 }
 
 .operations-board-bulk-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 4px;
-  z-index: 50;
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
   padding: 4px;
   border-radius: 8px;
-  border: 1px solid hsl(var(--border));
-  background: hsl(var(--background));
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
-  min-width: 140px;
+  min-width: 150px;
+  max-width: min(260px, calc(100vw - 32px));
+  max-height: min(360px, 70vh);
+  overflow-y: auto;
 }
 
 .operations-board-bulk-menu-item {
@@ -964,7 +968,7 @@
   padding: 6px 8px;
   border: none;
   background: transparent;
-  color: hsl(var(--foreground));
+  color: #1e293b;
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
@@ -974,22 +978,41 @@
 }
 
 .operations-board-bulk-menu-item:hover {
-  background: hsl(var(--muted));
+  background: #f3f4f6;
 }
 
 /* RTL (Arabic) specific styles for bulk menu to ensure background visibility */
 [dir='rtl'] .operations-board-bulk-menu {
-  background: hsl(var(--background)) !important;
-  left: auto !important;
-  right: 0 !important;
+  background: #ffffff !important;
 }
 
 [dir='rtl'] .operations-board-bulk-menu-item {
   background: transparent !important;
 }
 
+[data-theme="dark"] .operations-board-bulk-menu {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .operations-board-bulk-menu-item {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .operations-board-bulk-menu-item:hover {
+  background: #334155;
+}
+
+[dir="rtl"][data-theme="dark"] .operations-board-bulk-menu {
+  background: #0f172a !important;
+}
+
 [dir='rtl'] .operations-board-bulk-menu-item:hover {
-  background: hsl(var(--muted)) !important;
+  background: #f3f4f6 !important;
+}
+
+[data-theme="dark"] [dir='rtl'] .operations-board-bulk-menu-item:hover {
+  background: #334155 !important;
 }
 
 .operations-board-lane-cards-collapsed {
@@ -1054,32 +1077,6 @@
 .operations-board-page .operations-board-date-picker svg * {
   color: #3b82f6 !important;
   stroke: #3b82f6 !important;
-}
-
-.operations-board-page button.operations-board-filter-chip {
-  --chip-color: hsl(var(--border));
-  --chip-fg: hsl(var(--foreground));
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 0.375rem !important;
-  padding: 0.35rem 0.75rem !important;
-  border-radius: 999px !important;
-  border: 1.5px solid var(--chip-color) !important;
-  background-color: hsl(var(--background)) !important;
-  font-size: calc(0.75rem * var(--ops-font-scale, 1)) !important;
-  font-weight: 600 !important;
-  color: var(--chip-fg) !important;
-  cursor: pointer !important;
-  transition: border-color 0.15s, background 0.15s, color 0.15s !important;
-  white-space: nowrap !important;
-}
-
-.operations-board-page button.operations-board-filter-chip:hover {
-  background-color: color-mix(in srgb, var(--chip-color) 6%, transparent) !important;
-}
-
-.operations-board-page button.operations-board-filter-chip.selected {
-  background-color: color-mix(in srgb, var(--chip-color) 16%, transparent) !important;
 }
 
 .operations-board-action-announcement {
@@ -1228,40 +1225,6 @@
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid hsl(var(--border));
   background: hsl(var(--muted) / 0.35);
-}
-
-.operations-board-filter-chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.375rem;
-}
-
-.operations-board-filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  border: 1.5px solid hsl(var(--border));
-  background: hsl(var(--background));
-  font-size: calc(0.75rem * var(--ops-font-scale, 1));
-  font-weight: 600;
-  color: hsl(var(--foreground));
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
-  white-space: nowrap;
-}
-
-.operations-board-filter-chip:hover {
-  border-color: #93c5fd;
-  background: rgba(59, 130, 246, 0.06);
-}
-
-.operations-board-filter-chip.selected {
-  border-color: #3b82f6;
-  background: rgba(59, 130, 246, 0.14);
-  color: #2563eb;
 }
 
 /* Table avatar font-scale + padding */
@@ -1468,4 +1431,248 @@
   font-weight: 700;
   color: #3b82f6;
   flex-shrink: 0;
+}
+
+/* ── Grouped timeline (activity / notes / participation) ── */
+.operations-board-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.operations-board-timeline-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.operations-board-timeline-group-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, hsl(var(--primary)) 12%, transparent);
+  color: hsl(var(--primary));
+  font-size: calc(0.7rem * var(--ops-font-scale, 1));
+  font-weight: 700;
+  backdrop-filter: blur(4px);
+}
+
+.operations-board-timeline-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-inline-start: 0.5rem;
+  border-inline-start: 2px solid hsl(var(--border));
+}
+
+.operations-board-timeline-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--background));
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+[dir='rtl'] .operations-board-timeline-group-items {
+  border-inline-start: none;
+  border-inline-end: 2px solid hsl(var(--border));
+}
+
+.operations-board-timeline-card:hover {
+  background: hsl(var(--muted) / 0.25);
+}
+
+.operations-board-timeline-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.operations-board-timeline-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot-color, #cbd5e1), transparent 70%);
+}
+
+.operations-board-timeline-actor {
+  font-weight: 600;
+  font-size: calc(0.75rem * var(--ops-font-scale, 1));
+  color: hsl(var(--foreground));
+}
+
+.operations-board-timeline-time {
+  font-size: calc(0.65rem * var(--ops-font-scale, 1));
+  color: hsl(var(--muted-foreground));
+  margin-inline-start: auto;
+}
+
+.operations-board-timeline-status-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: calc(0.8rem * var(--ops-font-scale, 1));
+}
+
+.operations-board-timeline-status {
+  font-weight: 600;
+}
+
+.operations-board-timeline-text {
+  margin: 0;
+  font-size: calc(0.8125rem * var(--ops-font-scale, 1));
+  color: hsl(var(--foreground));
+  line-height: 1.5;
+}
+
+.operations-board-timeline-reason {
+  margin: 0;
+  font-size: calc(0.75rem * var(--ops-font-scale, 1));
+  color: hsl(var(--muted-foreground));
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  background: hsl(var(--muted) / 0.4);
+}
+
+/* ── Improved Profile Panel ── */
+.operations-board-profile-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.5rem 0.25rem;
+}
+
+.operations-board-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1rem;
+  border-radius: 14px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.operations-board-profile-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.operations-board-profile-name {
+  font-size: calc(1rem * var(--ops-font-scale, 1));
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+.operations-board-profile-meta {
+  font-size: calc(0.75rem * var(--ops-font-scale, 1));
+  color: hsl(var(--muted-foreground));
+}
+
+.operations-board-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.operations-board-profile-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+}
+
+.operations-board-profile-card-label {
+  font-size: calc(0.7rem * var(--ops-font-scale, 1));
+  color: hsl(var(--muted-foreground));
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.operations-board-profile-card-value {
+  font-size: calc(0.875rem * var(--ops-font-scale, 1));
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  word-break: break-word;
+}
+
+/* Workflow cards: status outline by default (not only on hover) */
+.operations-board-page [class*="min-h-40"] [class*="cursor-grab"].operations-workflow-card {
+  border: 1px solid var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) !important;
+  border-left: 3px solid var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) !important;
+  box-shadow: 0 0 0 2px var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) !important;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease !important;
+}
+
+.operations-board-page [class*="min-h-40"] [class*="cursor-grab"].operations-workflow-card:hover {
+  z-index: 1;
+  box-shadow: 0 0 0 4px var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))),
+              0 4px 14px -2px color-mix(in srgb, var(--card-status-color, var(--lane-color, rgba(0,0,0,0.15))) 35%, transparent) !important;
+}
+
+/* ── Dark mode: kanban lanes, cards, and footer legend ── */
+[data-theme="dark"] .operations-board-page .operations-board-lane-permitted,
+[data-theme="dark"] .operations-board-lane-permitted {
+  background-color: hsl(220 13% 12%) !important;
+}
+
+[data-theme="dark"] .operations-board-page .operations-board-lane-readonly,
+[data-theme="dark"] .operations-board-lane-readonly {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+}
+
+[data-theme="dark"] .operations-board-page .operations-board-lane-header {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .operations-board-page .operations-workflow-card,
+[data-theme="dark"] .operations-board-page .operations-attendance-card,
+[data-theme="dark"] .operations-board-page [class*="min-h-40"] [class*="cursor-grab"] {
+  background-color: hsl(220 13% 14%) !important;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .operations-board-page [class*="min-h-40"] [class*="cursor-grab"] p,
+[data-theme="dark"] .operations-board-page [class*="min-h-40"] [class*="cursor-grab"] span {
+  color: inherit;
+}
+
+/* Footer legend bar + groups */
+[data-theme="dark"] .operations-board-footer-stack {
+  background: transparent;
+  border-top-color: #334155;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .operations-board-footer-stack [class*="legendGroup"] {
+  border-color: rgba(148, 163, 184, 0.6);
+  background: rgba(30, 41, 59, 0.75);
+}
+
+[data-theme="dark"] .operations-board-footer-stack [class*="legendLabel"] {
+  filter: brightness(1.2) saturate(1.05);
+}
+
+[data-theme="dark"] .operations-board-footer-stack [class*="legendItem"] svg {
+  filter: brightness(1.15) saturate(1.05);
+}
+
+[data-theme="dark"] .operations-board-footer-stack [class*="legendDivider"] {
+  background: rgba(148, 163, 184, 0.25);
 }

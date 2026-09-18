@@ -16,6 +16,7 @@ import { EVENTS, CATEGORIES, PRIORITIES, getCategoryFromEvent, getPriorityFromEv
 import { registerAdapter, registerTemplate, getTemplate, getEnabledChannels, getAdapter } from './registry.js';
 import { resolveRecipients } from './recipients.js';
 import { registerAllTemplates } from './templates.js';
+import { buildActorMeta, resolveActor } from './actorMeta.js';
 import inAppAdapter from './adapters/inApp.js';
 import emailAdapter from './adapters/email.js';
 import smsAdapter from './adapters/sms.js';
@@ -46,29 +47,34 @@ export const setWSEmitter = (emitter) => {
  */
 async function enrichPayload(payload) {
   if (!payload) return payload;
-  if (payload.programId != null && payload.classId != null && payload.subjectId != null) return payload;
+  if (payload.programId != null && payload.classId != null && payload.subjectId != null && (payload.date != null || payload.documentId == null)) return payload;
 
   try {
-    if (payload.classId != null && (payload.programId == null || payload.subjectId == null)) {
+    if (payload.classId != null && (payload.programId == null || payload.subjectId == null || payload.termId == null)) {
       const cls = await prisma.class.findUnique({
         where: { id: payload.classId },
-        select: { id: true, programId: true, subjectId: true }
+        select: { id: true, programId: true, subjectId: true, academicTermId: true }
       });
       if (cls) {
         if (payload.programId == null) payload.programId = cls.programId;
         if (payload.subjectId == null) payload.subjectId = cls.subjectId;
+        if (payload.termId == null) payload.termId = cls.academicTermId;
       }
     }
 
-    if (payload.programId == null && payload.documentId != null && payload.classId == null) {
+    if (payload.documentId != null) {
       const doc = await prisma.workflowDocument.findUnique({
         where: { id: payload.documentId },
-        select: { class: { select: { id: true, programId: true, subjectId: true } } }
+        select: { date: true, class: { select: { id: true, programId: true, subjectId: true, academicTermId: true } } }
       });
-      if (doc?.class) {
+      if (doc?.date != null && payload.date == null) {
+        payload.date = doc.date;
+      }
+      if (doc?.class && payload.classId == null) {
         payload.classId = doc.class.id;
         payload.programId = doc.class.programId;
         payload.subjectId = doc.class.subjectId;
+        payload.termId = doc.class.academicTermId;
       }
     }
   } catch (error) {
@@ -91,6 +97,12 @@ export const emit = async (event, payload, actor, recipientCriteria) => {
     log.info('Emitting notification', { event, recipientCriteria });
 
     const enrichedPayload = await enrichPayload(payload);
+
+    let actorUser = null;
+    if (actor) {
+      actorUser = await resolveActor(actor);
+      Object.assign(enrichedPayload, buildActorMeta(actorUser));
+    }
 
     // Validate event
     const template = getTemplate(event);
@@ -138,7 +150,7 @@ export const emit = async (event, payload, actor, recipientCriteria) => {
         
         try {
           // For in-app channel, capture the notificationId
-          const notificationData = { event, category, priority, metadata: enrichedPayload, createdById: actor?.dbId ?? null };
+          const notificationData = { event, category, priority, metadata: enrichedPayload, createdById: actorUser?.id ?? actor?.dbId ?? actor?.id ?? null };
           if (notificationId) {
             notificationData.notificationId = notificationId;
           }

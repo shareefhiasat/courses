@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Button, Card, CardBody } from '@ui';
-import { FileText, FileSpreadsheet } from 'lucide-react';
+import { FileText, FileSpreadsheet } from '@utils/icons.jsx';
 import { getThemedIcon } from '@constants/iconTypes';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { REPORT_TYPE_IDS, RECIPIENT_ROLES } from '@constants/reportConstants';

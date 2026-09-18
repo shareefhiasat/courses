@@ -14,7 +14,7 @@ import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'reac
 import { usePanelLayout } from '@hooks/usePanelLayout';
 import { apiService } from '@services/api/apiService';
 import { formatQatarDate } from '@utils/timezone';
-import { formatMimeType } from '@utils/fileUtils';
+import { formatMimeType, handleFilePreview } from '@utils/fileUtils';
 import { getSlaInfo } from '@utils/sla.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -34,10 +34,12 @@ import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/ico
 import { getAvatarColor, getAvatarInitials, normalizeProfileImageUrl } from '@utils/avatarUtils';
 import { getUserRoleFromObject } from '@utils/userUtils';
 import { getStatusVariant, WORKFLOW_STATUS } from '@constants/workflowStatusTypes';
-import { Workflow as WorkflowIcon, Paperclip, MessageSquare, Clock, CheckCircle, Circle, AlertCircle, FileText, Send, AlertTriangle, XCircle, Star, Users, Shield, GraduationCap } from 'lucide-react';
+import { Workflow as WorkflowIcon, Paperclip, MessageSquare, Clock, CheckCircle, Circle, AlertCircle, FileText, FileSignature, Send, AlertTriangle, XCircle, Star, Users, Shield, GraduationCap } from 'lucide-react';
 import { getWorkflowDocument } from '@services/api/workflow-documents-api.js';
+import { logExportHistory } from '@services/db/exportHistoryService.js';
 import ApprovalSuccessDialog from '@components/workflow/ApprovalSuccessDialog.jsx';
 import { generateWeeklyViolationSnapshot, generateDailyViolationSnapshot } from '@services/business/workflowSnapshotService.js';
+import { buildWarningActionFile } from '@services/business/warningWorkflowApprovalService.js';
 
 const WorkflowDocumentDetailPage = () => {
   const { t, lang } = useLang();
@@ -304,6 +306,38 @@ const WorkflowDocumentDetailPage = () => {
     );
   };
 
+
+  // Log approved/rejected warning workflow to export history
+  const maybeLogWarningExport = async (workflowStatus, warningFile) => {
+    if (!document?.workflowType?.startsWith('ATTENDANCE_WARNING')) return;
+    try {
+      const warningType = document.attendanceSubtype === 'WARNING_FINAL' ? 'final_warning' : 'first_warning';
+      const fileId = document.file?.id || document.fileId;
+      if (!fileId) return;
+      await logExportHistory({
+        exportType: warningType,
+        format: 'pdf',
+        filename: warningFile?.fileName || document.file?.name || `${warningType}_warning_${document.id}.pdf`,
+        classId: document.classId,
+        subjectId: document.class?.subjectId,
+        programId: document.class?.programId,
+        reportDate: document.date,
+        fileId,
+        mimeType: 'application/pdf',
+        metadata: {
+          workflowStatus,
+          workflowDocumentId: document.id,
+          warningType,
+          studentNumber: document.metadata?.studentNumber,
+          studentName: document.metadata?.studentName,
+          targetStudentId: document.targetStudentId,
+        },
+      });
+    } catch (err) {
+      console.warn('[WorkflowDocumentDetailPage] Failed to log warning export history:', err);
+    }
+  };
+
   // Handle approve action
   const handleApprove = async () => {
     setActionLoading(true);
@@ -323,6 +357,9 @@ const WorkflowDocumentDetailPage = () => {
             programId: document.programId,
             programName: document.program,
             classIds: document.classId ? [document.classId] : [],
+            workflowStatus: 'APPROVED',
+            approvedBy: auth?.user,
+            approvedAt: new Date().toISOString(),
           });
           if (snapResult.success) {
             snapshotData = {
@@ -339,6 +376,9 @@ const WorkflowDocumentDetailPage = () => {
             classId: document.classId,
             programId: document.programId,
             programName: document.program,
+            workflowStatus: 'APPROVED',
+            approvedBy: auth?.user,
+            approvedAt: new Date().toISOString(),
           });
           if (snapResult.success) {
             snapshotData = {
@@ -349,11 +389,23 @@ const WorkflowDocumentDetailPage = () => {
           }
         }
       }
-      const result = await approveWorkflowDocument(documentId, {
-        comment: commentValue,
-        ...(snapshotData || {}),
-      });
+      let result;
+      let warningFile = null;
+      if (document?.workflowType?.startsWith('ATTENDANCE_WARNING')) {
+        warningFile = await buildWarningActionFile(document, auth?.user, lang, 'APPROVED');
+        result = await approveWorkflowDocument(documentId, {
+          comment: commentValue,
+          ...warningFile,
+          ...(snapshotData || {}),
+        });
+      } else {
+        result = await approveWorkflowDocument(documentId, {
+          comment: commentValue,
+          ...(snapshotData || {}),
+        });
+      }
       if (result.success) {
+        await maybeLogWarningExport('APPROVED', warningFile);
         toast.success(t('workflow.document.approved', 'Document approved successfully'));
         showNotificationInfo(result.notificationsSent);
         await refreshDocument();
@@ -370,7 +422,7 @@ const WorkflowDocumentDetailPage = () => {
           });
         }
       } else {
-        toast.error(result.error || t('workflow.document.approveError', 'Failed to approve document'));
+        toast.error(result.errorKey ? t(result.errorKey, result.error) : (result.error || t('workflow.document.approveError', 'Failed to approve document')));
       }
     } catch (err) {
       toast.error(t('workflow.document.approveError', 'Failed to approve document'));
@@ -389,16 +441,24 @@ const WorkflowDocumentDetailPage = () => {
     }
     setActionLoading(true);
     try {
-      const result = await rejectWorkflowDocument(documentId, { comment: commentValue });
+      let result;
+      let warningFile = null;
+      if (document?.workflowType?.startsWith('ATTENDANCE_WARNING')) {
+        warningFile = await buildWarningActionFile(document, auth?.user, lang, 'REJECTED');
+        result = await rejectWorkflowDocument(documentId, { comment: commentValue, ...warningFile });
+      } else {
+        result = await rejectWorkflowDocument(documentId, { comment: commentValue });
+      }
       console.log('[REJECT ACTION] API response', result);
       if (result.success) {
+        await maybeLogWarningExport('REJECTED', warningFile);
         toast.success(t('workflow.document.rejected', 'Document rejected successfully'));
         showNotificationInfo(result.notificationsSent);
         console.log('[REJECT ACTION] Reject successful, new status:', result.data?.status);
         await refreshDocument();
         setActionModal(null);
       } else {
-        toast.error(result.error || t('workflow.document.rejectError', 'Failed to reject document'));
+        toast.error(result.errorKey ? t(result.errorKey, result.error) : (result.error || t('workflow.document.rejectError', 'Failed to reject document')));
       }
     } catch (err) {
       console.error('[REJECT ACTION] Error:', err);
@@ -429,7 +489,7 @@ const WorkflowDocumentDetailPage = () => {
         setComment('');
       } else {
         console.error('[RETURN ACTION] Failed:', result);
-        toast.error(result.error || t('workflow.document.returnError', 'Failed to return document'));
+        toast.error(result.errorKey ? t(result.errorKey, result.error) : (result.error || t('workflow.document.returnError', 'Failed to return document')));
       }
     } catch (err) {
       console.error('[RETURN ACTION] Error:', err);
@@ -487,14 +547,23 @@ const WorkflowDocumentDetailPage = () => {
     return isSubmitter && isRejected;
   };
 
-  // Check if user can upload signed document (Admin only for weekly summaries)
+  // Check if user can upload signed document (Admin/HR for daily + weekly attendance workflows)
   const canUploadSigned = () => {
     if (!document || !user) return false;
     const userRoles = (user.roles || []).map(r => r.toLowerCase());
     const isAdmin = userRoles.includes('admin');
-    const isWeeklySummary = document.workflowType === 'ATTENDANCE_WEEKLY';
+    const isHR = userRoles.includes('hr');
+    const isSuperAdmin = userRoles.includes('super_admin');
+    const isAttendanceDoc = document.workflowCategory === 'ATTENDANCE'
+      && (document.attendanceSubtype === 'DAILY' || document.attendanceSubtype === 'WEEKLY_SUMMARY');
+    const isLegacyWeekly = document.workflowType === 'ATTENDANCE_WEEKLY';
+    if (!isAttendanceDoc && !isLegacyWeekly) return false;
+    if (!isAdmin && !isHR && !isSuperAdmin) return false;
+    // Post-approval: attach signed copy without changing status
+    if (document.status === WORKFLOW_STATUS.APPROVED) return !document.signedFileId;
+    // Pre-approval legacy weekly flow
     const isUnderAdminReview = document.status === WORKFLOW_STATUS.SUBMITTED || document.status === WORKFLOW_STATUS.UNDER_ADMIN_REVIEW;
-    return isAdmin && isWeeklySummary && isUnderAdminReview;
+    return isLegacyWeekly && isUnderAdminReview;
   };
 
   // Check if user can re-upload document (HR/Admin during review)
@@ -810,7 +879,6 @@ const WorkflowDocumentDetailPage = () => {
                       border: '1.5px solid var(--panel, white)',
                       boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
                     }}
-                      title={t(`roles.${role}`, role)}
                     >
                       {React.cloneElement(roleIcon, { color: roleColor, size: 10 })}
                     </div>
@@ -1010,6 +1078,50 @@ const WorkflowDocumentDetailPage = () => {
                 {getThemedIcon('ui', 'download', 16)}
               </Button>
             </div>
+
+            {/* Signed copy (uploaded after print & sign) */}
+            {document.signedFile && (
+            <div style={{
+              padding: '1rem',
+              borderRadius: '0.5rem',
+              border: '1px solid #8b5cf6',
+              background: 'rgba(139,92,246,0.06)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+            }}>
+              <div style={{
+                width: '3rem',
+                height: '3rem',
+                borderRadius: '0.5rem',
+                background: 'rgba(139,92,246,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#8b5cf6',
+              }}>
+                <FileSignature size={24} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text, #111827)' }}>
+                  {document.signedFile.name}
+                </div>
+                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
+                  {t('signed_copy', 'Signed copy')}
+                  {document.signedAt ? ` • ${formatQatarDate(document.signedAt)}` : ''}
+                  {document.signedBy ? ` • ${lang === 'ar' ? (document.signedBy.displayNameAr || document.signedBy.displayName) : (document.signedBy.displayName || document.signedBy.displayNameAr)}` : ''}
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleFilePreview(document.signedFile)}
+                style={{ padding: '0.5rem' }}
+              >
+                {getThemedIcon('ui', 'download', 16)}
+              </Button>
+            </div>
+            )}
 
             {/* Versions list using VersionsTab component */}
             <div style={{ height: '500px' }}>

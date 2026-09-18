@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIsMobile } from '@hooks/useIsMobile';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
@@ -43,7 +44,7 @@ const AUTO_HIDE_LEAVE_DELAY_MS = 250;
 
 const SideDrawer = ({ isOpen, onClose, onOpen }) => {
   const { user, isAdmin, isSuperAdmin, isHR, isInstructor, role, impersonating, stopImpersonation, logout } = useAuth();
-  const { t, lang, toggleLang } = useLang();
+  const { t, lang } = useLang();
   const toInitCap = (text) => {
     if (!text || lang === 'ar') return text;
     const normalized = text === text.toUpperCase() && /[A-Z]/.test(text)
@@ -452,17 +453,6 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
     boxShadow: footerShadowBase,
   }), [collapsed, footerShadowBase, textSize]);
 
-  const langButtonStyle = useMemo(() => ({
-    ...footerButtonBase,
-    background: theme === 'light'
-      ? 'linear-gradient(135deg, #f8fafc, #e2e8f0)'
-      : 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.2))',
-    color: theme === 'light' ? '#0f172a' : '#f8fafc',
-    border: theme === 'light'
-      ? '1px solid rgba(15,23,42,0.08)'
-      : '1px solid rgba(255,255,255,0.18)'
-  }), [footerButtonBase, theme]);
-
   const logoutButtonStyle = useMemo(() => ({
     ...footerButtonBase,
     background: 'linear-gradient(135deg, #f87171, #dc2626)',
@@ -828,6 +818,14 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
       ],
     },
     {
+      id: 'community-hr',
+      label: nl('community', 'Community'),
+      icon: getThemedIcon('ui', 'message_square', 18, theme),
+      children: [
+        { id: 'chat-hr', path: '/chat', screenId: 'chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: nl('chat', 'Chat') },
+      ],
+    },
+    {
       id: 'settings',
       label: nl('settings', 'Settings'),
       icon: getThemedIcon('ui', 'settings', 18, theme),
@@ -846,6 +844,14 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
       icon: getThemedIcon('ui', 'home', 18, theme),
       children: [
         { id: 'welcome-instructor', path: '/welcome', screenId: 'welcome', icon: getThemedIcon('ui', 'home', 18, theme), label: nl('welcome', 'Welcome') },
+      ],
+    },
+    {
+      id: 'community-instructor',
+      label: nl('community', 'Community'),
+      icon: getThemedIcon('ui', 'message_square', 18, theme),
+      children: [
+        { id: 'chat-instructor', path: '/chat', screenId: 'chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: nl('chat', 'Chat') },
       ],
     },
     {
@@ -882,6 +888,14 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
       icon: getThemedIcon('ui', 'layout_grid', 18, theme),
       children: [
         { id: 'operations-board-progadmin', path: '/operations/board', screenId: 'operations', icon: getThemedIcon('ui', 'layout_grid', 18, theme), label: nl('operations_board_title', 'Operations Board') },
+      ],
+    },
+    {
+      id: 'community-progadmin',
+      label: nl('community', 'Community'),
+      icon: getThemedIcon('ui', 'message_square', 18, theme),
+      children: [
+        { id: 'chat-progadmin', path: '/chat', screenId: 'chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: nl('chat', 'Chat') },
       ],
     },
     {
@@ -1034,7 +1048,6 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
             >
               <button
                 onClick={() => expandDrawer('hotspot-click')}
-                title={t('expand')}
                 style={{
                   position: 'absolute',
                   top: 12,
@@ -1100,7 +1113,6 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
             {collapsed && (
               <button
                 onClick={() => setCollapsed(false)}
-                title={t('expand')}
                 style={{
                   position: 'absolute',
                   top: '50%',
@@ -1138,7 +1150,6 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
                 window.addEventListener('mousemove', onMove);
                 window.addEventListener('mouseup', onUp);
               }}
-              title={t('resize')}
               style={{ position:'absolute', top:0, [lang==='ar' ? 'left' : 'right']: -5, width:10, height:'100%', cursor:'ew-resize',
                 background: 'linear-gradient(to right, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)' }}
             />
@@ -1180,7 +1191,6 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
                       if (!roleIcon) return null;
                       return (
                         <div style={{ position: 'absolute', bottom: '-2px', insetInlineEnd: '-2px', width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: '#ffffff', boxShadow: 'none' }}
-                          title={t(`roles.${role}`, role)}
                         >
                           {React.cloneElement(roleIcon, { fill: roleColor })}
                         </div>
@@ -1200,7 +1210,6 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
                     <div style={{ display: 'flex', flexDirection: collapsed ? 'column' : 'row', gap: collapsed ? '0.5rem' : '0' }}>
                       <button
                         onClick={toggleTheme}
-                        title={theme==='light' ? (t('switch_to_dark')) : (t('switch_to_light'))}
                         data-base-bg={neutralBg}
                         data-hover-bg={neutralHover}
                         style={{
@@ -1230,7 +1239,6 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
                             return next;
                           });
                         }}
-                        title={collapsed ? (t('expand')) : (t('collapse'))}
                         data-base-bg={collapsed ? accentBg : neutralBg}
                         data-hover-bg={collapsed ? accentHover : neutralHover}
                         style={{
@@ -1261,7 +1269,6 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
                             return next;
                           });
                         }}
-                        title={autoHide ? (t('disable_auto_hide')) : (t('enable_auto_hide'))}
                         data-base-bg={autoHide ? accentBg : neutralBg}
                         data-hover-bg={autoHide ? accentHover : neutralHover}
                         style={{
@@ -1292,7 +1299,6 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
                             return next;
                           });
                         }}
-                        title={stickyMode ? (t('disable_sticky')) : (t('enable_sticky'))}
                         data-base-bg={stickyMode ? accentBg : neutralBg}
                         data-hover-bg={stickyMode ? accentHover : neutralHover}
                         style={{
@@ -1348,7 +1354,6 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
                   {pinTimer && (
                     <button
                       onClick={() => setShowTimerPanel(v=>!v)}
-                      title={t('timer')}
                       data-base-bg={theme==='light' ? '#e2e8f0' : 'rgba(255,255,255,0.12)'}
                       data-hover-bg={theme==='light' ? '#cbd5f5' : 'rgba(255,255,255,0.22)'}
                       style={{ padding:'0.5rem', borderRadius:8, background: theme==='light' ? '#e2e8f0' : 'rgba(255,255,255,0.12)', border:'1px solid rgba(0,0,0,0.15)', color:'#111827',
@@ -1360,11 +1365,11 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
                     </button>
                   )}
                   {pinnedLinks.map((p) => {
-                    const allItems = Object.values(links).flatMap(g => g.items);
-                    const found = allItems.find(l => l.path === p);
+                    const allItems = links.flatMap(section => section.children || []);
+                    const found = allItems.find(l => l && l.path === p);
                     if (!found) return null;
                     return (
-                      <Link key={p} to={p} onClick={onClose} title={found.label}
+                      <Link key={p} to={p} onClick={onClose}
                         data-base-bg={theme==='light' ? '#e5e7eb' : 'rgba(212,175,55,0.2)'}
                         data-hover-bg={theme==='light' ? '#d1d5db' : 'rgba(212,175,55,0.35)'}
                         style={{ padding:'0.5rem', borderRadius:8, background: theme==='light' ? '#e5e7eb' : 'rgba(212,175,55,0.2)', border: theme==='light' ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(212,175,55,0.6)', color: theme==='light' ? '#111827' : '#FFD700', display:'inline-flex', transition: 'background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease' }}
@@ -1472,7 +1477,6 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
                       {link.key === 'timerControl' ? (
                         <button
                           onClick={() => setShowTimerPanel(v=>!v)}
-                          title={link.label}
                           style={{
                             display:'flex', alignItems:'center', justifyContent: collapsed ? 'center' : 'flex-start', gap:'0.85rem', padding: collapsed ? '0.7rem' : '0.7rem 1rem', borderRadius:'8px',
                             color: isActive(link.path, link.hash)
@@ -1525,7 +1529,6 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
                             syncDashboardTabFromHash(link.path, link.hash);
                             onClose();
                           }}
-                          title={link.label}
                           style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -1577,30 +1580,30 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
                         </Link>
                       )}
                       {!collapsed && density === 'compact' && (
-                      <button
-                        title={t('open_in_new_tab')}
-                        onClick={() => link.key==='timerControl' ? setShowTimerPanel(v=>!v) : window.open(`${window.location.origin}${link.path}`, '_blank', 'noopener,noreferrer')}
-                        style={{
-                          background: theme==='light' ? '#ffffff' : 'rgba(255,255,255,0.06)',
-                          border: `1px solid ${theme==='light' ? 'rgba(17,24,39,0.15)' : 'rgba(255,255,255,0.2)'}`,
-                          color: theme==='light' ? '#111827' : '#e5e7eb',
-                          borderRadius: 6,
-                          width: 28,
-                          height: 28,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          lineHeight: 0,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {getThemedIcon('ui', 'external_link', 12, theme==='light' ? '#111827' : '#e5e7eb')}
-                      </button>)}
+                      <ColoredTooltip title={t('open_in_new_tab')}>
+                        <button
+                          onClick={() => link.key==='timerControl' ? setShowTimerPanel(v=>!v) : window.open(`${window.location.origin}${link.path}`, '_blank', 'noopener,noreferrer')}
+                          style={{
+                            background: theme==='light' ? '#ffffff' : 'rgba(255,255,255,0.06)',
+                            border: `1px solid ${theme==='light' ? 'rgba(17,24,39,0.15)' : 'rgba(255,255,255,0.2)'}`,
+                            color: theme==='light' ? '#111827' : '#e5e7eb',
+                            borderRadius: 6,
+                            width: 28,
+                            height: 28,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            lineHeight: 0,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {getThemedIcon('ui', 'external_link', 12, theme==='light' ? '#111827' : '#e5e7eb')}
+                        </button>
+                      </ColoredTooltip>)}
                       {!collapsed && density === 'compact' && (() => {
                         const pinned = link.key==='timerControl' ? pinTimer : isPinned(link.path);
                         return (
                           <button
-                            title={pinned ? (t('unpin')) : (t('pin'))}
                             onClick={() => link.key==='timerControl' ? setPinTimer(v=>!v) : togglePinLink(link.path)}
                             style={{
                               background: pinned
@@ -1676,30 +1679,9 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
                 alignItems: 'center',
                 gap: collapsed ? '0.5rem' : '0.5rem'
               }}>
-              {/* Language Toggle */}
-              <button
-                onClick={() => {
-                  toggleLang();
-                  if (!collapsed) onClose();
-                }}
-                title={collapsed ? (t('switch_language')) : ''}
-                style={{
-                  ...langButtonStyle,
-                  margin: '0',
-                  flex: collapsed ? '1' : 'auto',
-                  padding: collapsed ? '0.5rem' : '0.5rem 1rem',
-                  minWidth: collapsed ? 'auto' : 'auto'
-                }}
-                onMouseEnter={onFooterHover}
-                onMouseLeave={onFooterLeave}
-              >
-                {collapsed ? getThemedIcon('ui', 'globe', 16, theme) : <span>{t(lang === 'en' ? 'arabic' : 'english')}</span>}
-              </button>
-
               {/* Logout */}
               <button
                 onClick={handleLogout}
-                title={collapsed ? (t('logout')) : ''}
                 style={{
                   ...logoutButtonStyle,
                   margin: '0',

@@ -2,9 +2,9 @@ import React, { useMemo } from 'react';
 import { useIsMobile } from '@hooks/useIsMobile';
 import StudentHistory from './StudentHistory';
 import {
-  CheckSmallIcon, MessageSquareIcon, ZapIcon, AlertCircleSmallIcon,
-  ParticipationIcon, ChevronDownIcon
-} from "@utils/icons.jsx";
+  Check, MessageSquare, Zap, AlertCircle,
+  Trophy, ChevronDown
+} from '@utils/icons.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import PortalTooltip from '@ui/PortalTooltip';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -122,7 +122,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
               minWidth: isMobile ? 'auto' : '0'
             }}
           >
-            <CheckSmallIcon style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} />
+            <Check size={isMobile ? 12 : 14} strokeWidth={3} />
             {t('attendance')}
           </button>
           <button
@@ -142,7 +142,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
               minWidth: isMobile ? 'auto' : '0'
             }}
           >
-            <ParticipationIcon style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} />
+            <Trophy size={isMobile ? 12 : 14} />
             {t('participation')}
           </button>
           <button
@@ -162,7 +162,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
               minWidth: isMobile ? 'auto' : '0'
             }}
           >
-            <ZapIcon style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} />
+            <Zap size={isMobile ? 12 : 14} />
             {t('behavior')}
           </button>
           <button
@@ -182,7 +182,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
               minWidth: isMobile ? 'auto' : '0'
             }}
           >
-            <AlertCircleSmallIcon style={{ width: isMobile ? '12px' : '14px', height: isMobile ? '12px' : '14px' }} />
+            <AlertCircle size={isMobile ? 12 : 14} />
             {t('penalties')}
           </button>
 
@@ -264,7 +264,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
             }}
           >
             <>
-                  <ChevronDownIcon style={{ width: '14px', height: '14px' }} />
+                  <ChevronDown size={14} />
                 </>
           </button>
           </PortalTooltip>

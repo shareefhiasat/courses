@@ -1,6 +1,6 @@
 import React from 'react';
-import { CircleIcon } from "@utils/icons.jsx";
-import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
+import { Circle } from '@utils/icons.jsx';
+import { getAvatarColor, getAvatarInitials, normalizeProfileImageUrl } from '@utils/avatarUtils';
 import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_COLORS } from '@constants/attendanceTypes';
 import { getLocalizedUserName } from '@utils/localizedUserName';
 import { getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
@@ -45,7 +45,7 @@ export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL,
         }}>
           {student.profileImageUrl ? (
             <img
-              src={student.profileImageUrl}
+              src={normalizeProfileImageUrl(student.profileImageUrl, student?.updatedAt || student?.updated_at)}
               alt={displayName}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
@@ -75,7 +75,6 @@ export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL,
               border: '1.5px solid var(--panel, white)',
               boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
             }}
-              title={t(`roles.${role}`, role)}
             >
               {React.cloneElement(roleIcon, { color: roleColor, size: 12 })}
             </div>
@@ -112,7 +111,7 @@ export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL,
               </>
             ) : (
               <>
-                <CircleIcon style={{ width: '14px', height: '14px', stroke: 'var(--text-muted, #9ca3af)' }} />
+                <Circle size={14} color="var(--text-muted, #9ca3af)" />
                 <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #9ca3af)' }}>
                   {t('none')}
                 </span>

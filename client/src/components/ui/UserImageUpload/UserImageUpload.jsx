@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useCallback, useRef } from 'react';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { Upload, X, CheckCircle, AlertCircle, Trash2, User, CreditCard, Shield, ImagePlus } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
 import { Button, Progress } from '@ui';
@@ -165,15 +166,16 @@ const UserImageUpload = ({
             {label}
           </div>
           {currentImageUrl && editable && !selectedFile && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleting || uploading}
-              className={styles.deleteBtn}
-              title={t('common.delete', 'Delete')}
-            >
-              <Trash2 size={14} />
-            </button>
+            <ColoredTooltip title={t('common.delete', 'Delete')}>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting || uploading}
+                className={styles.deleteBtn}
+              >
+                <Trash2 size={14} />
+              </button>
+            </ColoredTooltip>
           )}
         </div>
 

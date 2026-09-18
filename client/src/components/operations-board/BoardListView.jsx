@@ -106,11 +106,28 @@ export default function BoardListView({ data, columns, onCardClick, onDragEnd })
                   >
                     {(item.notes || participationMap[String(item.userId)]?.length > 0) && (
                       <div className="absolute right-0 top-0 flex gap-0.5 z-10">
-                        {item.notes && (
-                          <ColoredTooltip title={t('operations_board_has_note') || 'Has a note'} color="#ef4444" placement="top">
-                            <Star size={12} fill="#ef4444" color="#ef4444" data-testid={`list-card-notes-star-${item.id}`} />
-                          </ColoredTooltip>
-                        )}
+                        {item.notes && (() => {
+                          const notesList = (Array.isArray(item.notes) ? item.notes : [item.notes])
+                            .map((n) => (typeof n === 'string' ? n : n?.note || n?.text || n?.notes || n?.content || ''))
+                            .filter(Boolean);
+                          return (
+                            <ColoredTooltip
+                              title={notesList.length > 0 ? (
+                                <div style={{ textAlign: 'start' }}>
+                                  {notesList.map((noteText, idx) => (
+                                    <div key={idx} style={{ whiteSpace: 'pre-wrap' }}>
+                                      {notesList.length > 1 ? `• ${noteText}` : noteText}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (t('operations_board_has_note') || 'Has a note')}
+                              color="#ef4444"
+                              placement="top"
+                            >
+                              <Star size={12} fill="#ef4444" color="#ef4444" data-testid={`list-card-notes-star-${item.id}`} />
+                            </ColoredTooltip>
+                          );
+                        })()}
                         {participationMap[String(item.userId)]?.length > 0 && (
                           <ColoredTooltip title={t('operations_board_has_participation') || 'Has participation'} color="#3b82f6" placement="top">
                             <Star size={12} fill="#3b82f6" color="#3b82f6" data-testid={`list-card-participation-star-${item.id}`} />

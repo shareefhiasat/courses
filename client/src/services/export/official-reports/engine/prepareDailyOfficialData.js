@@ -1,7 +1,7 @@
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import { buildDailyOfficialSerial } from './serialNumber.js';
-import { formatOfficialReportDate } from '../shared/officialDateFormat.js';
+import { formatOfficialReportDate, formatOfficialReportDateTime } from '../shared/officialDateFormat.js';
 
 const OFFICIAL_STATUS_KEYS = ['present', 'absent', 'humanCase', 'excusedLeave'];
 
@@ -56,14 +56,17 @@ export const DAILY_OFFICIAL_TEMPLATE_MIN_ROWS = 36;
 export function prepareDailyOfficialData({
   roster = [],
   attendanceByUserId = {},
+  participationByUserId = {},
   metadata = {},
   lang = 'ar',
   isStandup = false,
   isTemplate = false,
   minTemplateRows = DAILY_OFFICIAL_TEMPLATE_MIN_ROWS,
+  includeNotes = true,
+  includeParticipation = false,
 }) {
   const scopeId = isStandup ? metadata.programId : metadata.classId;
-  const serial = buildDailyOfficialSerial(scopeId, isStandup);
+  const serial = buildDailyOfficialSerial(scopeId, isStandup, metadata.date);
 
   const counts = {
     notTaken: 0,
@@ -103,11 +106,16 @@ export function prepareDailyOfficialData({
       );
       const studentNumber = student.studentNumber || studentUser?.studentNumber || student.uid || '';
 
+    const participationItems = participationByUserId[userId] || [];
+    const participationText = includeParticipation
+      ? (participationItems.length > 0 ? String(participationItems.length) : '')
+      : '';
     return {
       serial: index + 1,
       studentNumber,
       studentName: name,
-      notes: att.notes || student.notes || '',
+      notes: includeNotes ? (att.notes || student.notes || '') : '',
+      participation: participationText,
       ...marks,
     };
   });
@@ -133,6 +141,7 @@ export function prepareDailyOfficialData({
         studentNumber: '',
         studentName: '',
         notes: '',
+        participation: '',
         present: false,
         absent: false,
         humanCase: false,
@@ -143,19 +152,15 @@ export function prepareDailyOfficialData({
   }
 
   const isAr = lang === 'ar';
-  const generatedAt = new Date().toLocaleString(isAr ? 'ar-SA' : 'en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const generatedAt = formatOfficialReportDateTime(new Date(), lang);
 
   return {
     serial,
     title: lang === 'ar' ? 'كشف الحضور اليومي الرسمي' : 'Official Daily Attendance Report',
     isStandup,
     isTemplate,
+    showNotesColumn: includeNotes,
+    showParticipationColumn: includeParticipation,
     lang,
     statusKeys: OFFICIAL_STATUS_KEYS,
     counts: { base: baseCounts, extra: extraCounts },
@@ -172,6 +177,9 @@ export function prepareDailyOfficialData({
     },
     rows: finalRows,
     watermarkUser: metadata.watermarkUser,
+    watermarkStatus: metadata.watermarkStatus || null,
+    approvedByUser: metadata.approvedByUser || null,
+    approvedAt: metadata.approvedAt || null,
   };
 }
 

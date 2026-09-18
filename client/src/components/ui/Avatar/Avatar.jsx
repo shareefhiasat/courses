@@ -1,4 +1,5 @@
 import React from 'react';
+import { normalizeProfileImageUrl } from '@utils/avatarUtils';
 import styles from './Avatar.module.css';
 
 
@@ -11,6 +12,7 @@ const Avatar = ({
   src,
   alt,
   name,
+  cacheBuster,
   size = 'md',
   shape = 'circle',
   status,
@@ -36,7 +38,7 @@ const Avatar = ({
   return (
     <div className={avatarClasses}>
       {src ? (
-        <img src={src} alt={alt || name} className={styles.image} />
+        <img src={normalizeProfileImageUrl(src, cacheBuster)} alt={alt || name} className={styles.image} />
       ) : (
         <span className={styles.initials}>{getInitials(name)}</span>
       )}

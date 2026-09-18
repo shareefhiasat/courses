@@ -5,15 +5,22 @@ import { Chip, IconButton, Box } from '@mui/material';
 import {
   Maximize2,
   Minimize2,
-  Workflow as WorkflowIcon,
   ClipboardCheck,
   FileText,
   FileSpreadsheet,
+  FilePenLine,
+  CalendarDays,
+  GitBranch,
+  FileSignature,
+  Star,
+  Lock,
 } from 'lucide-react';
+import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import ScheduleStatusHistoryTooltip from './ScheduleStatusHistoryTooltip.jsx';
 import ClassSessionMetaBadges, { getClassSessionMetaFromStatus } from './ClassSessionMetaBadges.jsx';
 import { getUserRoleColor, getUserRoleIcon } from '@constants/iconTypes';
+import { handleFilePreview } from '@utils/fileUtils.js';
 import styles from '@services/export/official-reports/templates/officialReport.module.css';
 import {
   SCHEDULE_FONT_SCALE_DEFAULT,
@@ -339,7 +346,7 @@ function getWorkflowStatusLabel(status, t) {
   const ws = status?.workflowStatus;
   if (!ws) return null;
   const key = WORKFLOW_STATUS_LABELS[ws];
-  if (!key) return null;
+  if (!key) return ws;
   return t(key) || ws;
 }
 
@@ -360,20 +367,64 @@ function WorkflowStatusGroup({ status, t, lang, selectedDate, hideTooltips = fal
       {!hideTooltips && (
         <ScheduleStatusHistoryTooltip status={status} lang={lang} fallbackDate={selectedDate} t={t} currentColor={color}>
           <span className={gridStyles.workflowIconWrap} style={{ '--workflow-color': color, ...(onWorkflowClick ? { cursor: 'pointer' } : {}) }} onClick={handleClick} role={onWorkflowClick ? 'button' : undefined}>
-            <WorkflowIcon className={gridStyles.workflowIconSvg} color={color} strokeWidth={2.5} />
+            <FilePenLine className={gridStyles.workflowIconSvg} color={color} strokeWidth={2.5} />
           </span>
         </ScheduleStatusHistoryTooltip>
       )}
       {hideTooltips && (
         <span className={gridStyles.workflowIconWrap} style={{ '--workflow-color': color, ...(onWorkflowClick ? { cursor: 'pointer' } : {}) }} onClick={handleClick} role={onWorkflowClick ? 'button' : undefined}>
-          <WorkflowIcon className={gridStyles.workflowIconSvg} color={color} strokeWidth={2.5} />
+          <FilePenLine className={gridStyles.workflowIconSvg} color={color} strokeWidth={2.5} />
         </span>
       )}
     </span>
   );
 }
 
-function AttendanceIndicatorGroup({ status, t, slot, onGenerateDailyAttendance, hideTooltips = false }) {
+function WeeklyWorkflowStatusGroup({ weeklyWorkflow, t, lang, selectedDate, hideTooltips = false, onWorkflowClick }) {
+  if (!weeklyWorkflow) return null;
+  const statusObj = { ...weeklyWorkflow, workflowStatus: weeklyWorkflow.column || weeklyWorkflow.workflowStatus || weeklyWorkflow.status };
+  const key = resolveScheduleWorkflowKey(statusObj);
+  const color = SCHEDULE_WORKFLOW_COLORS[key];
+  if (!color) return null;
+
+  const handleClick = onWorkflowClick
+    ? (e) => { e.stopPropagation(); onWorkflowClick(weeklyWorkflow); }
+    : undefined;
+
+  const signedFile = weeklyWorkflow.signedFile;
+  const handleSignedClick = (e) => {
+    e.stopPropagation();
+    if (signedFile?.id) {
+      handleFilePreview(signedFile);
+    }
+  };
+
+  return (
+    <span className={gridStyles.workflowGroup}>
+      {!hideTooltips && (
+        <ScheduleStatusHistoryTooltip status={statusObj} lang={lang} fallbackDate={selectedDate} t={t} currentColor={color}>
+          <span className={gridStyles.workflowIconWrap} style={{ '--workflow-color': color, ...(onWorkflowClick ? { cursor: 'pointer' } : {}) }} onClick={handleClick} role={onWorkflowClick ? 'button' : undefined}>
+            <GitBranch className={gridStyles.workflowIconSvg} color={color} strokeWidth={2.5} />
+          </span>
+        </ScheduleStatusHistoryTooltip>
+      )}
+      {hideTooltips && (
+        <span className={gridStyles.workflowIconWrap} style={{ '--workflow-color': color, ...(onWorkflowClick ? { cursor: 'pointer' } : {}) }} onClick={handleClick} role={onWorkflowClick ? 'button' : undefined}>
+          <GitBranch className={gridStyles.workflowIconSvg} color={color} strokeWidth={2.5} />
+        </span>
+      )}
+      {signedFile?.id && (
+        <ColoredTooltip title={t('view_signed_copy') || 'View signed copy'} color="#8b5cf6" borderColor="#8b5cf6" placement="top" arrow>
+          <span className={gridStyles.workflowIconWrap} style={{ '--workflow-color': '#8b5cf6', cursor: 'pointer' }} onClick={handleSignedClick} role="button">
+            <FileSignature className={gridStyles.workflowIconSvg} color="#8b5cf6" strokeWidth={2.5} />
+          </span>
+        </ColoredTooltip>
+      )}
+    </span>
+  );
+}
+
+function AttendanceIndicatorGroup({ status, t, hideTooltips = false }) {
   const counts = getAttendanceCountsFromStatus(status);
   if (!counts) return null;
   const items = ATTENDANCE_COUNT_ITEMS
@@ -392,41 +443,9 @@ function AttendanceIndicatorGroup({ status, t, slot, onGenerateDailyAttendance, 
     </div>
   );
 
-  const hasExportHandler = Boolean(onGenerateDailyAttendance && slot?.classId);
-
-  const exportTooltip = hasExportHandler ? (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, padding: '4px 0' }}>
-      <div style={{ fontWeight: 600, marginBottom: 2 }}>{t('daily_official') || 'Daily Official'}</div>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <span
-          style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#e53935' }}
-          onClick={(e) => { e.stopPropagation(); onGenerateDailyAttendance(slot, 'pdf'); }}
-        >
-          <FileText size={14} /> {t('export_pdf') || 'PDF'}
-        </span>
-        <span
-          style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#43a047' }}
-          onClick={(e) => { e.stopPropagation(); onGenerateDailyAttendance(slot, 'excel'); }}
-        >
-          <FileSpreadsheet size={14} /> {t('export_excel') || 'Excel'}
-        </span>
-      </div>
-    </div>
-  ) : (t('attendance_summary') || 'Attendance summary');
-
   if (hideTooltips) {
     return (
       <span className={gridStyles.attendanceGroup}>
-        <span
-          className={gridStyles.attendanceIconWrap}
-          aria-hidden={!hasExportHandler}
-          role={hasExportHandler ? 'button' : undefined}
-          onClick={hasExportHandler ? (e) => { e.stopPropagation(); onGenerateDailyAttendance(slot, 'pdf'); } : undefined}
-          style={hasExportHandler ? { cursor: 'pointer' } : undefined}
-        >
-          <ClipboardCheck size={12} color={hasExportHandler ? '#3b82f6' : '#64748b'} strokeWidth={2.25} />
-        </span>
-        <span className={gridStyles.indicatorDivider} aria-hidden="true">|</span>
         <span className={gridStyles.attendanceMiniDots} aria-label={t('attendance_summary') || 'Attendance summary'}>
           {items.map((item, idx) => (
             <span
@@ -445,18 +464,6 @@ function AttendanceIndicatorGroup({ status, t, slot, onGenerateDailyAttendance, 
 
   return (
     <span className={gridStyles.attendanceGroup}>
-      <ColoredTooltip title={exportTooltip} color="#64748b" placement="bottom" cursor={hasExportHandler ? 'pointer' : 'default'}>
-        <span
-          className={gridStyles.attendanceIconWrap}
-          aria-hidden={!hasExportHandler}
-          role={hasExportHandler ? 'button' : undefined}
-          onClick={hasExportHandler ? (e) => { e.stopPropagation(); onGenerateDailyAttendance(slot, 'pdf'); } : undefined}
-          style={hasExportHandler ? { cursor: 'pointer' } : undefined}
-        >
-          <ClipboardCheck size={12} color={hasExportHandler ? '#3b82f6' : '#64748b'} strokeWidth={2.25} />
-        </span>
-      </ColoredTooltip>
-      <span className={gridStyles.indicatorDivider} aria-hidden="true">|</span>
       <ColoredTooltip title={tooltip} color="#64748b" placement="bottom" cursor="default">
         <span className={gridStyles.attendanceMiniDots} aria-label={t('attendance_summary') || 'Attendance summary'}>
           {items.map((item, idx) => (
@@ -581,9 +588,11 @@ function InteractiveSlotCell({
   selectedDate,
   hideNotesParticipation = false,
   hideNotesComments = false,
+  hideParticipation = false,
   hideTooltips = false,
-  onGenerateDailyAttendance,
+  weeklyWorkflowMap,
   onWorkflowClick,
+  onWeeklyWorkflowClick,
   rowSpan = 4,
 }) {
   if (isBreak) {
@@ -629,7 +638,7 @@ function InteractiveSlotCell({
     isSelected ? gridStyles.selectedCell : '',
   ].filter(Boolean).join(' ');
 
-  const metaCounts = status ? getClassSessionMetaFromStatus(status, { hideNotesParticipation, hideNotesComments }) : null;
+  const metaCounts = status ? getClassSessionMetaFromStatus(status, { hideNotesParticipation, hideNotesComments, hideParticipation }) : null;
   const hasMetaBadges = Boolean(
     metaCounts
     && (metaCounts.notesCount > 0 || metaCounts.participationCount > 0 || metaCounts.commentsCount > 0),
@@ -660,7 +669,7 @@ function InteractiveSlotCell({
               </ColoredTooltip>
             </span>
           )}
-          {hasMetaBadges && <ClassSessionMetaBadges status={status} t={t} compact hideNotesParticipation={hideNotesParticipation} hideNotesComments={hideNotesComments} />}
+          {hasMetaBadges && <ClassSessionMetaBadges status={status} t={t} compact hideNotesParticipation={hideNotesParticipation} hideNotesComments={hideNotesComments} hideParticipation={hideParticipation} />}
         </div>
       )}
       {rowType === 'subject' && !hideTooltips && (() => {
@@ -670,15 +679,40 @@ function InteractiveSlotCell({
           return ATTENDANCE_COUNT_ITEMS.some((item) => (counts[item.key] || 0) > 0);
         })();
         const hasWorkflow = Boolean(status?.workflowStatus && status.workflowStatus !== 'NOT_TAKEN');
-        if (!hasAttendance && !hasWorkflow) return null;
+        const weeklyWorkflow = weeklyWorkflowMap?.[String(slot.classId)];
+        const hasWeeklyWorkflow = Boolean(weeklyWorkflow);
+        const isWeekLocked = hasWeeklyWorkflow && weeklyWorkflow.status !== 'REJECTED';
+        if (!hasAttendance && !hasWorkflow && !hasWeeklyWorkflow) return null;
         return (
           <div className={gridStyles.subjectCellTopIndicators}>
-            {hasAttendance && <AttendanceIndicatorGroup status={status} t={t} slot={{ ...slot, dayCode, colKey }} onGenerateDailyAttendance={onGenerateDailyAttendance} hideTooltips={hideTooltips} />}
-            {hasAttendance && hasWorkflow && (
+            {isWeekLocked && (
+              <ColoredTooltip
+                title={t('operations_board_attendance_locked_weekly') || 'Attendance locked — weekly workflow in progress for this week.'}
+                color="#dc2626"
+                placement="bottom"
+              >
+                <Lock size={11} color="#dc2626" aria-label="locked" data-testid={`schedule-week-lock-${slot.classId}`} />
+              </ColoredTooltip>
+            )}
+            {hasAttendance && <AttendanceIndicatorGroup status={status} t={t} hideTooltips={hideTooltips} />}
+            {hasAttendance && (hasWorkflow || hasWeeklyWorkflow) && (
               <span className={gridStyles.indicatorDivider} aria-hidden="true">|</span>
             )}
             {hasWorkflow && (
               <WorkflowStatusGroup status={status} t={t} lang={lang} selectedDate={selectedDate} hideTooltips={hideTooltips} onWorkflowClick={onWorkflowClick ? (wfStatus) => onWorkflowClick({ ...wfStatus, classId: slot.classId, dayCode }) : undefined} />
+            )}
+            {hasWorkflow && hasWeeklyWorkflow && (
+              <span className={gridStyles.indicatorDivider} aria-hidden="true">|</span>
+            )}
+            {hasWeeklyWorkflow && (
+              <WeeklyWorkflowStatusGroup
+                weeklyWorkflow={weeklyWorkflow}
+                t={t}
+                lang={lang}
+                selectedDate={selectedDate}
+                hideTooltips={hideTooltips}
+                onWorkflowClick={onWeeklyWorkflowClick ? (wf) => onWeeklyWorkflowClick(wf, { classId: slot.classId, dayCode }) : undefined}
+              />
             )}
           </div>
         );
@@ -806,9 +840,11 @@ function DayBlock({
   selectedDate,
   hideNotesParticipation = false,
   hideNotesComments = false,
+  hideParticipation = false,
   hideTooltips = false,
-  onGenerateDailyAttendance,
+  weeklyWorkflowMap,
   onWorkflowClick,
+  onWeeklyWorkflowClick,
   rowTypes,
   rowSpan,
   showDayDate = true,
@@ -910,9 +946,11 @@ function DayBlock({
                 selectedDate={selectedDate}
                 hideNotesParticipation={hideNotesParticipation}
                 hideNotesComments={hideNotesComments}
+                hideParticipation={hideParticipation}
                 hideTooltips={hideTooltips}
-                onGenerateDailyAttendance={onGenerateDailyAttendance}
+                weeklyWorkflowMap={weeklyWorkflowMap}
                 onWorkflowClick={onWorkflowClick}
+                onWeeklyWorkflowClick={onWeeklyWorkflowClick}
                 rowSpan={rowSpan}
               />
             );
@@ -932,18 +970,24 @@ const OfficialWeeklyScheduleGrid = ({
   selectedSlot,
   onCellClick,
   onDateChange,
-  onGenerateDailyAttendance,
+  weeklyWorkflowMap,
   onWorkflowClick,
+  onWeeklyWorkflowClick,
   compact = false,
   fillHeight = false,
   fillWidth = false,
   fontScale = SCHEDULE_FONT_SCALE_DEFAULT,
   expanded = false,
   onToggleExpand = null,
+  onExportDailyTemplate = null,
+  onExportWeeklySchedule = null,
   hideNotesParticipation = false,
   hideNotesComments = false,
+  hideParticipation = false,
   hideTooltips = false,
   hideLegend = false,
+  isInstructorViewer = false,
+  showDailyNotesToggle = false,
   showInstructor = true,
   showRoom = true,
   showDayDate = true,
@@ -956,6 +1000,7 @@ const OfficialWeeklyScheduleGrid = ({
   const tableRef = useRef(null);
   const wrapRef = useRef(null);
   const [outsideHours, setOutsideHours] = useState(false);
+  const [dailyIncludeNotes, setDailyIncludeNotes] = useState(false);
 
   useEffect(() => {
     if (!onCellClick) return;
@@ -1152,9 +1197,11 @@ const OfficialWeeklyScheduleGrid = ({
               selectedDate={selectedDate}
               hideNotesParticipation={hideNotesParticipation}
               hideNotesComments={hideNotesComments}
+              hideParticipation={hideParticipation}
               hideTooltips={hideTooltips}
-              onGenerateDailyAttendance={onGenerateDailyAttendance}
+              weeklyWorkflowMap={weeklyWorkflowMap}
               onWorkflowClick={onWorkflowClick}
+              onWeeklyWorkflowClick={onWeeklyWorkflowClick}
               rowTypes={visibleRowTypes}
               rowSpan={rowSpan}
               showDayDate={showDayDate}
@@ -1166,9 +1213,11 @@ const OfficialWeeklyScheduleGrid = ({
       <div className={`${gridStyles.statusLegend} ${gridStyles.statusLegendBottom}`} style={hideLegend ? { display: 'none' } : undefined}>
         <BoardLegend
           bare
-          showWorkflow={!hideTooltips}
-          showScheduleExtras={!hideTooltips}
-          roleContext={hideNotesParticipation ? { isHR: true, isAdmin: false, isSuperAdmin: false } : {}}
+          showWorkflow={!hideTooltips && !isInstructorViewer}
+          showScheduleExtras={!hideTooltips || isInstructorViewer}
+          showYourClassOnly={isInstructorViewer}
+          roleContext={hideNotesParticipation ? { isHR: true, isAdmin: false, isSuperAdmin: false } : (isInstructorViewer ? { isInstructor: true, isAdmin: false, isHR: false, isSuperAdmin: false } : {})}
+          showParticipation={!hideParticipation}
           style={{ flex: 1, minWidth: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.35rem' }}
         />
         {outsideHours && (
@@ -1189,6 +1238,127 @@ const OfficialWeeklyScheduleGrid = ({
               },
             }}
           />
+        )}
+        {onExportDailyTemplate && showDailyNotesToggle && (
+          <ColoredTooltip
+            title={dailyIncludeNotes ? (t('export_exclude_notes') || 'Exclude notes column') : (t('export_include_notes') || 'Include notes column')}
+            color="#ef4444"
+            placement="top"
+          >
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => setDailyIncludeNotes((prev) => !prev)}
+                data-testid="daily-template-notes-toggle"
+                aria-label={dailyIncludeNotes ? (t('export_exclude_notes') || 'Exclude notes column') : (t('export_include_notes') || 'Include notes column')}
+                sx={{
+                  width: 24,
+                  height: 24,
+                  ml: 0.5,
+                  borderRadius: 0,
+                  bgcolor: isDark ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.8)',
+                  color: '#ef4444',
+                  '&:hover': {
+                    bgcolor: isDark ? 'rgba(51,65,85,0.8)' : 'rgba(241,245,249,1)',
+                  },
+                }}
+              >
+                <Star size={14} fill={dailyIncludeNotes ? '#ef4444' : 'none'} />
+              </IconButton>
+            </span>
+          </ColoredTooltip>
+        )}
+        {onExportDailyTemplate && (
+          <ColoredTooltip
+            title={(
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, padding: '4px 0' }}>
+                <div style={{ fontWeight: 600, marginBottom: 2 }}>{t('daily_template') || 'Daily Template'}</div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#e53935' }}
+                    onClick={(e) => { e.stopPropagation(); onExportDailyTemplate(EXPORT_FORMAT.PDF, { includeNotes: dailyIncludeNotes }); }}
+                  >
+                    <FileText size={14} /> PDF
+                  </span>
+                  <span
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#43a047' }}
+                    onClick={(e) => { e.stopPropagation(); onExportDailyTemplate(EXPORT_FORMAT.EXCEL, { includeNotes: dailyIncludeNotes }); }}
+                  >
+                    <FileSpreadsheet size={14} /> Excel
+                  </span>
+                </div>
+              </div>
+            )}
+            color="#64748b"
+            placement="top"
+          >
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => onExportDailyTemplate(EXPORT_FORMAT.PDF, { includeNotes: dailyIncludeNotes })}
+                aria-label={t('daily_template') || 'Daily Template'}
+                sx={{
+                  width: 24,
+                  height: 24,
+                  ml: 0.5,
+                  borderRadius: 0,
+                  bgcolor: isDark ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.8)',
+                  color: isDark ? '#94a3b8' : '#64748b',
+                  '&:hover': {
+                    bgcolor: isDark ? 'rgba(51,65,85,0.8)' : 'rgba(241,245,249,1)',
+                  },
+                }}
+              >
+                <FileText size={14} />
+              </IconButton>
+            </span>
+          </ColoredTooltip>
+        )}
+        {onExportWeeklySchedule && (
+          <ColoredTooltip
+            title={(
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, padding: '4px 0' }}>
+                <div style={{ fontWeight: 600, marginBottom: 2 }}>{t('weekly_schedule') || 'Weekly Schedule'}</div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#e53935' }}
+                    onClick={(e) => { e.stopPropagation(); onExportWeeklySchedule(EXPORT_FORMAT.PDF); }}
+                  >
+                    <FileText size={14} /> PDF
+                  </span>
+                  <span
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#43a047' }}
+                    onClick={(e) => { e.stopPropagation(); onExportWeeklySchedule(EXPORT_FORMAT.EXCEL); }}
+                  >
+                    <FileSpreadsheet size={14} /> Excel
+                  </span>
+                </div>
+              </div>
+            )}
+            color="#64748b"
+            placement="top"
+          >
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => onExportWeeklySchedule(EXPORT_FORMAT.PDF)}
+                aria-label={t('weekly_schedule') || 'Weekly Schedule'}
+                sx={{
+                  width: 24,
+                  height: 24,
+                  ml: 0.5,
+                  borderRadius: 0,
+                  bgcolor: isDark ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.8)',
+                  color: isDark ? '#94a3b8' : '#64748b',
+                  '&:hover': {
+                    bgcolor: isDark ? 'rgba(51,65,85,0.8)' : 'rgba(241,245,249,1)',
+                  },
+                }}
+              >
+                <CalendarDays size={14} />
+              </IconButton>
+            </span>
+          </ColoredTooltip>
         )}
         {onToggleExpand && (
           <ColoredTooltip

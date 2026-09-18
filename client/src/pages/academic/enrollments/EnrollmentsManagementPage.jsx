@@ -298,7 +298,7 @@ const EnrollmentsManagementPage = () => {
   const gridEnrollmentRows = useMemo(() => {
     if (statusChipFilter === 'all') return filteredEnrollmentRows;
     return filteredEnrollmentRows.filter((row) => {
-      const code = row.status?.code || 'ENROLLED';
+      const code = row.status?.code || 'ACTIVE';
       return code === statusChipFilter;
     });
   }, [filteredEnrollmentRows, statusChipFilter]);
@@ -306,7 +306,7 @@ const EnrollmentsManagementPage = () => {
   const enrollmentStatusCounts = useMemo(() => {
     const counts = { ENROLLED: 0, SUSPENDED: 0, PENDING: 0, DROPPED: 0, ACTIVE: 0 };
     filteredEnrollmentRows.forEach((row) => {
-      const code = row.status?.code || 'ENROLLED';
+      const code = row.status?.code || 'ACTIVE';
       if (counts[code] != null) counts[code] += 1;
     });
     return counts;
@@ -523,13 +523,6 @@ const EnrollmentsManagementPage = () => {
             variant: 'blue',
           },
           {
-            id: 'ENROLLED',
-            label: getEnrollmentStatusLabel('ENROLLED'),
-            count: enrollmentStatusCounts.ENROLLED,
-            icon: getThemedIcon('ui', 'check_circle', 16, theme),
-            variant: 'green',
-          },
-          {
             id: 'ACTIVE',
             label: getEnrollmentStatusLabel('ACTIVE'),
             count: enrollmentStatusCounts.ACTIVE,
@@ -680,12 +673,12 @@ const EnrollmentsManagementPage = () => {
             headerName: t('status'), 
             width: 120,
             valueGetter: (params) => {
-              const statusCode = params.row?.status?.code || 'ENROLLED';
+              const statusCode = params.row?.status?.code || 'ACTIVE';
               return getEnrollmentStatusLabel(statusCode);
             },
             renderCell: (params) => {
               const status = params.row.status;
-              const statusCode = status?.code || 'ENROLLED';
+              const statusCode = status?.code || 'ACTIVE';
               const statusColors = {
                 'ENROLLED': { bg: theme === 'dark' ? '#059669' : '#d1fae5', color: theme === 'dark' ? '#6ee7b7' : '#059669' },
                 'SUSPENDED': { bg: theme === 'dark' ? '#dc2626' : '#fee2e2', color: theme === 'dark' ? '#f87171' : '#dc2626' },
@@ -693,7 +686,7 @@ const EnrollmentsManagementPage = () => {
                 'ACTIVE': { bg: theme === 'dark' ? '#059669' : '#d1fae5', color: theme === 'dark' ? '#6ee7b7' : '#059669' },
                 'DROPPED': { bg: theme === 'dark' ? '#6b7280' : '#f3f4f6', color: theme === 'dark' ? '#d1d5db' : '#6b7280' }
               };
-              const colors = statusColors[statusCode] || statusColors['ENROLLED'];
+              const colors = statusColors[statusCode] || statusColors['ACTIVE'];
 
               return (
                 <span style={{ 

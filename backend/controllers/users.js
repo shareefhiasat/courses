@@ -84,7 +84,9 @@ export const getCurrentUserController = async (req, res) => {
         lastNameAr: dbUser?.lastNameAr ?? null,
         realName: dbUser?.realName ?? null,
         studentNumber: dbUser?.studentNumber ?? null,
-        profileImageUrl: toProfileImageUrl(authUser.keycloakId, dbUser?.profileImageUrl ?? null),
+        rankEn: dbUser?.rankEn ?? null,
+        rankAr: dbUser?.rankAr ?? null,
+        profileImageUrl: toProfileImageUrl(authUser.keycloakId || authUser.dbId, dbUser?.profileImageUrl ?? null),
         dbId: authUser.dbId
       }
     });
@@ -202,10 +204,10 @@ export const listUsersController = async (req, res) => {
     // Convert MinIO image keys to proxy URLs for frontend use
     let usersWithUrls = filteredUsers.map(u => ({
       ...u,
-      profileImageUrl: toProfileImageUrl(u.keycloakId, u.profileImageUrl),
-      qidImageUrl: toImageUrl(u.keycloakId, u.qidImageUrl, 'qid'),
-      militaryIdImageUrl: toImageUrl(u.keycloakId, u.militaryIdImageUrl, 'military'),
-      additionalImageUrl: toImageUrl(u.keycloakId, u.additionalImageUrl, 'additional'),
+      profileImageUrl: toProfileImageUrl(u.keycloakId || u.id, u.profileImageUrl),
+      qidImageUrl: toImageUrl(u.keycloakId || u.id, u.qidImageUrl, 'qid'),
+      militaryIdImageUrl: toImageUrl(u.keycloakId || u.id, u.militaryIdImageUrl, 'military'),
+      additionalImageUrl: toImageUrl(u.keycloakId || u.id, u.additionalImageUrl, 'additional'),
     }));
 
     if (req.userListAccess === 'scoped') {
@@ -285,7 +287,7 @@ export const getUserByIdController = async (req, res) => {
 
     let data = {
       ...user,
-      profileImageUrl: toProfileImageUrl(user.keycloakId, user.profileImageUrl),
+      profileImageUrl: toProfileImageUrl(user.keycloakId || user.id, user.profileImageUrl),
     };
 
     if (req.userListAccess === 'scoped' || req.userListAccess === 'self') {

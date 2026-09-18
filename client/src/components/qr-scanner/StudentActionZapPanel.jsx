@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { Workflow } from 'lucide-react';
+import { Workflow } from '@utils/icons.jsx';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { Button, Input, Modal } from '@ui';
 import { useAuth } from '@contexts/AuthContext';

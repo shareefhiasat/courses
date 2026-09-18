@@ -1,6 +1,7 @@
 import React from 'react';
 import { OFFICIAL_HEADER } from '../shared/officialHeader.js';
 import { buildWatermarkLines } from '../engine/watermark.js';
+import { formatDateTime } from '@utils/date-formatter.js';
 import styles from './officialReport.module.css';
 
 function footerLabels(isAr) {
@@ -171,14 +172,7 @@ export function QualitativeCardTemplate({ data, showWatermark = true }) {
     });
   });
 
-  const genDateTime = new Date().toLocaleDateString(isAr ? 'ar-SA' : 'en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+  const genDateTime = formatDateTime(new Date(), isAr ? 'ar' : 'en');
 
   return (
     <>

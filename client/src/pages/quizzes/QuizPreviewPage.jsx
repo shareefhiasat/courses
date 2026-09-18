@@ -266,7 +266,6 @@ export default function QuizPreviewPage() {
                   color="primary"
                   style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', fontSize: 'var(--font-size-sm)' }}
                   onClick={handleEditQuiz}
-                  title={t('edit_quiz')}
                 >
                   <Edit size={14} />
                   {t('edit')}

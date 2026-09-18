@@ -101,6 +101,7 @@ export const getExportHistoryController = async (req, res) => {
       exportType,
       format,
       userId,
+      classId,
       search,
       startDate,
       endDate,
@@ -115,6 +116,7 @@ export const getExportHistoryController = async (req, res) => {
     const filters = {
       exportType,
       format,
+      classId,
       search,
       startDate,
       endDate,

@@ -38,20 +38,28 @@ export function filterRecordsByScope(items, scope, fieldMap) {
 
 export async function assertClassInScope(req, classId) {
   const scope = await getRequestScope(req);
-  if (scope.unrestricted) return { ok: true, scope };
-
   const cid = parseInt(classId, 10);
   if (Number.isNaN(cid)) return { ok: false, scope, reason: 'invalid_class' };
-  if (scope.classIds.includes(cid)) return { ok: true, scope };
 
   const cls = await prisma.class.findUnique({
     where: { id: cid },
-    select: { id: true, programId: true, subjectId: true },
+    select: {
+      id: true,
+      programId: true,
+      subjectId: true,
+      instructorId: true,
+      program: { select: { categoryId: true } },
+    },
   });
   if (!cls) return { ok: false, scope, reason: 'class_not_found' };
-  if (isRecordInScope(scope, cls)) return { ok: true, scope };
 
-  return { ok: false, scope, reason: 'out_of_scope' };
+  // Class has no direct categoryId; derive it from its program.
+  cls.categoryId = cls.program?.categoryId ?? null;
+
+  if (scope.unrestricted) return { ok: true, scope, class: cls };
+  if (scope.classIds.includes(cid) || isRecordInScope(scope, cls)) return { ok: true, scope, class: cls };
+
+  return { ok: false, scope, class: cls, reason: 'out_of_scope' };
 }
 
 export async function assertProgramInScope(req, programId) {

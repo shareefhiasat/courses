@@ -26,14 +26,12 @@ export default function WorkflowAttachments({ file, onDownload, onPreview }) {
             <Button
               variant="outline"
               onClick={() => onPreview(file)}
-              title={t('workflow.document.view', 'View')}
             >
               {getThemedIcon('ui', 'eye', 16)}
             </Button>
           )}
           <Button
             onClick={() => onDownload(file.id, file.name)}
-            title={t('workflow.document.download', 'Download')}
           >
             {getThemedIcon('ui', 'download', 16)}
           </Button>
@@ -91,7 +89,6 @@ export default function WorkflowAttachments({ file, onDownload, onPreview }) {
                         variant="outline"
                         size="sm"
                         onClick={() => onDownload(file.id, `${file.name}_v${version.versionNumber}`)}
-                        title={t('workflow.document.download', 'Download')}
                       >
                         {getThemedIcon('ui', 'download', 16)}
                       </Button>

@@ -12,6 +12,7 @@ import { loadWeeklyScheduleSources } from '@services/business/weeklyScheduleExpo
 import { getAttendanceByClass } from '@services/business/attendanceService.js';
 import { getAttendanceRecords } from '@services/business/attendanceService.js';
 import { getStudentsByClass } from '@services/business/enrollmentService.js';
+import { getParticipationsByClassAndDate } from '@services/business/participationService.js';
 import { getClassById, getClasses } from '@services/business/classService.js';
 import { getSubjects } from '@services/business/programService.js';
 import { formatQatarDateOnly } from '@utils/qatarDate.js';
@@ -215,6 +216,9 @@ export async function exportDailyOfficialTemplate({
   instructorName,
   skipDownload = false,
   skipPersist = false,
+  includeNotes = true,
+  includeParticipation = false,
+  date = null,
 }) {
   const resolvedClass = await resolveClassForExport(cls, { instructorName });
   const meta = buildClassMetadata(resolvedClass, program, subject, lang, { instructorName, academicTerm });
@@ -241,9 +245,12 @@ export async function exportDailyOfficialTemplate({
   const reportData = prepareDailyOfficialData({
     roster,
     attendanceByUserId: {},
+    participationByUserId: {},
     lang,
     isStandup: false,
     isTemplate: true,
+    includeNotes,
+    includeParticipation,
     metadata: {
       date: '—',
       ...meta,
@@ -277,15 +284,23 @@ export async function exportDailyOfficialForDate({
   skipDownload = false,
   skipPersist = false,
   instructorName,
+  workflowStatus = null,
+  approvedBy = null,
+  approvedAt = null,
+  includeNotes = true,
+  includeParticipation = false,
 }) {
   const resolvedClass = await resolveClassForExport(cls, { instructorName });
   const meta = buildClassMetadata(resolvedClass, program, subject, lang, { instructorName, academicTerm });
   const formattedDate = formatQatarDateOnly(date);
+  const reportDate = formatForDateInput(date);
 
   const [attendanceRes, studentsRes] = await Promise.all([
     getAttendanceByClass(cls.id, { date }),
     getStudentsByClass(cls.id),
   ]);
+
+  console.log('[exportDailyOfficialForDate] date', date, 'classId', cls.id, 'attendanceRes', attendanceRes);
 
   const attendanceData = (attendanceRes.success ? attendanceRes.data : []).map((a) => ({
     ...a,
@@ -299,7 +314,21 @@ export async function exportDailyOfficialForDate({
     attendanceByUserId[uid] = record;
   });
 
+  const participationByUserId = {};
+  if (includeParticipation && cls?.id && date) {
+    const participationRes = await getParticipationsByClassAndDate(cls.id, date);
+    if (participationRes.success) {
+      participationRes.data.forEach((p) => {
+        const uid = String(p.userId ?? p.studentId);
+        if (!participationByUserId[uid]) participationByUserId[uid] = [];
+        participationByUserId[uid].push(p);
+      });
+    }
+  }
+
   const enrollments = studentsRes.success ? studentsRes.data : [];
+  console.log('[exportDailyOfficialForDate] attendanceData.length', attendanceData.length, 'enrollments.length', enrollments.length, 'attendanceByUserId keys', Object.keys(attendanceByUserId));
+  console.log('[exportDailyOfficialForDate] roster ids', (enrollments.length > 0 ? enrollments.slice(0, 5) : attendanceData.slice(0, 5)).map((e) => ({ id: e.userId ?? e.id, userId: e.userId })));
   const roster = enrollments.length > 0
     ? enrollments.map((e) => {
         const studentUser = e.user || e;
@@ -320,17 +349,34 @@ export async function exportDailyOfficialForDate({
   const reportData = prepareDailyOfficialData({
     roster,
     attendanceByUserId,
+    participationByUserId,
     lang,
     isStandup: false,
     isTemplate: roster.length === 0,
+    includeNotes,
+    includeParticipation,
     metadata: {
       date: formattedDate,
       ...meta,
       watermarkUser: user,
+      watermarkStatus: workflowStatus,
+      approvedByUser: approvedBy,
+      approvedAt,
     },
   });
 
-  const filename = `${reportData.serial}_daily_official_${sanitize(meta.className)}`;
+  const STATUS_FILENAME_LABELS = {
+    DRAFT: { en: 'Draft', ar: 'مسودة' },
+    APPROVED: { en: 'Approved', ar: 'معتمد' },
+  };
+  const workflowStatusUpper = workflowStatus ? String(workflowStatus).toUpperCase() : null;
+  const statusLabels = STATUS_FILENAME_LABELS[workflowStatusUpper];
+  const statusSlug = statusLabels
+    ? sanitize(lang === 'ar' ? statusLabels.ar : statusLabels.en)
+    : '';
+  const filename = statusSlug
+    ? `${reportData.serial}_${statusSlug}_daily_official_${sanitize(meta.className)}`
+    : `${reportData.serial}_daily_official_${sanitize(meta.className)}`;
   const blob = await exportDailyOfficialReport(reportData, { format, filename, download: !skipDownload });
   const driveResult = skipPersist ? null : await persistAndLogExport({
     blob,
@@ -341,7 +387,12 @@ export async function exportDailyOfficialForDate({
     classId: meta.classId,
     subjectId: meta.subjectId,
     programId: meta.programId,
-    reportDate: formattedDate,
+    reportDate,
+    metadata: {
+      workflowStatus,
+      approvedByName: approvedBy?.displayName || null,
+      approvedAt,
+    },
   }).catch(() => null);
   return { filename, blob, fileId: driveResult?.fileId || null };
 }
@@ -357,7 +408,13 @@ export async function exportAttendanceOfficialForScope({
   user,
   format = EXPORT_FORMAT.PDF,
   preview = false,
+  skipPersist = false,
+  download = true,
   classIds = [],
+  classId = null,
+  workflowStatus = null,
+  approvedBy = null,
+  approvedAt = null,
 }) {
   // Fetch attendance by classId (subjectId is often NULL in the database,
   // so filtering by subjectId returns no records). We fetch by class with
@@ -476,24 +533,37 @@ export async function exportAttendanceOfficialForScope({
       dateFrom,
       dateTo,
       watermarkUser: user,
+      watermarkStatus: workflowStatus,
+      approvedByUser: approvedBy,
+      approvedAt,
     },
   });
 
   const filename = `${reportData.serial}_attendance_official_${sanitize(programName)}`;
-  const blob = await exportAttendanceOfficialReport(reportData, { format, filename });
+  const blob = await exportAttendanceOfficialReport(reportData, { format, filename, download });
   const blobUrl = URL.createObjectURL(blob);
-  const driveResult = await persistAndLogExport({
-    blob,
-    filename,
-    mimeType: mimeTypeForFormat(format),
-    exportType: 'official_attendance',
-    format,
-    programId,
-    reportDate: `${dateFrom}_${dateTo}`,
-  }).catch(() => {});
+  let driveResult = null;
+  if (!skipPersist) {
+    driveResult = await persistAndLogExport({
+      blob,
+      filename,
+      mimeType: mimeTypeForFormat(format),
+      exportType: 'official_attendance',
+      format,
+      classId: classId || (classIds.length === 1 ? classIds[0] : null),
+      programId,
+      reportDate: dateFrom,
+      metadata: {
+        workflowStatus,
+        approvedByName: approvedBy?.displayName || null,
+        approvedAt,
+      },
+    }).catch(() => {});
+  }
 
   return {
     filename: driveResult?.filename || filename,
+    blob,
     blobUrl,
     fileId: driveResult?.fileId || null,
     folderId: driveResult?.folderId || null,

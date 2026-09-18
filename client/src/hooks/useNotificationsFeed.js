@@ -10,6 +10,8 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import notificationService from '@services/business/notificationService';
 import { getNotificationSocket, initializeNotificationSocket } from '@services/realtime/notificationSocket';
+import notificationManager from '@utils/notifications';
+import { getNotificationSettings } from '@services/business/notificationService';
 
 export const useNotificationsFeed = (options = {}) => {
   const { user } = useAuth();
@@ -17,15 +19,44 @@ export const useNotificationsFeed = (options = {}) => {
   const { limit = 50, unreadOnly = false, category = null, archived } = options;
   
   const [notifications, setNotifications] = useState([]);
+  const notificationsRef = useRef([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [socketConnected, setSocketConnected] = useState(false);
-  
+
+  // Sync ref with current notifications for loadNotifications merge
+  useEffect(() => {
+    notificationsRef.current = notifications;
+  }, [notifications]);
+
   // Track recently deleted/archived notification IDs to prevent socket from re-adding them
   const deletedNotificationIds = useRef(new Set());
   const archivedNotificationIds = useRef(new Set());
+
+  // Cache notification settings for real-time sound/browser notifications
+  const settingsRef = useRef({ soundEnabled: true, browserNotificationsEnabled: true });
+
+  // Load settings on mount and refresh periodically
+  useEffect(() => {
+    if (!user) return;
+    const loadSettings = async () => {
+      try {
+        const result = await getNotificationSettings();
+        if (result?.success && result.preferences) {
+          const prefs = result.preferences;
+          settingsRef.current = {
+            soundEnabled: prefs.soundEnabled ?? true,
+            browserNotificationsEnabled: prefs.browserNotifEnabled ?? true,
+          };
+        }
+      } catch (err) {
+        console.error('Failed to load notification settings for real-time:', err);
+      }
+    };
+    loadSettings();
+  }, [user]);
 
   // Load notifications from API
   const loadNotifications = useCallback(async (isRefresh = false) => {
@@ -43,9 +74,14 @@ export const useNotificationsFeed = (options = {}) => {
       
       if (result.success) {
         const loadedNotifications = result.notifications || [];
-        setNotifications(loadedNotifications);
-        // Calculate unread count locally from loaded notifications
-        const calculatedUnread = loadedNotifications.filter(n => !n.isRead && !n.isArchived).length;
+        const loadedIds = new Set(loadedNotifications.map(n => n.id));
+        const pending = (notificationsRef.current || [])
+          .filter(n => n.fromSocket && !loadedIds.has(n.id))
+          .map(n => ({ ...n, fromSocket: false }));
+        const merged = [...pending, ...loadedNotifications];
+        setNotifications(merged);
+        // Calculate unread count locally from merged notifications
+        const calculatedUnread = merged.filter(n => !n.isRead && !n.isArchived).length;
         setUnreadCount(calculatedUnread);
       } else {
         setError(result.error || 'Failed to load notifications');
@@ -243,7 +279,8 @@ export const useNotificationsFeed = (options = {}) => {
         const handleNotification = (data) => {
           // New notification received via WebSocket (already mapped by backend)
           const mapped = data || {};
-          
+          mapped.fromSocket = true;
+
           // Don't add if this notification was recently deleted or archived
           if (deletedNotificationIds.current.has(mapped.id)) {
             return;
@@ -262,6 +299,18 @@ export const useNotificationsFeed = (options = {}) => {
           if (!mapped.isRead && !mapped.isArchived) {
             setUnreadCount(prev => prev + 1);
           }
+
+          // Trigger sound + browser notification based on user settings
+          const settings = settingsRef.current;
+          const title = mapped.title || mapped.message || 'New Notification';
+          const body = mapped.message || mapped.body || '';
+          notificationManager.smartNotification('default', title, body, {
+            settings: {
+              sound: settings.soundEnabled,
+              vibration: false, // desktop, no vibration needed
+              browser: settings.browserNotificationsEnabled,
+            },
+          });
         };
         
         const handleConnected = () => {
@@ -288,6 +337,23 @@ export const useNotificationsFeed = (options = {}) => {
       });
     }
   }, [user, loadNotifications]);
+
+  // Refresh cached settings (called after user toggles sound/browser in drawer)
+  const refreshSettings = useCallback(async () => {
+    if (!user) return;
+    try {
+      const result = await getNotificationSettings();
+      if (result?.success && result.preferences) {
+        const prefs = result.preferences;
+        settingsRef.current = {
+          soundEnabled: prefs.soundEnabled ?? true,
+          browserNotificationsEnabled: prefs.browserNotifEnabled ?? true,
+        };
+      }
+    } catch (err) {
+      console.error('Failed to refresh notification settings:', err);
+    }
+  }, [user]);
 
   // Memoized values
   const unreadNotifications = useMemo(() => 
@@ -322,7 +388,8 @@ export const useNotificationsFeed = (options = {}) => {
     archive,
     unarchive,
     archiveAllRead,
-    remove
+    remove,
+    refreshSettings
   };
 };
 

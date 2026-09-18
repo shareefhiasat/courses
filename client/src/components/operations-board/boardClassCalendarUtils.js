@@ -5,6 +5,7 @@ import {
 import {
   SCHEDULE_WORKFLOW_COLORS,
   SCHEDULE_WORKFLOW_STATUS,
+  SCHEDULE_WORKFLOW_STATUS_MAP,
   WORKFLOW_STATUS_COLORS,
   resolveScheduleWorkflowKey,
 } from '@constants/workspaceStatusColors.js';
@@ -16,10 +17,12 @@ export const SCHEDULE_CALENDAR_LEGEND = [
   { key: SCHEDULE_WORKFLOW_STATUS.DRAFT, i18nKey: 'workspace_status_draft' },
   { key: SCHEDULE_WORKFLOW_STATUS.TAKEN, i18nKey: 'workspace_status_taken' },
   { key: SCHEDULE_WORKFLOW_STATUS.SUBMITTED, i18nKey: 'workspace_status_submitted' },
-  { key: 'under_admin_review', i18nKey: 'workflow.status.under_admin_review' },
-  { key: 'under_hr_review', i18nKey: 'workflow.status.under_hr_review' },
-  { key: 'approved', i18nKey: 'workflow.status.approved' },
-  { key: 'rejected', i18nKey: 'workflow.status.rejected' },
+  { key: SCHEDULE_WORKFLOW_STATUS.UNDER_REVIEW, i18nKey: 'workflow.status.in_review' },
+  { key: SCHEDULE_WORKFLOW_STATUS.UNDER_ADMIN_REVIEW, i18nKey: 'workflow.status.under_admin_review' },
+  { key: SCHEDULE_WORKFLOW_STATUS.UNDER_HR_REVIEW, i18nKey: 'workflow.status.under_hr_review' },
+  { key: SCHEDULE_WORKFLOW_STATUS.APPROVED, i18nKey: 'workflow.status.approved' },
+  { key: SCHEDULE_WORKFLOW_STATUS.REJECTED, i18nKey: 'workflow.status.rejected' },
+  { key: SCHEDULE_WORKFLOW_STATUS.AMENDED, i18nKey: 'workflow.status.amended' },
 ];
 
 export function dateToDayCode(date) {
@@ -106,6 +109,7 @@ export function buildClassCalendarEvents({
       const endMin = window?.max ?? startMin + 60;
       const status = statusByDate[iso]?.[session.classId] ?? null;
       const workflowKey = resolveScheduleWorkflowKey(status);
+      const weeklyWorkflowKey = resolveWeeklyWorkflowKey(status);
 
       events.push({
         id: `${iso}-${session.classId}-${session.slotKey}`,
@@ -116,6 +120,7 @@ export function buildClassCalendarEvents({
           classId: session.classId,
           date: iso,
           workflowKey,
+          weeklyWorkflowKey,
           status,
           subjectName: session.subjectName,
           slotKey: session.slotKey,
@@ -132,14 +137,7 @@ export function buildClassCalendarEvents({
 }
 
 export function getWorkflowEventColor(workflowKey) {
-  const extendedColors = {
-    under_admin_review: WORKFLOW_STATUS_COLORS.UNDER_ADMIN_REVIEW,
-    under_hr_review: WORKFLOW_STATUS_COLORS.UNDER_HR_REVIEW,
-    approved: WORKFLOW_STATUS_COLORS.APPROVED,
-    rejected: WORKFLOW_STATUS_COLORS.REJECTED,
-  };
   return SCHEDULE_WORKFLOW_COLORS[workflowKey]
-    || extendedColors[workflowKey]
     || SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.NOT_TAKEN];
 }
 
@@ -167,10 +165,13 @@ export function getWorkflowStatusLabel(workflowKey, t) {
     draft: 'workspace_status_draft',
     taken: 'workspace_status_taken',
     submitted: 'workspace_status_submitted',
+    under_review: 'workflow.status.in_review',
     under_admin_review: 'workflow.status.under_admin_review',
     under_hr_review: 'workflow.status.under_hr_review',
     approved: 'workflow.status.approved',
+    admin_approved: 'workflow.status.approved',
     rejected: 'workflow.status.rejected',
+    amended: 'workflow.status.amended',
   };
   const i18nKey = keys[workflowKey];
   return i18nKey ? (t(i18nKey) || workflowKey) : (workflowKey || '—');
@@ -180,7 +181,7 @@ export const ATTENDANCE_COUNT_ITEMS = [
   { key: 'present', labelKey: 'present', fallback: 'Present', color: '#10b981' },
   { key: 'late', labelKey: 'late', fallback: 'Late', color: '#f59e0b' },
   { key: 'absent', labelKey: 'absent', fallback: 'Absent', color: '#ef4444' },
-  { key: 'excused', labelKey: 'excused', fallback: 'Excused Leave', color: '#ec4899' },
+  { key: 'excused', labelKey: 'excused', fallback: 'Excused', color: '#ec4899' },
   { key: 'humanCase', labelKey: 'operations_board_lane_human_case', fallback: 'Human Case', color: '#8b5cf6' },
   { key: 'notTaken', labelKey: 'operations_board_lane_not_taken', fallback: 'Not yet', color: '#9ca3af' },
 ];
@@ -194,6 +195,11 @@ export function resolveAttendanceEventColor(status) {
   if (counts.excused > 0) return '#ec4899';
   if (counts.present > 0) return '#10b981';
   return '#9ca3af';
+}
+
+export function resolveWeeklyWorkflowKey(status) {
+  if (!status || !status.weeklyWorkflowStatus) return SCHEDULE_WORKFLOW_STATUS.NOT_TAKEN;
+  return SCHEDULE_WORKFLOW_STATUS_MAP[status.weeklyWorkflowStatus] || SCHEDULE_WORKFLOW_STATUS.NOT_TAKEN;
 }
 
 export function isActionableClassSession(workflowKey) {

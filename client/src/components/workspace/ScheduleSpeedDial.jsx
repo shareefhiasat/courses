@@ -196,8 +196,8 @@ function ScheduleSpeedDial({
     pillColor: '#059669',
     icon: <CheckCircle2 size={16} className="shrink-0" />,
     message: (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0px', fontSize: '0.75rem' }}>
-        {`${label} — ${t('export_success') || 'Export successful'}`}
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem' }}>
+        {`${label}${dateStr ? ` — ${dateStr}` : ''} — ${t('export_success') || 'Export successful'}`}
         <button
           type="button"
           className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
@@ -206,7 +206,7 @@ function ScheduleSpeedDial({
               ? downloadBlob(blob, `${filename}.xlsx`)
               : window.open(blobUrl, '_blank')
           }
-          style={{ marginLeft: '8px' }}
+          style={{ marginInlineStart: '4px' }}
           aria-label={
             format === EXPORT_FORMAT.EXCEL
               ? (t('download_file') || 'Download file')
@@ -217,7 +217,7 @@ function ScheduleSpeedDial({
         </button>
       </span>
     ),
-  }), [t]);
+  }), [t, dateStr]);
 
   const actions = useMemo(() => {
     const items = [];

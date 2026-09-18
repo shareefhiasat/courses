@@ -79,7 +79,7 @@ export function prepareWeeklyScheduleData({
   hideWeekends = true,
 } = {}) {
   const isAr = lang === 'ar';
-  const serial = buildSerialNumber(metadata.programId || metadata.classId, { prefix: 'WS' });
+  const serial = buildSerialNumber(metadata.programId || metadata.classId, { prefix: 'WS', date: metadata.weekFrom || metadata.date });
   const programName = metadata.programName || '';
   const batch = metadata.batch || metadata.className || '';
   const room = metadata.scheduleRoom || '';

@@ -27,7 +27,7 @@ const mapProfileImages = (data) => {
     if (!enrollment?.user) return enrollment;
     const u = enrollment.user;
     if (u.profileImageUrl && !u.profileImageUrl.startsWith('http') && !u.profileImageUrl.startsWith('/api/')) {
-      return { ...enrollment, user: { ...u, profileImageUrl: `/api/v1/user-images/proxy/${u.keycloakId}/profile` } };
+      return { ...enrollment, user: { ...u, profileImageUrl: `/api/v1/user-images/proxy/${u.keycloakId || u.id}/profile` } };
     }
     return enrollment;
   };

@@ -13,3 +13,4 @@ export * from './prisma-errors.js';
 export * from './driveConstants.js';
 export * from './fileConstants.js';
 export * from './attendanceConstants.js';
+export * from './enrollmentConstants.js';

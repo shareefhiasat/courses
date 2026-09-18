@@ -4,6 +4,7 @@
  */
 
 import React, { memo, useRef, useState, useCallback } from 'react';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { chatService } from '@services/business/chatService';
 import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
 
@@ -314,7 +315,6 @@ const MessageBubble = memo(({
                   }
                 } catch {}
               }}
-              title={`${count} ${count === 1 ? 'reaction' : 'reactions'}`}
               style={{ 
                 background: active ? `${color}20` : 'transparent',
                 border: active ? `1px solid ${color}` : 'none',
@@ -387,7 +387,6 @@ const MessageBubble = memo(({
           cursor: 'pointer',
           transition: 'color 0.2s'
         }}
-        title={`Seen by ${readCount} of ${recips.length}`}
         onClick={() => {
           const list = recips.map(uid => ({
             uid,
@@ -411,7 +410,6 @@ const MessageBubble = memo(({
         <button
           onMouseDown={(e)=>e.stopPropagation()}
           onClick={(e)=>{ e.stopPropagation(); onContextMenu?.(msg.id); }}
-          title={t('more')}
           style={{ position:'absolute', top:4, [isOwn ? 'insetInlineStart' : 'insetInlineEnd']: 4, background:'transparent', border:'none', color:'var(--muted)', cursor:'pointer', fontSize: 'var(--font-size-md)', padding:'2px 4px', lineHeight:1, zIndex: 3 }}
         >⋮</button>
       </>
@@ -494,7 +492,7 @@ const MessageBubble = memo(({
                 alignItems: 'center',
                 justifyContent: 'center',
                 lineHeight: 1
-              }} title={senderUser?.deleted ? t('deleted_user') : t('disabled_user')}>✕</span>
+              }} aria-label={senderUser?.deleted ? t('deleted_user') : t('disabled_user')}>✕</span>
             )}
           </div>
         )}
@@ -517,33 +515,34 @@ const MessageBubble = memo(({
         {renderReactions()}
 
         {/* Reaction Button */}
-        <button
-          onClick={handleReactionClick}
-          title={t('react')}
-          style={{ 
-            position:'absolute', 
-            bottom: -12, 
-            [(isOwn && !isRTL) || (!isOwn && isRTL) ?'right':'left']: -16, 
-            background:'linear-gradient(135deg, #ffffff, #f8f9fa)', 
-            border:'2px solid #e9ecef', 
-            borderRadius:'50%', 
-            width:32, 
-            height:32, 
-            display:'flex', 
-            alignItems:'center', 
-            justifyContent:'center', 
-            cursor:'pointer', 
-            boxShadow:'0 4px 12px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08)', 
-            transition:'all 0.2s ease',
-            fontSize:'1.2rem'
-          }}
-          onMouseEnter={(e)=>e.currentTarget.style.transform='scale(1.05)'}
-          onMouseLeave={(e)=>e.currentTarget.style.transform='scale(1)'}
-        >
-          <span aria-hidden="true" style={{ display:'inline-block', transform:'translateY(1px)' }}>
-            {getThemedIcon('ui', 'smile', 16, theme)}
-          </span>
-        </button>
+        <ColoredTooltip title={t('react')}>
+          <button
+            onClick={handleReactionClick}
+            style={{ 
+              position:'absolute', 
+              bottom: -12, 
+              [(isOwn && !isRTL) || (!isOwn && isRTL) ?'right':'left']: -16, 
+              background:'linear-gradient(135deg, #ffffff, #f8f9fa)', 
+              border:'2px solid #e9ecef', 
+              borderRadius:'50%', 
+              width:32, 
+              height:32, 
+              display:'flex', 
+              alignItems:'center', 
+              justifyContent:'center', 
+              cursor:'pointer', 
+              boxShadow:'0 4px 12px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08)', 
+              transition:'all 0.2s ease',
+              fontSize:'1.2rem'
+            }}
+            onMouseEnter={(e)=>e.currentTarget.style.transform='scale(1.05)'}
+            onMouseLeave={(e)=>e.currentTarget.style.transform='scale(1)'}
+          >
+            <span aria-hidden="true" style={{ display:'inline-block', transform:'translateY(1px)' }}>
+              {getThemedIcon('ui', 'smile', 16, theme)}
+            </span>
+          </button>
+        </ColoredTooltip>
 
         {/* Actions Menu */}
         {renderActionsMenu()}

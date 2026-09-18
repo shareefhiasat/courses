@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLang } from '@contexts/LangContext';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { getLocalizedUserName } from '@utils/localizedUserName';
 import { getUserRoleFromObject } from '@utils/userUtils';
@@ -18,12 +19,13 @@ export default function UserNameWithRole({ user, lang, fallback = '\u2014', size
         <span>{getLocalizedUserName(user, lang, fallback)}</span>
       )}
       {role && icon && (
-        <span
-          title={t(`roles.${role}`, role)}
-          style={{ display: 'flex', alignItems: 'center' }}
-        >
-          {React.cloneElement(icon, { color, size })}
-        </span>
+        <ColoredTooltip title={t(`roles.${role}`, role)}>
+          <span
+            style={{ display: 'flex', alignItems: 'center' }}
+          >
+            {React.cloneElement(icon, { color, size })}
+          </span>
+        </ColoredTooltip>
       )}
     </span>
   );

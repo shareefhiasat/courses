@@ -1,5 +1,6 @@
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 
 const FILTER_TYPE_KEY_MAP = {
   image: 'drive.filter.type.images',
@@ -93,32 +94,33 @@ export default function FilterChips({ activeFilters, onRemoveFilter, onClearAll 
       })}
 
       {activeFilters.length > 1 && (
-        <button
-          onClick={onClearAll}
-          title={t('drive.clearAllFilters')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '0.375rem',
-            color: 'var(--text-muted, #8d90a0)',
-            border: 'none',
-            background: 'transparent',
-            cursor: 'pointer',
-            borderRadius: '0.375rem',
-            transition: 'color 0.15s, background 0.15s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'var(--color-primary, #800020)';
-            e.currentTarget.style.background = 'rgba(128, 0, 32, 0.1)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'var(--text-muted, #8d90a0)';
-            e.currentTarget.style.background = 'transparent';
-          }}
-        >
-          {getThemedIcon('ui', 'trash2', 16, 'light')}
-        </button>
+        <ColoredTooltip title={t('drive.clearAllFilters')}>
+          <button
+            onClick={onClearAll}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0.375rem',
+              color: 'var(--text-muted, #8d90a0)',
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              borderRadius: '0.375rem',
+              transition: 'color 0.15s, background 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--color-primary, #800020)';
+              e.currentTarget.style.background = 'rgba(128, 0, 32, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-muted, #8d90a0)';
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            {getThemedIcon('ui', 'trash2', 16, 'light')}
+          </button>
+        </ColoredTooltip>
       )}
     </div>
   );

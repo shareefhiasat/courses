@@ -250,7 +250,6 @@ const LoginPage = () => {
                   fontSize: 'var(--font-size-xs)',
                   flexShrink: 0
                 }}
-                title={t('dismiss_message')}
               >
                 ✕
               </button>

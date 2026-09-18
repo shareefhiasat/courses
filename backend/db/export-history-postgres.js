@@ -104,6 +104,7 @@ export async function getExportHistories(filters = {}) {
       exportType,
       format,
       userId,
+      classId,
       search = '',
       startDate,
       endDate,
@@ -116,6 +117,7 @@ export async function getExportHistories(filters = {}) {
     if (exportType && ALLOWED_EXPORT_TYPES.includes(exportType)) where.exportType = exportType;
     if (format && ALLOWED_FORMATS.includes(format)) where.format = format;
     if (userId) where.userId = parseInt(userId);
+    if (classId) where.classId = parseInt(classId);
 
     if (startDate || endDate) {
       where.createdAt = {};
@@ -176,7 +178,7 @@ export async function getExportHistories(filters = {}) {
 
     const transformedRecords = records.map((record) => {
       if (record.user?.profileImageUrl && !record.user.profileImageUrl.startsWith('http') && !record.user.profileImageUrl.startsWith('/api/')) {
-        record.user.profileImageUrl = `/api/v1/user-images/proxy/${record.user.keycloakId}/profile`;
+        record.user.profileImageUrl = `/api/v1/user-images/proxy/${record.user.keycloakId || record.user.id}/profile`;
       }
       return record;
     });

@@ -1,5 +1,6 @@
 import React, { useState, memo, useRef, useMemo, useEffect, useCallback } from 'react';
 import Joyride from 'react-joyride';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { getModalJoyrideProps, modalTourStep } from '@utils/tourConfig';
 import { useModalTour } from '@hooks/useModalTour';
 import { useTheme } from '@contexts/ThemeContext';
@@ -425,27 +426,28 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span>{t('workflow.dialog.title', 'Create Custom Workflow')}</span>
-          <button
-            data-tour="workflow-help-btn"
-            onClick={startTour}
-            title={t('tour.replay')}
-            aria-label={t('tour.replay')}
-            style={{
-              flexShrink: 0,
-              width: 28,
-              height: 28,
-              borderRadius: '50%',
-              border: '1px solid var(--border, #e5e7eb)',
-              background: 'var(--background-secondary, #f9fafb)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--color-primary, #800020)',
-            }}
-          >
-            {getIconWithColor('ui', 'help', 16, 'currentColor')}
-          </button>
+          <ColoredTooltip title={t('tour.replay')}>
+            <button
+              data-tour="workflow-help-btn"
+              onClick={startTour}
+              aria-label={t('tour.replay')}
+              style={{
+                flexShrink: 0,
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                border: '1px solid var(--border, #e5e7eb)',
+                background: 'var(--background-secondary, #f9fafb)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--color-primary, #800020)',
+              }}
+            >
+              {getIconWithColor('ui', 'help', 16, 'currentColor')}
+            </button>
+          </ColoredTooltip>
         </div>
       }
       footer={

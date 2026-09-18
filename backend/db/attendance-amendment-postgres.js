@@ -13,7 +13,7 @@ import prisma from './prismaClient.js';
  */
 export async function createAttendanceAmendment(data) {
   try {
-    const { attendanceId, fromStatusId, toStatusId, reason, amendedBy } = data;
+    const { attendanceId, fromStatusId, toStatusId, reason, attachmentUrl, attachmentName, attachmentType, amendedBy } = data;
 
     const amendment = await prisma.attendanceAmendment.create({
       data: {
@@ -21,6 +21,9 @@ export async function createAttendanceAmendment(data) {
         fromStatusId,
         toStatusId,
         reason,
+        attachmentUrl,
+        attachmentName,
+        attachmentType,
         amendedBy
       },
       include: {

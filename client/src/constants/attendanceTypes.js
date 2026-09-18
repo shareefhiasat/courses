@@ -112,7 +112,7 @@ export const ATTENDANCE_ICONS = {
   [ATTENDANCE_STATUS.PRESENT]: 'CheckCircle',
   [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: 'XCircle',
   [ATTENDANCE_STATUS.LATE]: 'Clock',
-  [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'Heart',
+  [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'Info',
   [ATTENDANCE_STATUS.HUMAN_CASE]: 'Heart',
   // Standup types (matching database codes)
   [ATTENDANCE_STATUS.STANDUP_PRESENT]: 'CheckCircle',
@@ -206,6 +206,11 @@ export const getAttendanceDisplayName = (status) => {
 export const getAttendanceColor = (status) => {
   const normalized = normalizeStatus(status);
   return ATTENDANCE_COLORS[normalized] || '#6b7280';
+};
+
+export const getAttendanceSoftColors = (status) => {
+  const normalized = normalizeStatus(status);
+  return ATTENDANCE_COLORS_SOFT[normalized] || { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' };
 };
 
 export const getAttendanceIcon = (status) => {

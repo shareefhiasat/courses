@@ -17,6 +17,7 @@ import {
   exportDailyOfficialTemplate,
   exportDailyOfficialForDate,
 } from '@services/business/accessScopeExportService.js';
+import { Star } from 'lucide-react';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import useQRPermissions from '@hooks/useQRPermissions';
 import styles from './classActionMenu.module.css';
@@ -70,6 +71,8 @@ const ClassActionMenu = ({
 
   const [exporting, setExporting] = useState(null);
   const [exportFilter, setExportFilter] = useState('');
+  const [dailyIncludeNotes, setDailyIncludeNotes] = useState(false);
+  const canToggleDailyNotes = isAdmin || isSuperAdmin;
 
   const cls = session?.class;
   const subject = cls?.subject;
@@ -122,6 +125,12 @@ const ClassActionMenu = ({
           cls, program, subject, lang, t, user, format: EXPORT_FORMAT.EXCEL,
         }),
       },
+      ...(canToggleDailyNotes ? [{
+        id: 'daily-notes-toggle',
+        group: 'daily',
+        groupLabel: t('daily_official'),
+        isNotesToggle: true,
+      }] : []),
       {
         id: 'daily-pdf',
         group: 'daily',
@@ -133,6 +142,7 @@ const ClassActionMenu = ({
         colorClass: styles.exportGroupDaily,
         action: () => exportDailyOfficialForDate({
           cls, program, subject, lang, user, date: dateStr, format: EXPORT_FORMAT.PDF,
+          includeNotes: dailyIncludeNotes,
         }),
       },
       {
@@ -146,6 +156,7 @@ const ClassActionMenu = ({
         colorClass: styles.exportGroupDaily,
         action: () => exportDailyOfficialForDate({
           cls, program, subject, lang, user, date: dateStr, format: EXPORT_FORMAT.EXCEL,
+          includeNotes: dailyIncludeNotes,
         }),
       },
       {
@@ -181,7 +192,7 @@ const ClassActionMenu = ({
       || item.groupLabel.toLowerCase().includes(q)
       || (item.hint && item.hint.includes(q))
     ));
-  }, [canExport, cls, program, subject, lang, t, user, dateStr, exportFilter]);
+  }, [canExport, cls, program, subject, lang, t, user, dateStr, exportFilter, dailyIncludeNotes, canToggleDailyNotes]);
 
   const exportGroups = useMemo(() => {
     const groups = new Map();
@@ -253,6 +264,22 @@ const ClassActionMenu = ({
                 {groupIndex > 0 && <MenuDivider />}
                 <MenuHeader>{group.groupLabel}</MenuHeader>
                 {group.items.map((item) => (
+                  item.isNotesToggle ? (
+                    <MenuItem
+                      key={item.id}
+                      onClick={(e) => { e.keepOpen = true; setDailyIncludeNotes((prev) => !prev); }}
+                      data-testid="class-export-daily-notes-toggle"
+                    >
+                      <MenuRow
+                        icon={(
+                          <span className={`${styles.exportGroupIcon} ${styles.exportGroupDaily}`}>
+                            <Star size={14} color="#ef4444" fill={dailyIncludeNotes ? '#ef4444' : 'none'} />
+                          </span>
+                        )}
+                        label={dailyIncludeNotes ? (t('export_exclude_notes') || 'Exclude notes column') : (t('export_include_notes') || 'Include notes column')}
+                      />
+                    </MenuItem>
+                  ) : (
                   <MenuItem
                     key={item.id}
                     disabled={exporting === item.id}
@@ -269,6 +296,7 @@ const ClassActionMenu = ({
                       hint={item.hint}
                     />
                   </MenuItem>
+                  )
                 ))}
               </React.Fragment>
             ))}
