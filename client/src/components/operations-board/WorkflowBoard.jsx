@@ -8,8 +8,11 @@ import {
 } from '@/components/kibo-ui/kanban';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/kibo/ui/avatar';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
-import { Workflow as WorkflowIcon, FilePenLine, GitBranch, GraduationCap, Lock } from 'lucide-react';
+import { IconButton } from '@mui/material';
+import { Workflow as WorkflowIcon, FilePenLine, GitBranch, GraduationCap, Lock, FileBarChart, FileText, FileSpreadsheet, Paintbrush } from 'lucide-react';
 import { getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
+import { useAuth } from '@contexts/AuthContext';
+import { exportClassSummaryReport, exportClassDeductionReport } from '@services/business/studentSummaryReportService.js';
 import { format, parseISO } from 'date-fns';
 import BoardLaneHeader from './BoardLaneHeader.jsx';
 import { parseWorkflowCardName, resolveBoardClassName } from './operationsBoardDisplayUtils.js';
@@ -191,7 +194,7 @@ function AttendanceCountsTooltip({ summary, t, textColor = '#111827' }) {
         {items.map((item) => (
           <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
             <AttendanceStatusDots items={[item]} dotSize={10} className="shrink-0" />
-            <span style={{ fontSize: '0.7rem', color: textColor }}>{item.count} {item.label}</span>
+            <span style={{ fontSize: '0.7rem', color: item.color }}>{item.count} {item.label}</span>
           </div>
         ))}
       </div>
@@ -205,10 +208,38 @@ function hasAttendanceCounts(summary) {
 }
 
 export function WorkflowCardHoverTooltip({ item, column, summary, t, lang = 'en' }) {
+  const { user } = useAuth();
   const labelColor = '#111827';
   const isWeeklySummary = item.workflowType === 'ATTENDANCE_WEEKLY' || item.attendanceSubtype === 'WEEKLY_SUMMARY';
   const responsible = resolveDisplayLabel(item, t);
   const showInstructorIcon = Boolean(item.classInstructorName);
+  const reportClassInfo = item.classId ? {
+    className: item.classNameEn || item.className || '',
+    classNameAr: item.classNameAr || '',
+    subjectName: item.subjectName || '',
+    subjectNameAr: item.raw?.class?.subject?.nameAr || '',
+    programName: item.programName || '',
+    programNameAr: item.raw?.class?.program?.nameAr || '',
+    term: item.raw?.class?.term || item.raw?.academicTerm || '',
+  } : null;
+  const [colorizeClassSummary, setColorizeClassSummary] = useState(() => {
+    try {
+      return localStorage.getItem('schedule_colorize_class_summary') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+  const runReport = (exportFn, format, extra = {}) => (e) => {
+    e.stopPropagation();
+    exportFn({
+      classId: item.classId,
+      classInfo: reportClassInfo,
+      format,
+      lang,
+      user,
+      ...extra,
+    }).catch((err) => console.error('[WorkflowBoard] report export failed:', err));
+  };
   const dateLabel = isWeeklySummary && item.dateFrom && item.dateTo
     ? `${format(parseISO(item.dateFrom), 'dd/MM/yyyy')} - ${format(parseISO(item.dateTo), 'dd/MM/yyyy')}`
     : item.date
@@ -245,6 +276,57 @@ export function WorkflowCardHoverTooltip({ item, column, summary, t, lang = 'en'
       {hasAttendanceCounts(summary) && (
         <div style={sectionStyle}>
           <AttendanceCountsTooltip summary={summary} t={t} textColor={labelColor} />
+        </div>
+      )}
+      {reportClassInfo && (
+        <div style={sectionStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: labelColor }}>
+            <FileBarChart size={13} color="#0ea5e9" style={{ flexShrink: 0 }} />
+            <span style={{ fontWeight: 600, flex: 1, whiteSpace: 'nowrap' }}>{t('report_class_summary') || 'Class Summary'}</span>
+            <IconButton
+              size="small"
+              title={t('export_excel') || 'Excel'}
+              style={{ padding: 2, color: '#43a047' }}
+              onClick={runReport(exportClassSummaryReport, 'excel', { colorize: colorizeClassSummary })}
+            >
+              <FileSpreadsheet size={13} />
+            </IconButton>
+            <IconButton
+              size="small"
+              title={colorizeClassSummary ? (t('colorize_class_summary_on') || 'Colorize rows') : (t('colorize_class_summary_off') || 'Plain rows')}
+              style={{ padding: 2, color: colorizeClassSummary ? '#0ea5e9' : '#94a3b8' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                const newValue = !colorizeClassSummary;
+                setColorizeClassSummary(newValue);
+                try {
+                  localStorage.setItem('schedule_colorize_class_summary', newValue ? 'true' : 'false');
+                } catch { /* ignore */ }
+              }}
+            >
+              <Paintbrush size={13} fill={colorizeClassSummary ? '#0ea5e9' : 'none'} />
+            </IconButton>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: labelColor }}>
+            <FileBarChart size={13} color="#e53935" style={{ flexShrink: 0 }} />
+            <span style={{ fontWeight: 600, flex: 1, whiteSpace: 'nowrap' }}>{t('report_class_deduction') || 'Deduction Report'}</span>
+            <IconButton
+              size="small"
+              title={t('export_pdf') || 'PDF'}
+              style={{ padding: 2, color: '#e53935' }}
+              onClick={runReport(exportClassDeductionReport, 'pdf')}
+            >
+              <FileText size={13} />
+            </IconButton>
+            <IconButton
+              size="small"
+              title={t('export_excel') || 'Excel'}
+              style={{ padding: 2, color: '#f59e0b' }}
+              onClick={runReport(exportClassDeductionReport, 'excel')}
+            >
+              <FileSpreadsheet size={13} />
+            </IconButton>
+          </div>
         </div>
       )}
     </div>
@@ -564,6 +646,7 @@ export default function WorkflowBoard({
                     <ColoredTooltip
                       title={<WorkflowCardHoverTooltip item={item} column={column} summary={summary} t={t} lang={lang} />}
                       color={column.color}
+                      interactive
                     >
                     <div
                       className="flex flex-col gap-1 min-w-0"
@@ -586,7 +669,19 @@ export default function WorkflowBoard({
                             </div>
                           )}
                           {isLocked && (
-                            <ColoredTooltip title={t('operations_board_attendance_locked_weekly') || 'Attendance locked — weekly workflow in progress for this week.'} color="#dc2626" placement="top">
+                            <ColoredTooltip
+                              title={
+                                (item.workflowType === 'ATTENDANCE_DAILY' || item.attendanceSubtype === 'DAILY')
+                                  ? (t('operations_board_attendance_locked_weekly') || 'Attendance locked — weekly workflow in progress for this week.')
+                                  : (t('operations_board_workflow_locked_status') || 'Workflow locked — your role cannot move it from this status.')
+                              }
+                              color="#dc2626"
+                              placement="top"
+                              slotProps={{
+                                tooltip: { sx: { bgcolor: '#fef2f2', border: '1px solid #fecaca' } },
+                                arrow: { sx: { color: '#fef2f2', '&::before': { border: '1px solid #fecaca' } } },
+                              }}
+                            >
                               <div className="flex items-center gap-0.5 shrink-0">
                                 <Lock size={scalePx(14, fontScale)} color="#dc2626" />
                               </div>

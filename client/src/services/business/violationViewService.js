@@ -72,6 +72,7 @@ export async function fetchClassViolationData({ classId, userId, dateFrom, dateT
       classDeductionApproved: Number(classDeductionApproved.toFixed(2)),
       classDeductionNotApproved: Number(classDeductionNotApproved.toFixed(2)),
       classDeductionTotal: Number(classDeductionTotal.toFixed(2)),
+      classAbsences: Array.isArray(totalStudent.absences) ? totalStudent.absences : [],
     };
   });
 
@@ -157,6 +158,7 @@ export async function initiateWarningWorkflow({ student, warningType, lang, meta
     metadata: {
       totalAbsences: student.totalAbsences,
       unexcusedAbsences: student.unexcusedAbsences,
+      absences: student.classAbsences || student.absences || [],
       deductionTotal: student.deductionTotal,
       warningType,
       generatedBy: user?.id || null,

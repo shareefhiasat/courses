@@ -88,6 +88,15 @@ function buildWarningPage({
   // Official warning is based on the student's total in this class, not the current day/week slice.
   const totalAbsences = student.classTotalAbsences ?? student.totalAbsences ?? 0;
   const unexcusedAbsences = student.classUnexcusedAbsences ?? student.unexcusedAbsences ?? 0;
+  const absences = (student.classAbsences ?? student.absences ?? [])
+    .map((a) => ({
+      date: a.date ? new Date(a.date) : null,
+      statusCode: a.statusCode || '',
+      excusedViaWorkflow: Boolean(a.excusedViaWorkflow),
+      note: a.note || null,
+    }))
+    .filter((a) => a.date && !Number.isNaN(a.date.getTime()))
+    .sort((a, b) => a.date - b.date);
 
   return {
     lang,
@@ -109,6 +118,13 @@ function buildWarningPage({
       : (metadata.className || student.className),
     totalAbsences,
     unexcusedAbsences,
+    absences,
+    absenceDatesLabel: isAr ? 'تواريخ الغيابات' : 'Absence Dates',
+    absenceStatusLabels: {
+      ATTENDANCE_ABSENT: isAr ? 'غائب' : 'Absent',
+      ATTENDANCE_LEAVE: isAr ? 'استئذان' : 'Excused',
+      ATTENDANCE_HUMAN_CASE: isAr ? 'حالة إنسانية' : 'Human Case',
+    },
     title: isDismissed
       ? (isAr ? 'قرار فصل' : 'Class Dismissal')
       : isFinal

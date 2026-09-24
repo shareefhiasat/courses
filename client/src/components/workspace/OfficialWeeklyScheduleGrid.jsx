@@ -37,8 +37,17 @@ import {
   getAttendanceCountsFromStatus,
   ATTENDANCE_COUNT_ITEMS,
 } from '@components/operations-board/boardClassCalendarUtils.js';
-
 const DAY_CODES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+// Daily workflow statuses shown in the week-lock tooltip, in pipeline order.
+const WEEK_LOCK_STATUS_ROWS = [
+  { key: 'DRAFT', labelKey: 'workflow.inbox.statusDraft', fallback: 'Draft', color: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.DRAFT] },
+  { key: 'SUBMITTED', labelKey: 'workflow.inbox.statusSubmitted', fallback: 'Confirmed', color: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.SUBMITTED] },
+  { key: 'UNDER_ADMIN_REVIEW', labelKey: 'workflow.inbox.statusUnderAdminReview', fallback: 'Admin Review', color: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.UNDER_ADMIN_REVIEW] },
+  { key: 'UNDER_HR_REVIEW', labelKey: 'workflow.inbox.statusUnderHrReview', fallback: 'HR Review', color: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.UNDER_HR_REVIEW] },
+  { key: 'REJECTED', labelKey: 'workflow.inbox.statusRejected', fallback: 'Rejected', color: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.REJECTED] },
+  { key: 'APPROVED', labelKey: 'workflow.inbox.approved', fallback: 'Approved', color: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.APPROVED] },
+];
 
 function isSameCalendarWeek(a, b) {
   const startA = new Date(a);
@@ -437,7 +446,7 @@ function AttendanceIndicatorGroup({ status, t, hideTooltips = false }) {
       {items.map((item) => (
         <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
-          <span>{item.count} {t(item.labelKey) || item.fallback}</span>
+          <span style={{ color: item.color, fontWeight: 600 }}>{item.count} {t(item.labelKey) || item.fallback}</span>
         </div>
       ))}
     </div>
@@ -591,6 +600,7 @@ function InteractiveSlotCell({
   hideParticipation = false,
   hideTooltips = false,
   weeklyWorkflowMap,
+  weeklyLockSummaryMap,
   onWorkflowClick,
   onWeeklyWorkflowClick,
   rowSpan = 4,
@@ -638,6 +648,53 @@ function InteractiveSlotCell({
     isSelected ? gridStyles.selectedCell : '',
   ].filter(Boolean).join(' ');
 
+  const weeklyWorkflowForLock = weeklyWorkflowMap?.[String(slot.classId)];
+  const isWeekLocked = Boolean(weeklyWorkflowForLock) && weeklyWorkflowForLock.status !== 'REJECTED';
+  const lockSummary = weeklyLockSummaryMap?.[String(slot.classId)];
+  const weekLockTooltip = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, minWidth: 160 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+        <Lock size={12} color="#dc2626" />
+        <span>{t('operations_board_attendance_locked_weekly') || 'Attendance locked — weekly workflow in progress for this week.'}</span>
+      </div>
+      {lockSummary && WEEK_LOCK_STATUS_ROWS.map((row) => (
+        <div key={row.key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <GitBranch size={12} color={row.color} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+          <span style={{ color: row.color, fontWeight: 600, minWidth: 14, textAlign: 'end' }}>
+            {lockSummary.statusCounts[row.key] || 0}
+          </span>
+          <span style={{ color: row.color }}>{t(row.labelKey) || row.fallback}</span>
+        </div>
+      ))}
+    </div>
+  );
+  const weekLockBadge = isWeekLocked && rowType === 'subject' ? (
+    <ColoredTooltip
+      title={weekLockTooltip}
+      color="#dc2626"
+      placement="bottom"
+      slotProps={{
+        tooltip: { sx: { bgcolor: '#fef2f2', border: '1px solid #fecaca' } },
+        arrow: { sx: { color: '#fef2f2', '&::before': { border: '1px solid #fecaca' } } },
+      }}
+    >
+      <span
+        style={{
+          position: 'absolute',
+          top: 3,
+          insetInlineStart: 3,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2,
+          pointerEvents: 'auto',
+        }}
+      >
+        <Lock size={11} color="#dc2626" aria-label="locked" data-testid={`schedule-week-lock-${slot.classId}`} />
+      </span>
+    </ColoredTooltip>
+  ) : null;
+
   const metaCounts = status ? getClassSessionMetaFromStatus(status, { hideNotesParticipation, hideNotesComments, hideParticipation }) : null;
   const hasMetaBadges = Boolean(
     metaCounts
@@ -681,19 +738,10 @@ function InteractiveSlotCell({
         const hasWorkflow = Boolean(status?.workflowStatus && status.workflowStatus !== 'NOT_TAKEN');
         const weeklyWorkflow = weeklyWorkflowMap?.[String(slot.classId)];
         const hasWeeklyWorkflow = Boolean(weeklyWorkflow);
-        const isWeekLocked = hasWeeklyWorkflow && weeklyWorkflow.status !== 'REJECTED';
-        if (!hasAttendance && !hasWorkflow && !hasWeeklyWorkflow) return null;
+        const hasIndicators = hasAttendance || hasWorkflow || hasWeeklyWorkflow;
+        if (!hasIndicators) return null;
         return (
           <div className={gridStyles.subjectCellTopIndicators}>
-            {isWeekLocked && (
-              <ColoredTooltip
-                title={t('operations_board_attendance_locked_weekly') || 'Attendance locked — weekly workflow in progress for this week.'}
-                color="#dc2626"
-                placement="bottom"
-              >
-                <Lock size={11} color="#dc2626" aria-label="locked" data-testid={`schedule-week-lock-${slot.classId}`} />
-              </ColoredTooltip>
-            )}
             {hasAttendance && <AttendanceIndicatorGroup status={status} t={t} hideTooltips={hideTooltips} />}
             {hasAttendance && (hasWorkflow || hasWeeklyWorkflow) && (
               <span className={gridStyles.indicatorDivider} aria-hidden="true">|</span>
@@ -735,7 +783,8 @@ function InteractiveSlotCell({
       colKey,
     };
     return (
-      <td className={cellClass}>
+      <td className={cellClass} style={{ position: 'relative' }}>
+        {weekLockBadge}
         <button
           type="button"
           className={gridStyles.cellButton}
@@ -753,7 +802,7 @@ function InteractiveSlotCell({
     );
   }
 
-  return <td className={cellClass}>{content}</td>;
+  return <td className={cellClass} style={{ position: 'relative' }}>{weekLockBadge}{content}</td>;
 }
 
 function formatCountdown(ms, { includeMonths = false, compact = false, t = null } = {}) {
@@ -843,6 +892,7 @@ function DayBlock({
   hideParticipation = false,
   hideTooltips = false,
   weeklyWorkflowMap,
+  weeklyLockSummaryMap,
   onWorkflowClick,
   onWeeklyWorkflowClick,
   rowTypes,
@@ -949,6 +999,7 @@ function DayBlock({
                 hideParticipation={hideParticipation}
                 hideTooltips={hideTooltips}
                 weeklyWorkflowMap={weeklyWorkflowMap}
+                weeklyLockSummaryMap={weeklyLockSummaryMap}
                 onWorkflowClick={onWorkflowClick}
                 onWeeklyWorkflowClick={onWeeklyWorkflowClick}
                 rowSpan={rowSpan}
@@ -1060,6 +1111,35 @@ const OfficialWeeklyScheduleGrid = ({
     });
   }, [showInstructor, showRoom]);
   const rowSpan = visibleRowTypes.length;
+
+  // Per-class weekly summary for the lock tooltip: approved daily workflows
+  // out of session days, plus days where attendance was never taken.
+  const weeklyLockSummaryMap = useMemo(() => {
+    if (!weeklyWorkflowMap || !displayDays.length) return null;
+    const map = {};
+    for (const key of Object.keys(weeklyWorkflowMap)) {
+      const wf = weeklyWorkflowMap[key];
+      if (!wf || wf.status === 'REJECTED') continue;
+      let total = 0;
+      const statusCounts = {};
+      for (const day of displayDays) {
+        const hasSession = Object.values(day.slots || {}).some(
+          (s) => s && !s.isBreak && String(s.classId) === key,
+        );
+        if (!hasSession) continue;
+        total += 1;
+        const st = resolveCellStatus(statusMap, selectedDate, day.dayCode, key);
+        let wfKey = st?.workflowStatus;
+        if (wfKey === 'ADMIN_APPROVED') wfKey = 'APPROVED';
+        if (wfKey === 'AMENDED') wfKey = 'REJECTED';
+        if (wfKey && wfKey !== 'NOT_TAKEN' && wfKey !== 'TAKEN') {
+          statusCounts[wfKey] = (statusCounts[wfKey] || 0) + 1;
+        }
+      }
+      map[key] = { total, statusCounts };
+    }
+    return map;
+  }, [weeklyWorkflowMap, displayDays, statusMap, selectedDate]);
 
   if (!scheduleData?.days?.length) {
     return (
@@ -1200,6 +1280,7 @@ const OfficialWeeklyScheduleGrid = ({
               hideParticipation={hideParticipation}
               hideTooltips={hideTooltips}
               weeklyWorkflowMap={weeklyWorkflowMap}
+              weeklyLockSummaryMap={weeklyLockSummaryMap}
               onWorkflowClick={onWorkflowClick}
               onWeeklyWorkflowClick={onWeeklyWorkflowClick}
               rowTypes={visibleRowTypes}

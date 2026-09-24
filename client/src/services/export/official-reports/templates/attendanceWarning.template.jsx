@@ -1,7 +1,7 @@
 import React from 'react';
 import { OFFICIAL_HEADER } from '../shared/officialHeader.js';
 import { buildWatermarkLines, buildStatusWatermark } from '../engine/watermark.js';
-import { formatDateTime } from '@utils/date-formatter.js';
+import { formatDate, formatDateTime } from '@utils/date-formatter.js';
 import styles from './officialReport.module.css';
 
 export function AttendanceWarningTemplate({ data, showWatermark = true }) {
@@ -123,6 +123,62 @@ export function AttendanceWarningTemplate({ data, showWatermark = true }) {
             <div className={styles.warningBody} style={{ textAlign: isAr ? 'right' : 'left' }}>
               {page.body}
             </div>
+
+            {Array.isArray(page.absences) && page.absences.length > 0 && (
+              <div style={{ marginBottom: 16 }} dir={isAr ? 'rtl' : 'ltr'}>
+                <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 6, textAlign: isAr ? 'right' : 'left' }}>
+                  {page.absenceDatesLabel}
+                </div>
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontSize: 11,
+                  }}
+                >
+                  <thead>
+                    <tr>
+                      <th style={{ border: '1px solid #999', padding: '4px 8px', textAlign: isAr ? 'right' : 'left', width: 40 }}>
+                        {isAr ? '#' : '#'}
+                      </th>
+                      <th style={{ border: '1px solid #999', padding: '4px 8px', textAlign: isAr ? 'right' : 'left' }}>
+                        {isAr ? 'التاريخ' : 'Date'}
+                      </th>
+                      <th style={{ border: '1px solid #999', padding: '4px 8px', textAlign: isAr ? 'right' : 'left' }}>
+                        {isAr ? 'الحالة' : 'Status'}
+                      </th>
+                      <th style={{ border: '1px solid #999', padding: '4px 8px', textAlign: isAr ? 'right' : 'left' }}>
+                        {isAr ? 'الاعتماد' : 'Approval'}
+                      </th>
+                      <th style={{ border: '1px solid #999', padding: '4px 8px', textAlign: isAr ? 'right' : 'left' }}>
+                        {isAr ? 'ملاحظة' : 'Note'}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {page.absences.map((absence, idx) => (
+                      <tr key={`${absence.date?.toISOString?.() || idx}-${idx}`}>
+                        <td style={{ border: '1px solid #999', padding: '4px 8px' }}>{idx + 1}</td>
+                        <td style={{ border: '1px solid #999', padding: '4px 8px' }}>
+                          <bdi>{formatDate(absence.date, 'en')}</bdi>
+                        </td>
+                        <td style={{ border: '1px solid #999', padding: '4px 8px' }}>
+                          {page.absenceStatusLabels?.[absence.statusCode] || absence.statusCode || '—'}
+                        </td>
+                        <td style={{ border: '1px solid #999', padding: '4px 8px' }}>
+                          {absence.excusedViaWorkflow
+                            ? (isAr ? 'معتمد' : 'Approved')
+                            : (isAr ? 'قيد الانتظار' : 'Pending')}
+                        </td>
+                        <td style={{ border: '1px solid #999', padding: '4px 8px' }}>
+                          {absence.note || '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             <div className={styles.certificateBottomBlock}>
               <div className={styles.certificateFooterRow}>

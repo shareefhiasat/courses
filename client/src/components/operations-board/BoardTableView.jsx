@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Plus, ArrowUp, ArrowDown, ArrowUpDown, Star, GripVertical, MessageSquare } from 'lucide-react';
+import { Plus, ArrowUp, ArrowDown, ArrowUpDown, Star, GripVertical, MessageSquare, FileBarChart } from 'lucide-react';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import {
   Table,
@@ -21,6 +21,7 @@ import { shouldHideNotesParticipation, canViewParticipation } from './hrAttendan
 import { ATTENDANCE_BOARD_LANES } from '@services/business/operationsBoardService.js';
 import { COMMENT_ACTION, CARD_TYPE, DRAWER_TAB } from './operationsBoardConstants.js';
 import GridQuickFilterChips from '@components/ui/GridQuickFilterChips';
+import StudentReportMenu from './StudentReportMenu.jsx';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
 
 const SORT_KEYS = {
@@ -256,6 +257,7 @@ export default function BoardTableView({
   const dragRowRef = useRef(null);
   const [dragOverRow, setDragOverRow] = useState(null);
   const rowDraggingRef = useRef(false);
+  const [reportMenu, setReportMenu] = useState(null); // { anchorEl, item }
 
   useEffect(() => {
     if (rowOrderKey) setRowOrder(loadStoredRowOrder(data[0]?.classId, data[0]?.date));
@@ -564,6 +566,21 @@ export default function BoardTableView({
               </span>
             )}
             <span className="flex-1 min-w-0 truncate">{item.type === CARD_TYPE.WORKFLOW ? workflowTitle : studentName}</span>
+            {item.type === CARD_TYPE.ATTENDANCE && item.userId && (
+              <ColoredTooltip title={t('report_student_summary') || 'Student Attendance Summary'} color="#0ea5e9" placement="top">
+                <button
+                  type="button"
+                  className="shrink-0 text-sky-500 hover:text-sky-600"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setReportMenu({ anchorEl: e.currentTarget, item });
+                  }}
+                  data-testid={`table-row-report-${item.id}`}
+                >
+                  <FileBarChart size={14} />
+                </button>
+              </ColoredTooltip>
+            )}
           </div>
         );
       case 'class':
@@ -735,7 +752,7 @@ export default function BoardTableView({
               return (
                 <TableRow
                   key={item.id}
-                  className={`operations-board-table-row cursor-pointer hover:bg-primary/[0.04] ${dragOverRow === item.id ? 'bg-primary/10' : ''}`}
+                  className={`operations-board-table-row group cursor-pointer hover:bg-primary/[0.04] ${dragOverRow === item.id ? 'bg-primary/10' : ''}`}
                   draggable={rowDraggable}
                   onDragStart={(e) => {
                     if (!rowDraggable) return;
@@ -794,6 +811,26 @@ export default function BoardTableView({
           )}
         </TableBody>
       </Table>
+      <StudentReportMenu
+        open={Boolean(reportMenu)}
+        anchorEl={reportMenu?.anchorEl}
+        onClose={() => setReportMenu(null)}
+        student={reportMenu?.item ? {
+          studentId: reportMenu.item.userId,
+          studentNumber: reportMenu.item.studentNumber,
+          studentName: reportMenu.item.nameEn || reportMenu.item.name,
+          studentNameAr: reportMenu.item.nameAr,
+          rankEn: reportMenu.item.rankEn,
+          rankAr: reportMenu.item.rankAr,
+        } : null}
+        classId={reportMenu?.item?.classId}
+        metadata={{
+          className: reportMenu?.item?.classNameEn || reportMenu?.item?.className,
+          classNameAr: reportMenu?.item?.classNameAr,
+          subjectName: reportMenu?.item?.subjectName,
+          programName: reportMenu?.item?.programName,
+        }}
+      />
     </div>
   );
 }

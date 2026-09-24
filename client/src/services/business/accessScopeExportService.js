@@ -21,10 +21,14 @@ import { academicTermToYearTerm, resolveLocalizedYearTerm } from '@utils/academi
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getStatusCodeFromRecord } from '@constants/attendanceTypes';
 import { formatForDateInput, getQatarDateParts } from '@utils/date-formatter.js';
+import { buildReportFilename } from '@services/export/official-reports/engine/reportFilename.js';
+import { notifyExportSuccess } from '@services/export/official-reports/engine/exportToast.js';
 
 function sanitize(str) {
   return str ? String(str).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '';
 }
+
+const extFor = (format) => (format === EXPORT_FORMAT.EXCEL ? 'xlsx' : 'pdf');
 
 function resolveInstructorLabel(value, cls, lang) {
   if (typeof value === 'string' && value.trim()) return value.trim();
@@ -126,7 +130,15 @@ export async function exportWeeklyScheduleForScope({
     instructorAvailability: sources.instructorAvailability,
     timeSlots: sources.timeSlots,
   });
-  const filename = `${reportData.serial}_weekly_schedule_${sanitize(meta.programName || meta.className)}`;
+  const filename = buildReportFilename({
+    type: 'weekly-schedule',
+    programName: meta.programName,
+    className: meta.className,
+    subjectName: meta.subjectName,
+    serial: reportData.serial,
+    ext: extFor(format),
+    lang,
+  });
   const blob = await exportWeeklyScheduleReport(reportData, { format, filename, download: !skipDownload });
   await persistAndLogExport({
     blob,
@@ -137,6 +149,7 @@ export async function exportWeeklyScheduleForScope({
     programId: meta.programId,
     classId: meta.classId,
   }).catch(() => {});
+  if (!skipDownload) notifyExportSuccess('weekly-schedule', format === EXPORT_FORMAT.EXCEL ? 'excel' : 'pdf', lang, blob, filename);
   return { filename, blob, dataSource: reportData.dataSource };
 }
 
@@ -190,7 +203,13 @@ export async function exportWeeklyScheduleForProgram({
     timeSlots: sources.timeSlots,
   });
 
-  const filename = `${reportData.serial}_weekly_schedule_${sanitize(programName)}`;
+  const filename = buildReportFilename({
+    type: 'weekly-schedule',
+    programName,
+    serial: reportData.serial,
+    ext: extFor(format),
+    lang,
+  });
   const blob = await exportWeeklyScheduleReport(reportData, { format, filename, download: !skipDownload });
   if (!skipDownload) {
     await persistAndLogExport({
@@ -201,6 +220,7 @@ export async function exportWeeklyScheduleForProgram({
       exportType: 'weekly_class_schedule',
       programId: program?.id,
     }).catch(() => {});
+    notifyExportSuccess('weekly-schedule', format === EXPORT_FORMAT.EXCEL ? 'excel' : 'pdf', lang, blob, filename);
   }
   return { filename, blob, dataSource: reportData.dataSource };
 }
@@ -257,7 +277,15 @@ export async function exportDailyOfficialTemplate({
       watermarkUser: user,
     },
   });
-  const filename = `${reportData.serial}_daily_template_${sanitize(meta.className)}`;
+  const filename = buildReportFilename({
+    type: 'daily-template',
+    programName: meta.programName,
+    className: meta.className,
+    subjectName: meta.subjectName,
+    serial: reportData.serial,
+    ext: extFor(format),
+    lang,
+  });
   const blob = await exportDailyOfficialReport(reportData, { format, filename, download: !skipDownload });
   const driveResult = skipPersist ? null : await persistAndLogExport({
     blob,
@@ -269,6 +297,7 @@ export async function exportDailyOfficialTemplate({
     subjectId: meta.subjectId,
     programId: meta.programId,
   }).catch(() => null);
+  if (!skipDownload) notifyExportSuccess('daily-template', format === EXPORT_FORMAT.EXCEL ? 'excel' : 'pdf', lang, blob, filename);
   return { filename, blob, fileId: driveResult?.fileId || null };
 }
 
@@ -372,11 +401,18 @@ export async function exportDailyOfficialForDate({
   const workflowStatusUpper = workflowStatus ? String(workflowStatus).toUpperCase() : null;
   const statusLabels = STATUS_FILENAME_LABELS[workflowStatusUpper];
   const statusSlug = statusLabels
-    ? sanitize(lang === 'ar' ? statusLabels.ar : statusLabels.en)
+    ? (lang === 'ar' ? statusLabels.ar : statusLabels.en)
     : '';
-  const filename = statusSlug
-    ? `${reportData.serial}_${statusSlug}_daily_official_${sanitize(meta.className)}`
-    : `${reportData.serial}_daily_official_${sanitize(meta.className)}`;
+  const filename = buildReportFilename({
+    type: 'daily-official',
+    extra: statusSlug || undefined,
+    programName: meta.programName,
+    className: meta.className,
+    subjectName: meta.subjectName,
+    serial: reportData.serial,
+    ext: extFor(format),
+    lang,
+  });
   const blob = await exportDailyOfficialReport(reportData, { format, filename, download: !skipDownload });
   const driveResult = skipPersist ? null : await persistAndLogExport({
     blob,
@@ -394,6 +430,7 @@ export async function exportDailyOfficialForDate({
       approvedAt,
     },
   }).catch(() => null);
+  if (!skipDownload) notifyExportSuccess('daily-official', format === EXPORT_FORMAT.EXCEL ? 'excel' : 'pdf', lang, blob, filename);
   return { filename, blob, fileId: driveResult?.fileId || null };
 }
 
@@ -539,7 +576,13 @@ export async function exportAttendanceOfficialForScope({
     },
   });
 
-  const filename = `${reportData.serial}_attendance_official_${sanitize(programName)}`;
+  const filename = buildReportFilename({
+    type: 'attendance-official',
+    programName,
+    serial: reportData.serial,
+    ext: extFor(format),
+    lang,
+  });
   const blob = await exportAttendanceOfficialReport(reportData, { format, filename, download });
   const blobUrl = URL.createObjectURL(blob);
   let driveResult = null;
@@ -560,6 +603,7 @@ export async function exportAttendanceOfficialForScope({
       },
     }).catch(() => {});
   }
+  if (download) notifyExportSuccess('attendance-official', format === EXPORT_FORMAT.EXCEL ? 'excel' : 'pdf', lang, blob, filename);
 
   return {
     filename: driveResult?.filename || filename,

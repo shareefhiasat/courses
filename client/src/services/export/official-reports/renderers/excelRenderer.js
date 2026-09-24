@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs';
 import { OFFICIAL_HEADER } from '../shared/officialHeader.js';
-import { formatDateTime } from '@utils/date-formatter.js';
+import { formatDateTime, formatDate } from '@utils/date-formatter.js';
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import { buildWatermarkLines, buildStatusWatermark } from '../engine/watermark.js';
 import { MIME_TYPES } from '@constants/exportConfig.js';
@@ -110,11 +110,15 @@ function labelValueRichTextMirrored(label, value, size = 11) {
 }
 
 function writeMetaRow(ws, row, leftLabel, leftValue, rightLabel, rightValue, options = {}) {
-  const { mirrorRight = true, rtl = false } = options;
+  const { mirrorRight = true, rtl = false, colCount = 8, leftEndCol = 3, rightStartCol = null } = options;
   const leftStart = 'A';
-  const leftEnd = 'C';
-  const rightStart = 'F';
-  const rightEnd = 'H';
+  const leftEnd = rightStartCol != null
+    ? String.fromCharCode(64 + rightStartCol - 1)
+    : (leftEndCol != null ? String.fromCharCode(64 + leftEndCol) : 'C');
+  const rightStart = rightStartCol != null
+    ? String.fromCharCode(64 + rightStartCol)
+    : String.fromCharCode(64 + Math.max(colCount - 2, 4));
+  const rightEnd = String.fromCharCode(64 + Math.min(colCount, 26));
 
   const leftCell = ws.getCell(`${leftStart}${row}`);
   leftCell.value = labelValueRichText(leftLabel, leftValue);
@@ -127,11 +131,11 @@ function writeMetaRow(ws, row, leftLabel, leftValue, rightLabel, rightValue, opt
 
   if (rightLabel) {
     const rightCell = ws.getCell(`${rightStart}${row}`);
-    rightCell.value = mirrorRight
+    rightCell.value = mirrorRight && !rtl
       ? labelValueRichTextMirrored(rightLabel, rightValue)
       : labelValueRichText(rightLabel, rightValue);
     rightCell.alignment = {
-      horizontal: 'right',
+      horizontal: rtl ? 'left' : 'right',
       vertical: 'middle',
       wrapText: true,
     };
@@ -143,16 +147,16 @@ function writeBilingualHeaderBlock(ws, headerStartRow, colCount = 8) {
   const endRow = headerStartRow + HEADER_BLOCK_ROWS - 1;
   const lastCol = String.fromCharCode(64 + Math.min(colCount, 26));
 
-  const enEndCol = colCount >= 12 ? 'D' : colCount === 8 ? 'C' : 'B';
-  const logoStart = colCount >= 12 ? 'E' : colCount === 8 ? 'D' : 'C';
-  const logoEnd = colCount >= 12 ? 'F' : colCount === 8 ? 'E' : 'D';
-  const arStart = colCount >= 12 ? 'G' : colCount === 8 ? 'F' : 'E';
+  const enEndCol = colCount >= 15 ? 'G' : colCount >= 10 ? 'D' : colCount >= 6 ? 'C' : 'B';
+  const logoStart = colCount >= 15 ? 'H' : colCount >= 10 ? 'E' : colCount >= 6 ? 'D' : 'C';
+  const logoEnd = colCount >= 15 ? 'J' : colCount >= 10 ? 'F' : colCount >= 6 ? 'E' : 'D';
+  const arStart = colCount >= 15 ? 'K' : colCount >= 10 ? 'G' : colCount >= 6 ? 'F' : 'E';
   const arEnd = lastCol;
 
   const enCell = ws.getCell(`A${headerStartRow}`);
   enCell.value = `${OFFICIAL_HEADER.ministryEn}\n${OFFICIAL_HEADER.corpsEn}`;
   enCell.font = { size: 10 };
-  enCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: false };
+  enCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
   ws.mergeCells(`A${headerStartRow}:${enEndCol}${endRow}`);
 
   ws.mergeCells(`${logoStart}${headerStartRow}:${logoEnd}${endRow}`);
@@ -178,11 +182,13 @@ async function tryAddLogo(workbook, worksheet, headerStartRow, colCount = 8) {
     const imageId = workbook.addImage({ buffer: buf, extension: 'png' });
 
     const logoCol =
-      colCount >= 12
-        ? 4.5
-        : colCount === 8
-          ? 3.5
-          : 2.5;
+      colCount >= 15
+        ? 7.6
+        : colCount >= 10
+          ? 4.5
+          : colCount >= 6
+            ? 3.5
+            : 2.5;
 
     worksheet.addImage(imageId, {
       tl: { col: logoCol, row: headerStartRow + 0.35 },
@@ -423,7 +429,7 @@ export async function exportAttendanceOfficialExcel(data) {
 
   let row = 1;
 
-  ws.getCell(`A${row}`).value = `${metaLabels.serial}: ${data.serial}`;
+  ws.getCell(`A${row}`).value = `${metaLabels.serial}: ${ltrEmbed(data.serial)}`;
   ws.getCell(`A${row}`).font = { size: 9, color: { argb: 'FF555555' } };
   ws.mergeCells(`A${row}:F${row}`);
   row += 1;
@@ -518,7 +524,7 @@ export async function exportAttendanceOfficialExcel(data) {
   ws.mergeCells(isAr ? `D${row}:F${row}` : `A${row}:C${row}`);
   ws.getRow(row).height = 36;
   row += 2;
-  ws.getCell(`A${row}`).value = `${metaLabels.serial}: ${data.serial}`;
+  ws.getCell(`A${row}`).value = `${metaLabels.serial}: ${ltrEmbed(data.serial)}`;
   row += 1;
   ws.getCell(`A${row}`).value = `${metaLabels.generated}: ${formatDateTime(new Date(), isAr ? 'ar' : 'en')}`;
 
@@ -551,7 +557,7 @@ export async function exportSemesterCertificateExcel(data) {
   ws.pageSetup.orientation = 'landscape';
 
   let row = 1;
-  ws.getCell(`A${row}`).value = `${isAr ? 'الرقم التسلسلي' : 'Serial'}: ${data.serial}`;
+  ws.getCell(`A${row}`).value = `${isAr ? 'الرقم التسلسلي' : 'Serial'}: ${ltrEmbed(data.serial)}`;
   row += 1;
   row = writeMarksHeader(ws, data, Math.min(colCount, 12), row) + 1;
 
@@ -617,7 +623,7 @@ export async function exportClassSubjectMarksExcel(data) {
   ws.pageSetup.orientation = 'landscape';
 
   let row = 1;
-  ws.getCell(isAr ? `L${row}` : `A${row}`).value = `${isAr ? 'الرقم التسلسلي' : 'Serial'}: ${data.serial}`;
+  ws.getCell(isAr ? `L${row}` : `A${row}`).value = `${isAr ? 'الرقم التسلسلي' : 'Serial'}: ${ltrEmbed(data.serial)}`;
   row += 1;
 
   const headerEnd = writeBilingualHeaderBlock(ws, row, 12);
@@ -695,7 +701,7 @@ export async function exportClassSubjectMarksExcel(data) {
   });
 
   row += 1;
-  ws.getCell(`A${row}`).value = `${isAr ? 'الرقم التسلسلي' : 'Serial'}: ${data.serial}`;
+  ws.getCell(`A${row}`).value = `${isAr ? 'الرقم التسلسلي' : 'Serial'}: ${ltrEmbed(data.serial)}`;
   row += 1;
   ws.getCell(`A${row}`).value = `${isAr ? 'تاريخ الإصدار' : 'Generated'}: ${formatDateTime(new Date(), isAr ? 'ar' : 'en')}`;
 
@@ -880,7 +886,7 @@ export async function exportAttendanceWarningExcel(data) {
     // Serial line
     ws.getCell(`A${row}`).value = { richText: [
       { text: `${isAr ? 'الرقم التسلسلي' : 'Serial'}: `, font: { bold: true, size: 9 } },
-      { text: data.serial, font: { size: 9 } },
+      { text: ltrEmbed(data.serial), font: { size: 9 } },
     ]};
     ws.mergeCells(`A${row}:F${row}`);
     ws.getCell(`A${row}`).alignment = { horizontal: isAr ? 'right' : 'left', vertical: 'center' };
@@ -984,7 +990,7 @@ export async function exportAttendanceWarningExcel(data) {
     // Footer
     ws.getCell(`A${row}`).value = { richText: [
       { text: `${isAr ? 'الرقم التسلسلي' : 'Serial'}: `, font: { bold: true, size: 8 } },
-      { text: data.serial, font: { size: 8 } },
+      { text: ltrEmbed(data.serial), font: { size: 8 } },
       { text: '   ', font: { size: 8 } },
       { text: `${isAr ? 'تاريخ الإصدار' : 'Generated'}: `, font: { bold: true, size: 8 } },
       { text: genDateTime, font: { size: 8 } },
@@ -1160,7 +1166,7 @@ export async function exportWeeklyScheduleExcel(data) {
   });
 
   row += 1;
-  ws.getCell(`A${row}`).value = `${isAr ? 'الرقم التسلسلي' : 'Serial'}: ${data.serial}`;
+  ws.getCell(`A${row}`).value = `${isAr ? 'الرقم التسلسلي' : 'Serial'}: ${ltrEmbed(data.serial)}`;
   ws.mergeCells(row, 1, row, colCount);
 
   ws.columns = [
@@ -1174,6 +1180,350 @@ export async function exportWeeklyScheduleExcel(data) {
     { width: 16 },
   ];
 
+  const buffer = await workbook.xlsx.writeBuffer();
+  return new Blob([buffer], { type: MIME_TYPES.EXCEL });
+}
+
+/**
+ * Student Attendance Summary Excel export.
+ * One sheet; per-class sections when scope === 'all'.
+ */
+async function writeStudentSummarySheet(workbook, data, sheetName) {
+  const isAr = data.isAr;
+  const labels = data.labels;
+  const ws = workbook.addWorksheet(
+    sheetName || (isAr ? 'ملخص حضور الطالب' : 'Student Summary'),
+    { views: [{ rightToLeft: isAr }] },
+  );
+  setupA4Worksheet(ws, isAr);
+
+  const colCount = 6;
+  let row = 1;
+  writeBilingualHeaderBlock(ws, row, colCount);
+  await tryAddLogo(workbook, ws, row, colCount);
+  row += HEADER_BLOCK_ROWS;
+  row = addSpacerRows(ws, row, 1);
+
+  const titleCell = ws.getCell(`A${row}`);
+  titleCell.value = data.title;
+  titleCell.font = { bold: true, size: 14, color: { argb: 'FFB91C1C' } };
+  titleCell.alignment = { horizontal: 'center' };
+  ws.mergeCells(row, 1, row, colCount);
+  row += 2;
+
+  writeMetaRow(ws, row, labels.number, data.studentNumber, labels.name, data.studentName, { rtl: isAr, colCount });
+  row += 1;
+  writeMetaRow(ws, row, labels.rank, data.rank, null, null, { rtl: isAr, colCount });
+  row += 2;
+
+  for (const section of data.sections) {
+    if (data.scope === 'all') {
+      const secCell = ws.getCell(`A${row}`);
+      secCell.value = `${section.className}${section.subjectName ? ` — ${section.subjectName}` : ''}`;
+      secCell.font = { bold: true, size: 11 };
+      ws.mergeCells(row, 1, row, colCount);
+      row += 1;
+    }
+
+    const headerRow = ws.getRow(row);
+    ['#', labels.date, labels.status, labels.approval, labels.deduction, labels.note].forEach((h, i) => {
+      const cell = headerRow.getCell(i + 1);
+      cell.value = h;
+      cell.font = { bold: true };
+      cell.alignment = { horizontal: 'center' };
+      applyThinBorders(cell);
+    });
+    row += 1;
+
+    if (section.rows.length === 0) {
+      const emptyCell = ws.getCell(`A${row}`);
+      emptyCell.value = labels.noRecords;
+      emptyCell.alignment = { horizontal: 'center' };
+      ws.mergeCells(row, 1, row, colCount);
+      applyThinBorders(emptyCell);
+      row += 1;
+    }
+
+    section.rows.forEach((r, idx) => {
+      const excelRow = ws.getRow(row);
+      const values = [
+        idx + 1,
+        formatDate(r.date, 'en'),
+        section.statusLabels[r.statusCode] || r.statusCode || '—',
+        r.excusedViaWorkflow ? labels.approved : labels.pending,
+        r.deduction || '—',
+        r.note || '—',
+      ];
+      values.forEach((v, i) => {
+        const cell = excelRow.getCell(i + 1);
+        cell.value = v;
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        applyThinBorders(cell);
+      });
+      row += 1;
+    });
+
+    const totalRow = ws.getRow(row);
+    const totalValues = [labels.total, '', '', '', section.totalDeduction, `${section.totalRows} ${labels.records}`];
+    totalValues.forEach((v, i) => {
+      const cell = totalRow.getCell(i + 1);
+      cell.value = v;
+      cell.font = { bold: true };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      applyThinBorders(cell);
+    });
+    row += 2;
+  }
+
+  ws.getCell(`A${row}`).value = `${isAr ? 'الرقم التسلسلي' : 'Serial'}: ${ltrEmbed(data.serial)} — ${isAr ? 'تاريخ الإصدار' : 'Generated'}: ${formatDateTime(new Date(), isAr ? 'ar' : 'en')}`;
+  ws.mergeCells(row, 1, row, colCount);
+
+  ws.columns = [
+    { width: 12 },
+    { width: 22 },
+    { width: 16 },
+    { width: 14 },
+    { width: 12 },
+    { width: 40 },
+  ];
+}
+
+export async function exportStudentSummaryExcel(data) {
+  const workbook = new ExcelJS.Workbook();
+  await writeStudentSummarySheet(workbook, data);
+  const buffer = await workbook.xlsx.writeBuffer();
+  return new Blob([buffer], { type: MIME_TYPES.EXCEL });
+}
+
+/**
+ * Class Deduction Report Excel export — one sheet per student.
+ * @param {Array} dataList - prepared student summary data objects
+ */
+export async function exportClassDeductionExcel(dataList) {
+  const workbook = new ExcelJS.Workbook();
+  const usedNames = new Set();
+  for (const [i, data] of dataList.entries()) {
+    const base = `${i + 1}. ${data.studentNumber || ''} ${data.studentName || ''}`
+      .replace(/[:\\/?*[\]]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 31) || `Student ${i + 1}`;
+    let name = base;
+    let n = 2;
+    while (usedNames.has(name)) {
+      name = `${base.slice(0, 27)} (${n})`;
+      n += 1;
+    }
+    usedNames.add(name);
+    await writeStudentSummarySheet(workbook, data, name);
+  }
+  const buffer = await workbook.xlsx.writeBuffer();
+  return new Blob([buffer], { type: MIME_TYPES.EXCEL });
+}
+
+/**
+ * Class Attendance Summary Excel export (semester-level, all students).
+ */
+async function writeClassSummarySheet(workbook, data, sheetName) {
+  const isAr = data.isAr;
+  const labels = data.labels;
+  const ws = workbook.addWorksheet(sheetName || (isAr ? 'ملخص حضور الشعبة' : 'Class Summary'), {
+    views: [{ rightToLeft: isAr }],
+  });
+  setupA4Worksheet(ws, isAr);
+  ws.pageSetup.orientation = 'landscape';
+
+  const colCount = 19;
+  let row = 1;
+  writeBilingualHeaderBlock(ws, row, colCount);
+  await tryAddLogo(workbook, ws, row, colCount);
+  row += HEADER_BLOCK_ROWS;
+  row = addSpacerRows(ws, row, 1);
+
+  const titleCell = ws.getCell(`A${row}`);
+  titleCell.value = data.title;
+  titleCell.font = { bold: true, size: 14, color: { argb: 'FFB91C1C' } };
+  titleCell.alignment = { horizontal: 'center' };
+  ws.mergeCells(row, 1, row, colCount);
+  row += 2;
+
+  writeMetaRow(ws, row, labels.program, data.programName, labels.subject, data.subjectName, { rtl: isAr, colCount, rightStartCol: 11 });
+  row += 1;
+  writeMetaRow(ws, row, labels.class, data.className, labels.term, data.term, { rtl: isAr, colCount, rightStartCol: 11 });
+  row += 2;
+
+  // Two-row header: group labels over Appr./Pend./Total sub-columns.
+  const groupRow = ws.getRow(row);
+  const subRow = ws.getRow(row + 1);
+  const groupCols = [
+    { label: '#', start: 1, span: 1 },
+    { label: labels.number, start: 2, span: 1 },
+    { label: labels.name, start: 3, span: 1 },
+    { label: labels.present, start: 4, span: 1 },
+    { label: labels.absent, start: 5, span: 3 },
+    { label: labels.excused, start: 8, span: 3 },
+    { label: labels.humanCase, start: 11, span: 3 },
+    { label: labels.late, start: 14, span: 1 },
+    { label: labels.total, start: 15, span: 1 },
+    { label: labels.deduction, start: 16, span: 3 },
+    { label: labels.warning, start: 19, span: 1 },
+  ];
+  groupCols.forEach(({ label, start, span }) => {
+    const cell = groupRow.getCell(start);
+    cell.value = label;
+    cell.font = { bold: true };
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    applyThinBorders(cell);
+    if (span > 1) {
+      ws.mergeCells(row, start, row, start + span - 1);
+      for (let c = start + 1; c < start + span; c += 1) applyThinBorders(groupRow.getCell(c));
+    } else {
+      ws.mergeCells(row, start, row + 1, start);
+      applyThinBorders(subRow.getCell(start));
+    }
+  });
+  [5, 8, 11, 16].forEach((start) => {
+    [labels.approved, labels.pending, labels.total].forEach((h, i) => {
+      const cell = subRow.getCell(start + i);
+      cell.value = h;
+      cell.font = { bold: true, size: 9 };
+      cell.alignment = { horizontal: 'center' };
+      applyThinBorders(cell);
+    });
+  });
+  row += 2;
+
+  const WARNING_COLORS = {
+    none: 'FF16A34A',       // Compliant — green
+    first: 'FFD97706',      // First Warning — amber
+    final: 'FFEA580C',      // Final Warning — orange
+    dismissed: 'FFDC2626',  // Dismissed — red
+  };
+
+  const WARNING_BG_TINTS = {
+    none: 'FFF0FDF4',       // very light green
+    first: 'FFFFFBEB',      // very light amber
+    final: 'FFFFFAF5',      // very light orange
+    dismissed: 'FFFFFAFA',  // very light red
+  };
+
+  data.rows.forEach((r) => {
+    const excelRow = ws.getRow(row);
+    [
+      r.index, r.studentNumber, r.studentName, r.present,
+      r.absentApproved, r.absentPending, r.unexcused,
+      r.excusedApproved, r.excusedPending, r.excused,
+      r.humanApproved, r.humanPending, r.humanCase,
+      r.late, r.total,
+      r.deductionApproved, r.deductionPending, r.deduction,
+      r.warning,
+    ].forEach((v, i) => {
+      const cell = excelRow.getCell(i + 1);
+      cell.value = v;
+      applyThinBorders(cell);
+      if (i >= 3) cell.alignment = { horizontal: 'center' };
+      if (data.colorize !== false) {
+        const bgTint = WARNING_BG_TINTS[r.warningType] || WARNING_BG_TINTS.none;
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgTint } };
+      }
+      if (i === 18) {
+        const color = WARNING_COLORS[r.warningType] || WARNING_COLORS.none;
+        cell.font = { bold: true, color: { argb: color } };
+      }
+    });
+    row += 1;
+  });
+
+  // Totals row: sum every numeric column.
+  const sum = (key) => data.rows.reduce((acc, r) => acc + (Number(r[key]) || 0), 0);
+  const sumFixed = (key) => Number(sum(key).toFixed(2));
+  const totalsRow = ws.getRow(row);
+  const totalRowFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
+  const totals = [
+    '', '', labels.total,
+    sum('present'),
+    sum('absentApproved'), sum('absentPending'), sum('unexcused'),
+    sum('excusedApproved'), sum('excusedPending'), sum('excused'),
+    sum('humanApproved'), sum('humanPending'), sum('humanCase'),
+    sum('late'), sum('total'),
+    sumFixed('deductionApproved'), sumFixed('deductionPending'), sumFixed('deduction'),
+    '',
+  ];
+  totals.forEach((v, i) => {
+    const cell = totalsRow.getCell(i + 1);
+    cell.value = v;
+    cell.font = { bold: true };
+    cell.fill = totalRowFill;
+    applyThinBorders(cell);
+    if (i >= 3) cell.alignment = { horizontal: 'center' };
+  });
+  ws.mergeCells(row, 1, row, 3);
+  row += 1;
+
+  // Status breakdown line: counts per warning type.
+  const statusCounts = data.rows.reduce((acc, r) => {
+    const k = r.warningType || 'none';
+    acc[k] = (acc[k] || 0) + 1;
+    return acc;
+  }, {});
+  const statusOrder = ['none', 'first', 'final', 'dismissed'];
+  const statusText = statusOrder
+    .filter((k) => statusCounts[k])
+    .map((k) => {
+      const label = data.rows.find((r) => (r.warningType || 'none') === k)?.warning || k;
+      return `${label}: ${statusCounts[k]}`;
+    })
+    .join(' — ');
+  const breakdownCell = ws.getCell(`A${row}`);
+  breakdownCell.value = statusText;
+  breakdownCell.font = { bold: true, size: 10 };
+  breakdownCell.alignment = { horizontal: isAr ? 'right' : 'left' };
+  breakdownCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE5E7EB' } };
+  ws.mergeCells(row, 1, row, colCount);
+  row += 1;
+
+  row += 1;
+  ws.getCell(`A${row}`).value = `${isAr ? 'الرقم التسلسلي' : 'Serial'}: ${ltrEmbed(data.serial)} — ${isAr ? 'تاريخ الإصدار' : 'Generated'}: ${formatDateTime(new Date(), isAr ? 'ar' : 'en')} — ${data.rows.length} ${labels.students}`;
+  ws.mergeCells(row, 1, row, colCount);
+
+  ws.columns = [
+    { width: 4 },
+    { width: 10 },
+    { width: 26 },
+    { width: 8 },
+    { width: 7 }, { width: 7 }, { width: 7 },
+    { width: 7 }, { width: 7 }, { width: 7 },
+    { width: 7 }, { width: 7 }, { width: 7 },
+    { width: 7 },
+    { width: 8 },
+    { width: 8 }, { width: 8 }, { width: 8 },
+    { width: 14 },
+  ];
+}
+
+export async function exportClassSummaryExcel(data) {
+  const workbook = new ExcelJS.Workbook();
+  await writeClassSummarySheet(workbook, data);
+  const buffer = await workbook.xlsx.writeBuffer();
+  return new Blob([buffer], { type: MIME_TYPES.EXCEL });
+}
+
+/**
+ * Program-level summary: one worksheet per class.
+ * @param {Array} dataList - prepared class summary data objects
+ */
+export async function exportProgramSummaryExcel(dataList) {
+  const workbook = new ExcelJS.Workbook();
+  const usedNames = new Set();
+  for (let i = 0; i < dataList.length; i++) {
+    const data = dataList[i];
+    const raw = `${i + 1}. ${(data.className || `Class ${i + 1}`)}`.slice(0, 28);
+    let name = raw;
+    let n = 2;
+    while (usedNames.has(name)) { name = `${raw.slice(0, 25)} ${n}`; n += 1; }
+    usedNames.add(name);
+    await writeClassSummarySheet(workbook, data, name);
+  }
   const buffer = await workbook.xlsx.writeBuffer();
   return new Blob([buffer], { type: MIME_TYPES.EXCEL });
 }

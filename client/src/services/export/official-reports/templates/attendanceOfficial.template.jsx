@@ -120,7 +120,7 @@ function ViolationsPage({ data, dateGroups, labels, showHeader, showFooter, show
         {showHeader && (
           <>
             <div className={styles.serialLine}>
-              {data.lang === 'ar' ? 'الرقم التسلسلي' : 'Serial'}: {data.serial}
+              {data.lang === 'ar' ? 'الرقم التسلسلي' : 'Serial'}: <bdi>{data.serial}</bdi>
             </div>
             <div className={`${styles.violationsTopRow} ${styles.bilingualHeaderBand}`}>
               <div className={`${styles.violationsTopEn} ${styles.arabicShapedText}`}>

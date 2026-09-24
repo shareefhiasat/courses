@@ -19,6 +19,7 @@ import {
   X,
   Eye,
   FileCheck,
+  FileX2,
   Send,
   CircleX,
   Heart,
@@ -32,7 +33,6 @@ import {
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import BoardStudentAvatar from '@components/operations-board/BoardStudentAvatar.jsx';
 import { useToast } from '@ui';
-import { Card } from '@/components/kibo/ui/card';
 import { useLang } from '@contexts/LangContext';
 import {
   fetchAttendanceDeductionSuggestion,
@@ -431,32 +431,17 @@ export default function ViolationReviewDialog({
     return (
       <div
         key={row.attendanceId}
-        className="relative flex items-center gap-4 px-3 py-4 border-b border-slate-200 last:border-b-0 hover:bg-muted/30 transition-colors"
+        className="flex items-center gap-3 px-1 py-2.5 border-b border-slate-200/70 last:border-b-0 hover:bg-muted/30 transition-colors"
       >
-        {/* timeline node */}
-        <span
-          aria-hidden
-          style={{
-            position: 'absolute',
-            insetInlineStart: -15,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            backgroundColor: statusColor,
-            border: '2px solid var(--panel, #ffffff)',
-            zIndex: 1,
-          }}
-        />
         {!isApproved && (
           <Checkbox
             size="small"
             checked={isSelected}
             onChange={(e) => toggleOne(row.attendanceId, e.target.checked)}
+            sx={{ p: 0.5 }}
           />
         )}
-        {isApproved && <CheckCircle2 size={20} className="text-green-500" />}
+        {isApproved && <CheckCircle2 size={16} className="text-green-500 shrink-0" />}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium">
@@ -468,7 +453,7 @@ export default function ViolationReviewDialog({
             </span>
           </div>
           {(showNote || attachmentUrl) && (
-            <div className="mt-2 text-xs text-muted-foreground leading-relaxed">
+            <div className="mt-1 text-xs text-muted-foreground leading-relaxed">
               {showNote && <span className="block truncate">{note}</span>}
               {attachmentUrl && (
                 <a
@@ -540,9 +525,25 @@ export default function ViolationReviewDialog({
             </div>
             <span className="text-xs text-muted-foreground font-mono">{student.studentNumber}</span>
           </div>
-          <span className="text-lg font-bold text-red-500 tabular-nums ml-2 sm:ml-4">
-            - {Number(student.deductionTotal || 0).toFixed(2)}
-          </span>
+          <div className="flex items-center gap-2 ml-2 sm:ml-4 text-xs tabular-nums">
+            <ColoredTooltip title={t('violations.deduction_approved') || 'Approved deduction'} color="#16a34a" placement="bottom">
+              <span className="inline-flex items-center gap-1 font-semibold" style={{ color: '#16a34a', cursor: 'default' }}>
+                <FileCheck size={13} />
+                -{Number(student.classDeductionApproved ?? student.deductionApproved ?? 0).toFixed(2)}
+              </span>
+            </ColoredTooltip>
+            <ColoredTooltip title={t('violations.deduction_not_approved') || 'Pending deduction'} color="#ef4444" placement="bottom">
+              <span className="inline-flex items-center gap-1 font-semibold" style={{ color: '#ef4444', cursor: 'default' }}>
+                <FileX2 size={13} />
+                -{Number(student.classDeductionNotApproved ?? student.deductionNotApproved ?? 0).toFixed(2)}
+              </span>
+            </ColoredTooltip>
+            <ColoredTooltip title={t('violations.deduction_total') || 'Total deduction'} color="#64748b" placement="bottom">
+              <span className="text-base font-bold text-red-500" style={{ cursor: 'default' }}>
+                = -{Number(student.deductionTotal || 0).toFixed(2)}
+              </span>
+            </ColoredTooltip>
+          </div>
         </div>
         <div className="flex items-center gap-1">
           <IconButton onClick={onClose} size="small">
@@ -558,37 +559,38 @@ export default function ViolationReviewDialog({
           </Alert>
         )}
 
-        {/* Warning Journey */}
-        <Card className="p-4 border-0 shadow-none bg-transparent">
-          <div className="flex items-center gap-1 sm:gap-2">
+        {/* Warning journey — compact stepper, only the active step is colored */}
+        <div>
+          <div className="flex items-center">
             {JOURNEY_STEPS.map((step, idx) => {
               const StepIcon = step.icon;
               const isActive = idx === activeStep;
-              const isPast = idx < activeStep;
-              const color = isActive ? step.color : isPast ? step.color : 'rgba(148,163,184,0.8)';
+              const color = isActive ? step.color : 'var(--muted-foreground, #94a3b8)';
+              const unexcused = student.classUnexcusedAbsences || 0;
+              const remaining = Math.max(0, step.threshold - unexcused);
+              const tip = step.threshold === 0
+                ? t('violations.compliant_tooltip', { count: unexcused }) || `Compliant — ${unexcused} unexcused (below 4)`
+                : unexcused >= step.threshold
+                  ? t('violations.step_reached_tooltip', { label: t(step.labelKey), threshold: step.threshold }) || `${t(step.labelKey)} — reached (≥${step.threshold} unexcused)`
+                  : t('violations.step_remaining_tooltip', { remaining, label: t(step.labelKey), threshold: step.threshold }) || `${remaining} more unexcused until ${t(step.labelKey)} (≥${step.threshold})`;
               return (
                 <React.Fragment key={step.key}>
-                  <div className="flex-1 flex items-center gap-2 min-w-0">
+                  <ColoredTooltip title={tip} color={step.color} placement="top">
                     <div
-                      className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center transition-all"
-                      style={{
-                        backgroundColor: isActive ? `${step.color}15` : isPast ? `${step.color}10` : 'rgba(148,163,184,0.12)',
-                        color,
-                      }}
+                      className="flex items-center gap-1.5 min-w-0"
+                      style={{ opacity: isActive ? 1 : 0.55, cursor: 'default' }}
                     >
-                      <StepIcon size={12} />
-                    </div>
-                    <div className="leading-tight min-w-0">
-                      <div className="text-xs sm:text-sm font-semibold whitespace-nowrap" style={{ color }}>
+                      <StepIcon size={14} style={{ color, flexShrink: 0 }} />
+                      <span className="text-xs font-semibold whitespace-nowrap" style={{ color }}>
                         {t(step.labelKey)}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground whitespace-nowrap">
-                        {t('violations.threshold', { 'step.threshold': step.threshold })}
-                      </div>
+                      </span>
+                      {step.threshold > 0 && (
+                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">≥{step.threshold}</span>
+                      )}
                     </div>
-                  </div>
+                  </ColoredTooltip>
                   {idx < JOURNEY_STEPS.length - 1 && (
-                    <div className="flex-1 h-px bg-muted-foreground/15" />
+                    <div className="flex-1 h-px bg-muted-foreground/15 mx-2" />
                   )}
                 </React.Fragment>
               );
@@ -596,52 +598,40 @@ export default function ViolationReviewDialog({
           </div>
 
           {nextWarningInfo && (
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-sm font-semibold text-muted-foreground mb-1">
-                <span>{nextWarningInfo.message}</span>
-                <span>{Math.round(nextWarningInfo.progress * 100)}%</span>
-              </div>
-              <div
-                className="w-full h-1.5 rounded-full overflow-hidden border-2 border-orange-500"
-                style={{ backgroundColor: 'var(--panel-hover, #f1f5f9)' }}
-              >
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{ width: `${nextWarningInfo.progress * 100}%`, backgroundColor: nextWarningInfo.color }}
-                />
-              </div>
-            </div>
-          )}
-        </Card>
-
-        {/* Breakdown summary */}
-        <Card className="p-4 border-0 shadow-none bg-transparent">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {[
-              { key: 'unexcused', label: t('violations.unexcused'), value: student.classUnexcusedAbsences || 0, color: '#ef4444', icon: CircleX },
-              { key: 'excused', label: t('violations.excused'), value: student.classExcusedAbsences || 0, color: '#ec4899', icon: FileCheck },
-              { key: 'human', label: t('violations.human'), value: student.classHumanCaseCount || 0, color: '#8b5cf6', icon: Heart },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={item.key}
-                  className="flex items-center gap-3 p-3 rounded-lg"
-                >
-                  <Icon size={18} style={{ color: item.color }} />
-                  <div className="flex items-baseline gap-1.5 leading-tight min-w-0">
-                    <span className="text-lg font-bold" style={{ color: item.color }}>{item.value}</span>
-                    <span className="text-sm font-semibold whitespace-nowrap" style={{ color: item.color }}>{item.label}</span>
-                  </div>
+            <ColoredTooltip title={nextWarningInfo.message} color={nextWarningInfo.color} placement="top">
+              <div className="mt-2.5 flex items-center gap-3" style={{ cursor: 'default' }}>
+                <div className="flex-1 h-1 rounded-full overflow-hidden bg-muted">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${nextWarningInfo.progress * 100}%`, backgroundColor: nextWarningInfo.color }}
+                  />
                 </div>
-              );
-            })}
-          </div>
-        </Card>
+              </div>
+            </ColoredTooltip>
+          )}
+        </div>
+
+        {/* Breakdown summary — single inline row, muted when zero */}
+        <div className="flex items-center gap-5 flex-wrap border-y border-slate-200/70 py-2.5">
+          {[
+            { key: 'unexcused', label: t('violations.unexcused'), value: student.classUnexcusedAbsences || 0, color: '#ef4444', icon: CircleX },
+            { key: 'excused', label: t('violations.excused'), value: student.classExcusedAbsences || 0, color: '#ec4899', icon: FileCheck },
+            { key: 'human', label: t('violations.human'), value: student.classHumanCaseCount || 0, color: '#8b5cf6', icon: Heart },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <span key={item.key} className="inline-flex items-center gap-1.5" style={{ color: item.color, opacity: item.value > 0 ? 1 : 0.55 }}>
+                <Icon size={14} />
+                <span className="text-sm font-bold tabular-nums">{item.value}</span>
+                <span className="text-xs">{item.label}</span>
+              </span>
+            );
+          })}
+        </div>
 
         {/* Bulk approve */}
         {pendingRows.length > 0 && (
-          <Card className="p-4 border-0 shadow-sm">
+          <div className="rounded-lg border border-slate-200/70 p-3">
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2 text-sm">
                 <Checkbox
@@ -722,11 +712,11 @@ export default function ViolationReviewDialog({
                 </div>
               )}
             </div>
-          </Card>
+          </div>
         )}
 
         {/* Review records */}
-        <Card className="p-4 border-0 shadow-sm flex flex-col">
+        <div className="flex flex-col">
           {loading ? (
             <div className="flex justify-center py-6">
               <CircularProgress size={24} />
@@ -742,39 +732,11 @@ export default function ViolationReviewDialog({
                 const weeklyFileId = weeklyDoc?.fileId;
                 const weeklyDocId = weeklyDoc?.docId;
                 return (
-                  <div key={group.weekFrom} className="relative mb-3 last:mb-0" style={{ paddingInlineStart: 18 }}>
-                    {/* vertical timeline rail */}
-                    <span
-                      aria-hidden
-                      style={{
-                        position: 'absolute',
-                        insetInlineStart: 6,
-                        top: 14,
-                        bottom: 8,
-                        width: 2,
-                        borderRadius: 2,
-                        backgroundColor: '#e2e8f0',
-                      }}
-                    />
+                  <div key={group.weekFrom} className="mb-2 last:mb-0">
                     <div
-                      className="relative flex items-center gap-2 px-1 py-1.5 sticky top-0 z-10"
+                      className="flex items-center gap-2 px-1 py-1.5 sticky top-0 z-10"
                       style={{ backgroundColor: 'var(--panel, #ffffff)' }}
                     >
-                      {/* week node on the rail — purple when the week has approved records */}
-                      <span
-                        aria-hidden
-                        style={{
-                          position: 'absolute',
-                          insetInlineStart: -16,
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          width: 10,
-                          height: 10,
-                          borderRadius: '50%',
-                          backgroundColor: weeklyDocId ? '#8b5cf6' : '#94a3b8',
-                          border: '2px solid var(--panel, #ffffff)',
-                        }}
-                      />
                       <span className="text-xs font-bold text-muted-foreground">
                         {formatWeekLabel(group.weekFrom)}
                       </span>
@@ -824,7 +786,7 @@ export default function ViolationReviewDialog({
               })}
             </div>
           )}
-        </Card>
+        </div>
 
       </DialogContent>
 

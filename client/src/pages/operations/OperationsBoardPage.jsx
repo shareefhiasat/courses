@@ -193,6 +193,7 @@ export default function OperationsBoardPage({
   onOpenHistory = null,
   onDateChange = null,
   viewMode = 'day',
+  onViewModeChange = null,
   onBoardDataChanged = null,
   onExportDailyTemplate = null,
   onExportWeeklySchedule = null,
@@ -765,19 +766,28 @@ export default function OperationsBoardPage({
     }
   }, [updateParams, onDateChange, searchParams]);
 
-  const handleClassSessionClick = useCallback(({ classId, date }) => {
+  const handleClassSessionClick = useCallback(({ classId, date, mode, targetLane = LANES.ATTENDANCE }) => {
     setFilters({
       date: toIsoDate(date),
       classId,
       search: filters.search,
     });
-    if (lane !== LANES.ATTENDANCE) {
+    if (lane !== targetLane) {
       updateParams((next) => {
-        next.set('lane', LANES.ATTENDANCE);
+        next.set('lane', targetLane);
         next.delete('workflowId');
       });
     }
-  }, [setFilters, filters.search, lane, updateParams]);
+    if (panelTab !== 'board') {
+      setPanelTab('board');
+      updateParams((next) => {
+        next.set('panelTab', 'board');
+      });
+    }
+    if (mode && onViewModeChange) {
+      onViewModeChange(mode);
+    }
+  }, [setFilters, filters.search, lane, panelTab, updateParams, onViewModeChange]);
 
   const setView = useCallback((newView) => {
     updateParams((next) => {
@@ -935,7 +945,13 @@ export default function OperationsBoardPage({
   const isWorkflowLocked = useCallback((item) => {
     if (!item) return false;
     const isDaily = item.workflowType === 'ATTENDANCE_DAILY' || item.attendanceSubtype === 'DAILY';
-    if (!isDaily) return false;
+    if (!isDaily) {
+      // Weekly workflow: locked when the role has no valid transition out of
+      // its current status (e.g. instructor viewing a workflow in HR review).
+      return !columns.some(
+        (col) => col.id !== item.column && canMoveWorkflowToColumn(item.column, col.id, roleContext)
+      );
+    }
     const classId = item.classId ? String(item.classId) : null;
     const weekly = classId ? weeklyWorkflowMap?.[classId] : null;
     if (weekly && weekly.status !== 'REJECTED') {
@@ -949,7 +965,7 @@ export default function OperationsBoardPage({
     }
     if (isWeekLocked) return true;
     return false;
-  }, [weeklyWorkflowMap, isWeekLocked]);
+  }, [weeklyWorkflowMap, isWeekLocked, columns, roleContext]);
 
   useEffect(() => {
     const handleAttendanceUpdate = (payload) => {
@@ -1828,12 +1844,60 @@ export default function OperationsBoardPage({
     return null;
   }, [data, workflowId, filters.classId, lane, viewMode]);
 
+  // On the attendance lane the board data holds attendance cards only, so the
+  // daily workflow documents for the selected class are fetched separately:
+  // the doc for the selected date drives the header badge/export buttons, and
+  // the week's per-status counts feed the lock tooltip.
+  const [attendanceLaneWorkflow, setAttendanceLaneWorkflow] = useState(null);
+  const [dailyWorkflowStatusCounts, setDailyWorkflowStatusCounts] = useState(null);
   useEffect(() => {
-    onSelectedWorkflowChange?.(selectedWorkflow || null);
-  }, [selectedWorkflow, onSelectedWorkflowChange]);
+    if (lane !== LANES.ATTENDANCE || viewMode === 'week' || !filters.classId || !filters.date) {
+      setAttendanceLaneWorkflow(null);
+      setDailyWorkflowStatusCounts(null);
+      return;
+    }
+    let cancelled = false;
+    const { weekFrom, weekTo } = getWeekRange(new Date(`${filters.date}T12:00:00`));
+    fetchWorkflowBoardData({
+      dateFrom: weekFrom,
+      dateTo: weekTo,
+      classId: filters.classId,
+      programId: filters.programId,
+      termId: filters.termId,
+      attendanceSubtype: 'DAILY',
+    }).then((result) => {
+      if (cancelled) return;
+      const docs = result?.success
+        ? (result.data || []).filter(
+            (d) => d.type === 'workflow' && String(d.classId) === String(filters.classId)
+          )
+        : [];
+      const doc = docs.find((d) => d.date === filters.date)
+        || docs.find((d) => d.dateFrom <= filters.date && filters.date <= d.dateTo)
+        || null;
+      setAttendanceLaneWorkflow(doc);
+      const counts = {};
+      docs.forEach((d) => {
+        const st = String(d.status || '').toUpperCase();
+        if (st) counts[st] = (counts[st] || 0) + 1;
+      });
+      setDailyWorkflowStatusCounts(counts);
+    }).catch(() => {
+      if (!cancelled) {
+        setAttendanceLaneWorkflow(null);
+        setDailyWorkflowStatusCounts(null);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [lane, viewMode, filters.classId, filters.date, filters.programId, filters.termId, filters._t]);
 
-  const handleAutoFitContent = useCallback(() => {
-    console.log('[handleAutoFitContent] start');
+  useEffect(() => {
+    const wf = lane === LANES.ATTENDANCE ? attendanceLaneWorkflow : selectedWorkflow;
+    onSelectedWorkflowChange?.(wf || null);
+  }, [selectedWorkflow, attendanceLaneWorkflow, lane, onSelectedWorkflowChange]);
+
+  const handleAutoFitContent = useCallback((expandAll = false, mode = 'content') => {
+    console.log('[handleAutoFitContent] start', { expandAll, mode });
     const columnIds = columns.map((c) => c.id);
     if (!columnIds.length) return;
     const boardKey = boardCollapseKey;
@@ -1849,17 +1913,19 @@ export default function OperationsBoardPage({
     if (nonEmptyIds.length === 0) {
       const equal = computeEqualLaneWidths(columnIds, width, existingCollapsed, collapsedLaneWidth);
       setLaneWidths(equal);
-      setLaneSizingMode('content');
+      setLaneSizingMode(mode);
       try { localStorage.setItem('operations_board_lane_widths', JSON.stringify(equal)); } catch {}
-      try { localStorage.setItem('operations_board_last_autofit_mode', 'content'); } catch {}
+      try { localStorage.setItem('operations_board_last_autofit_mode', mode); } catch {}
       return;
     }
     // If every lane is currently collapsed, expand first so auto-fit can work on the data.
     const allCollapsed = existingCollapsed.size === columnIds.length;
-    const collapsed = new Set(allCollapsed ? [] : [...existingCollapsed]);
-    columnIds.forEach((id) => {
-      if (counts[id] === 0) collapsed.add(id);
-    });
+    const collapsed = new Set(expandAll ? [] : (allCollapsed ? [] : [...existingCollapsed]));
+    if (!expandAll) {
+      columnIds.forEach((id) => {
+        if (counts[id] === 0) collapsed.add(id);
+      });
+    }
 
     // Compute a desired width per lane based on the longest name and the number of cards,
     // scaled by the current font size so the layout remains usable at larger sizes.
@@ -1910,44 +1976,16 @@ export default function OperationsBoardPage({
       return next;
     });
     setLaneWidths(contentWidths);
-    setLaneSizingMode('content');
+    setLaneSizingMode(mode);
     try { localStorage.setItem('operations_board_lane_widths', JSON.stringify(contentWidths)); } catch {}
-    try { localStorage.setItem('operations_board_last_autofit_mode', 'content'); } catch {}
+    try { localStorage.setItem('operations_board_last_autofit_mode', mode); } catch {}
     console.log('[handleAutoFitContent] final:', { contentWidths, shouldFill, totalScore, available, nonEmptyIds, scores });
   }, [columns, displayData, boardCollapseKey, collapsedSetForLane, collapsedLaneWidth, measureBoardViewport, fontScale]);
 
   const handleAutoFitScreen = useCallback(() => {
     console.log('[handleAutoFitScreen] start');
-    const columnIds = columns.map((c) => c.id);
-    if (!columnIds.length) return;
-    const boardKey = boardCollapseKey;
-    const width = measureBoardViewport();
-    if (!width) return;
-
-    // Expand all lanes so the board can grow beyond the viewport when needed.
-    skipCollapseRedistributeRef.current = true;
-    setCollapsedLanes((prev) => {
-      const next = { ...prev, [boardKey]: [] };
-      try { localStorage.setItem(LANE_COLLAPSE_KEY, JSON.stringify({ ...next, _v: LANE_COLLAPSE_VERSION })); } catch {}
-      return next;
-    });
-
-    // Distribute the viewport width equally across all expanded lanes.
-    // Cap each lane at MAX_LANE_WIDTH so a single wide card cannot force a 500+ pixel column.
-    const equalWidths = computeEqualLaneWidths(columnIds, width, new Set(), collapsedLaneWidth);
-    const contentWidths = {};
-    columnIds.forEach((id) => {
-      contentWidths[id] = Math.min(MAX_LANE_WIDTH, equalWidths[id] || MIN_LANE_WIDTH);
-    });
-
-    // Widths were computed by this action; tell the collapse watcher not to redistribute them.
-    skipCollapseRedistributeRef.current = true;
-    console.log('[handleAutoFitScreen] final:', { contentWidths, equalWidths, width });
-    setLaneWidths(contentWidths);
-    setLaneSizingMode('screen');
-    try { localStorage.setItem('operations_board_lane_widths', JSON.stringify(contentWidths)); } catch {}
-    try { localStorage.setItem('operations_board_last_autofit_mode', 'screen'); } catch {}
-  }, [columns, boardCollapseKey, collapsedLaneWidth, measureBoardViewport]);
+    handleAutoFitContent(true, 'screen');
+  }, [handleAutoFitContent]);
 
   // Auto-apply the last used auto-fit mode on mount after data is loaded
   useEffect(() => {
@@ -2177,6 +2215,7 @@ export default function OperationsBoardPage({
             readOnly={attendanceLocked}
             lockReason={attendanceLockReason}
             lockReasonType={attendanceLockType}
+            lockStatusCounts={dailyWorkflowStatusCounts}
             onDragEnd={handleDragEnd}
             onCardClick={handleCardClick}
             onCardUpdated={handleCardUpdated}

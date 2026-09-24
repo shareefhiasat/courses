@@ -6,7 +6,8 @@ import { useTheme } from '@contexts/ThemeContext';
 import { SpeedDial, SpeedDialAction, SpeedDialIcon } from '@mui/material';
 import { CheckCircle2, ExternalLink } from 'lucide-react';
 import { getThemedIcon } from '@constants/iconTypes';
-import { EXPORT_FORMAT, downloadBlob } from '@services/export/official-reports/index.jsx';
+import { EXPORT_FORMAT, downloadBlob, startExportLoading } from '@services/export/official-reports/index.jsx';
+import { buildReportFilename } from '@services/export/official-reports/engine/reportFilename.js';
 import {
   exportWeeklyScheduleForScope,
   exportDailyOfficialForDate,
@@ -93,10 +94,40 @@ function ScheduleSpeedDial({
     onClose();
   }, [cls, dateStr, navigate, onClose]);
 
+  const buildExportBanner = useCallback((label, format, blob, filename, blobUrl) => ({
+    pillColor: '#059669',
+    icon: <CheckCircle2 size={16} className="shrink-0" />,
+    message: (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem' }}>
+        {`${label}${dateStr ? ` — ${dateStr}` : ''} — ${t('export_success') || 'Export successful'}`}
+        <button
+          type="button"
+          className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
+          onClick={() =>
+            format === EXPORT_FORMAT.EXCEL
+              ? downloadBlob(blob, `${filename}.xlsx`)
+              : window.open(blobUrl, '_blank')
+          }
+          style={{ marginInlineStart: '4px' }}
+          aria-label={
+            format === EXPORT_FORMAT.EXCEL
+              ? (t('download_file') || 'Download file')
+              : (t('open_in_new_tab') || 'Open in new tab')
+          }
+        >
+          <ExternalLink size={14} />
+        </button>
+      </span>
+    ),
+  }), [t, dateStr]);
+
   const handleExportAttendanceSummary = useCallback(async () => {
     if (!cls) return;
     const key = 'export-attendance-summary';
     setExporting(key);
+    const stopLoading = startExportLoading(
+      lang === 'ar' ? 'جاري إنشاء ملخص الحضور...' : 'Generating attendance summary...'
+    );
     try {
       const [attendanceResponse, usersResponse] = await Promise.all([
         getAttendanceRecords({ classId: cls.id, limit: 10000 }),
@@ -167,57 +198,38 @@ function ScheduleSpeedDial({
         t('attendance_percentage'),
       ];
 
-      const className = lang === 'ar' && cls.nameAr ? cls.nameAr : cls.nameEn || cls.code || '';
-      const safeClassName = String(className).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_');
-      const filename = `${safeClassName}_attendance_summary`;
+      const filename = buildReportFilename({
+        type: 'class-summary',
+        programName: lang === 'ar' ? program?.nameAr || program?.nameEn : program?.nameEn || program?.name,
+        className: lang === 'ar' ? cls.nameAr || cls.nameEn || cls.code : cls.nameEn || cls.name || cls.code,
+        subjectName: lang === 'ar' ? subject?.nameAr || subject?.nameEn : subject?.nameEn || subject?.name,
+        ext: 'xlsx',
+        lang,
+      });
+      const baseName = filename.replace(/\.xlsx$/i, '');
 
       const blob = await exportGeneric(rows, headers, {
         rtl: lang === 'ar',
         sheetName: t('attendance_summary'),
-        fileName: filename,
+        fileName: baseName,
       });
 
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${filename}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const blobUrl = URL.createObjectURL(blob);
+      onExportSuccess?.(buildExportBanner(
+        `${t('attendance_summary')} — ${t('export_excel') || 'Excel'}`,
+        EXPORT_FORMAT.EXCEL,
+        blob,
+        baseName,
+        blobUrl,
+      ));
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
     } catch (err) {
       console.error('[ScheduleSpeedDial] attendance summary export failed:', err);
     } finally {
+      stopLoading();
       setExporting(null);
     }
-  }, [cls, lang]);
-
-  const buildExportBanner = useCallback((label, format, blob, filename, blobUrl) => ({
-    pillColor: '#059669',
-    icon: <CheckCircle2 size={16} className="shrink-0" />,
-    message: (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem' }}>
-        {`${label}${dateStr ? ` — ${dateStr}` : ''} — ${t('export_success') || 'Export successful'}`}
-        <button
-          type="button"
-          className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
-          onClick={() =>
-            format === EXPORT_FORMAT.EXCEL
-              ? downloadBlob(blob, `${filename}.xlsx`)
-              : window.open(blobUrl, '_blank')
-          }
-          style={{ marginInlineStart: '4px' }}
-          aria-label={
-            format === EXPORT_FORMAT.EXCEL
-              ? (t('download_file') || 'Download file')
-              : (t('open_in_new_tab') || 'Open in new tab')
-          }
-        >
-          <ExternalLink size={14} />
-        </button>
-      </span>
-    ),
-  }), [t, dateStr]);
+  }, [cls, lang, program, subject, t, onExportSuccess, buildExportBanner]);
 
   const actions = useMemo(() => {
     const items = [];

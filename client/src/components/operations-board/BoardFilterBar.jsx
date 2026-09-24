@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { Box, Tab, Tabs, ToggleButton, ToggleButtonGroup, IconButton } from '@mui/material';
-import { ArrowUpDown, ArrowDownAZ, Calendar, KanbanSquare, Workflow, Users, User, UserX, ArrowLeftRight, LayoutTemplate, Eye, EyeOff } from 'lucide-react';
+import { ArrowUpDown, ArrowDownAZ, Calendar, KanbanSquare, Workflow, Users, User, UserX, ArrowLeftRight, LayoutTemplate, Eye, EyeOff, Expand, FileSpreadsheet, FileText } from 'lucide-react';
 import DatePicker from '@components/ui/DatePicker/DatePicker';
 import { Input } from '@/components/kibo/ui/input';
 import { Select } from '@components/ui';
 import { useLang } from '@contexts/LangContext';
+import { useAuth } from '@contexts/AuthContext';
+import { exportClassSummaryReport, exportProgramSummaryReport, exportClassDeductionReport } from '@services/business/studentSummaryReportService.js';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import BoardScheduleCalendar from './BoardScheduleCalendar.jsx';
 import { shouldHideNotesParticipation, canViewParticipation } from './hrAttendancePrivacy.js';
@@ -129,10 +131,102 @@ export default function BoardFilterBar({
   onCalendarViewChange,
 }) {
   const { t, lang } = useLang();
+  const { user } = useAuth();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const hideNotesParticipation = shouldHideNotesParticipation(roleContext);
   const hideParticipation = !canViewParticipation(roleContext);
+
+  // Report icons beside the class dropdown: class summary when a class is
+  // selected, program-level summary (all classes) when it is not.
+  const runSummaryReport = useCallback((format) => () => {
+    const classes = welcomeContext?.classes || [];
+    const selectedClass = classes.find((c) => String(c.id) === String(filters.classId));
+    if (filters.classId && selectedClass) {
+      exportClassSummaryReport({
+        classId: selectedClass.id,
+        classInfo: {
+          className: selectedClass.nameEn || selectedClass.name || '',
+          classNameAr: selectedClass.nameAr || '',
+          subjectName: selectedClass.subject?.nameEn || selectedClass.subjectName || '',
+          subjectNameAr: selectedClass.subject?.nameAr || selectedClass.subjectNameAr || '',
+          programName: welcomeContext?.program?.nameEn || selectedClass.program?.nameEn || '',
+          programNameAr: welcomeContext?.program?.nameAr || selectedClass.program?.nameAr || '',
+          term: welcomeContext?.academicTerm || selectedClass.term || '',
+        },
+        format,
+        lang,
+        user,
+      }).catch((err) => console.error('[BoardFilterBar] class summary export failed:', err));
+      return;
+    }
+    exportProgramSummaryReport({
+      programId: welcomeContext?.programId,
+      programName: welcomeContext?.program?.nameEn || '',
+      classes,
+      format,
+      lang,
+      user,
+    }).catch((err) => console.error('[BoardFilterBar] program summary export failed:', err));
+  }, [filters.classId, welcomeContext, lang, user]);
+
+  // Class-level deduction report (all students' absence dates + deductions).
+  const runDeductionReport = useCallback((format) => () => {
+    const classes = welcomeContext?.classes || [];
+    const selectedClass = classes.find((c) => String(c.id) === String(filters.classId));
+    if (!filters.classId || !selectedClass) return;
+    exportClassDeductionReport({
+      classId: selectedClass.id,
+      classInfo: {
+        className: selectedClass.nameEn || selectedClass.name || '',
+        classNameAr: selectedClass.nameAr || '',
+        subjectName: selectedClass.subject?.nameEn || selectedClass.subjectName || '',
+        subjectNameAr: selectedClass.subject?.nameAr || selectedClass.subjectNameAr || '',
+        programName: welcomeContext?.program?.nameEn || selectedClass.program?.nameEn || '',
+        programNameAr: welcomeContext?.program?.nameAr || selectedClass.program?.nameAr || '',
+        term: welcomeContext?.academicTerm || selectedClass.term || '',
+      },
+      format,
+      lang,
+      user,
+    }).catch((err) => console.error('[BoardFilterBar] deduction report export failed:', err));
+  }, [filters.classId, welcomeContext, lang, user]);
+
+  const summaryReportIcons = (
+    <>
+      <ColoredTooltip
+        title={`${filters.classId ? (t('report_class_summary') || 'Class Summary') : (t('report_program_summary') || 'Program Summary')} — ${t('export_excel') || 'Excel'}`}
+        color="#43a047"
+        placement="bottom"
+      >
+        <IconButton size="small" onClick={runSummaryReport('excel')} sx={{ width: 28, height: 28, flexShrink: 0, color: '#43a047' }}>
+          <FileSpreadsheet size={16} />
+        </IconButton>
+      </ColoredTooltip>
+      {filters.classId && (
+        <>
+          <ColoredTooltip
+            title={`${t('report_class_deduction') || 'Deduction Report'} — ${t('export_pdf') || 'PDF'}`}
+            color="#e53935"
+            placement="bottom"
+          >
+            <IconButton size="small" onClick={runDeductionReport('pdf')} sx={{ width: 28, height: 28, flexShrink: 0, color: '#e53935' }}>
+              <FileText size={16} />
+            </IconButton>
+          </ColoredTooltip>
+          <ColoredTooltip
+            title={`${t('report_class_deduction') || 'Deduction Report'} — ${t('export_excel') || 'Excel'}`}
+            color="#f59e0b"
+            placement="bottom"
+          >
+            <IconButton size="small" onClick={runDeductionReport('excel')} sx={{ width: 28, height: 28, flexShrink: 0, color: '#f59e0b' }}>
+              <FileSpreadsheet size={16} />
+            </IconButton>
+          </ColoredTooltip>
+        </>
+      )}
+    </>
+  );
   const isInstructor = roleContext?.isInstructor && !roleContext?.isAdmin && !roleContext?.isHR && !roleContext?.isSuperAdmin;
   const isAdminViewer = Boolean(roleContext?.isAdmin || roleContext?.isSuperAdmin);
   const [peekAllClasses, setPeekAllClasses] = useState(() => {
@@ -207,7 +301,7 @@ export default function BoardFilterBar({
               icon={<KanbanSquare size={14} />}
               iconPosition="start"
               label={(
-                <ColoredTooltip title={t('operations_board_tab_board')} placement="top">
+                <ColoredTooltip title={t('operations_board_tab_board')} placement="top" color={PANEL_COLORS[isDark ? 'dark' : 'light'].text}>
                   <span>{t('operations_board_tab_board')}</span>
                 </ColoredTooltip>
               )}
@@ -218,7 +312,7 @@ export default function BoardFilterBar({
               icon={<Calendar size={14} />}
               iconPosition="start"
               label={(
-                <ColoredTooltip title={t('operations_board_tab_calendar')} placement="top">
+                <ColoredTooltip title={t('operations_board_tab_calendar')} placement="top" color={PANEL_COLORS[isDark ? 'dark' : 'light'].text}>
                   <span>{t('operations_board_tab_calendar')}</span>
                 </ColoredTooltip>
               )}
@@ -241,7 +335,7 @@ export default function BoardFilterBar({
               iconPosition="start"
               sx={getLaneTabSx(isDark, 'attendance')}
               label={(
-                <ColoredTooltip title={viewMode === 'week' ? (t('operations_board_attendance_week_disabled') || 'Attendance board is not available in week mode') : (t('operations_board_tab_attendance') || 'Attendance')} placement="top">
+                <ColoredTooltip title={viewMode === 'week' ? (t('operations_board_attendance_week_disabled') || 'Attendance board is not available in week mode') : (t('operations_board_tab_attendance') || 'Attendance')} placement="top" color={LANE_TAB_COLORS.attendance[isDark ? 'dark' : 'light'].text}>
                   <span>{t('operations_board_tab_attendance') || 'Attendance'}</span>
                 </ColoredTooltip>
               )}
@@ -255,7 +349,7 @@ export default function BoardFilterBar({
               iconPosition="start"
               sx={getLaneTabSx(isDark, 'workflow')}
               label={(
-                <ColoredTooltip title={t('operations_board_tab_workflow') || 'Workflow'} placement="top">
+                <ColoredTooltip title={t('operations_board_tab_workflow') || 'Workflow'} placement="top" color={LANE_TAB_COLORS.workflow[isDark ? 'dark' : 'light'].text}>
                   <span>{t('operations_board_tab_workflow') || 'Workflow'}</span>
                 </ColoredTooltip>
               )}
@@ -290,6 +384,7 @@ export default function BoardFilterBar({
                   />
                 </div>
               )}
+              {(lane === 'status' || lane === 'attendance') && welcomeContext?.classes?.length > 0 && summaryReportIcons}
               <Box
                 data-tour="operations-board-search"
                 sx={{
@@ -343,6 +438,7 @@ export default function BoardFilterBar({
                   style={{ width: '100%', '--border': isDark ? '#4b5563' : '#9ca3af' }}
                 />
               </div>
+              {summaryReportIcons}
               {filters.classId && (
                 <ColoredTooltip
                   title={peekAllClasses ? (t('operations_board_show_selected_class') || 'Show selected class only') : (t('operations_board_peek_all_classes') || 'Peek all classes')}
@@ -379,7 +475,7 @@ export default function BoardFilterBar({
           )}
           {showLaneReset && onAutoFitScreen && (
             <ColoredTooltip
-              title={t('operations_board_auto_fit_screen') || 'Auto-fit screen'}
+              title={t('operations_board_expand_all') || 'Expand all'}
               color="#3b82f6"
               placement="bottom"
             >
@@ -389,7 +485,7 @@ export default function BoardFilterBar({
                 data-testid="operations-board-auto-fit-screen"
                 sx={{ width: 32, height: 32, flexShrink: 0 }}
               >
-                <ArrowLeftRight size={16} />
+                <Expand size={16} />
               </IconButton>
             </ColoredTooltip>
           )}

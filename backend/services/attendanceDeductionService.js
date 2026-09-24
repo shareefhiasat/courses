@@ -113,6 +113,7 @@ export async function calculateStudentAbsenceDeductions({
         attendanceId: row.id,
         date: row.date,
         statusCode: row.status?.code,
+        notes: row.notes || null,
         excusedViaWorkflow: Boolean(row.excuseApprovedAt),
         deduction,
         recordedBy: recordedByUser?.displayName || recordedByUser?.realName || [recordedByUser?.firstName, recordedByUser?.lastName].filter(Boolean).join(' ') || null,
@@ -357,7 +358,15 @@ export async function getClassAbsenceWarningCounts({ classId, userId, dateFrom, 
       userId: { in: studentIds },
       ...(Object.keys(dateFilter).length ? { date: dateFilter } : {}),
     },
-    include: { status: true },
+    include: {
+      status: true,
+      amendments: {
+        orderBy: { amendedAt: 'desc' },
+        take: 1,
+        select: { reason: true },
+      },
+    },
+    orderBy: { date: 'asc' },
   });
 
   const countsByUser = new Map();
@@ -372,6 +381,7 @@ export async function getClassAbsenceWarningCounts({ classId, userId, dateFrom, 
       deductionApproved: 0,
       deductionNotApproved: 0,
       deductionTotal: 0,
+      absences: [],
     });
   });
 
@@ -386,10 +396,22 @@ export async function getClassAbsenceWarningCounts({ classId, userId, dateFrom, 
       case ATTENDANCE_STATUS_CODES.ABSENT:
         entry.unexcusedAbsences += 1;
         entry.totalAbsences += 1;
+        entry.absences.push({
+          date: row.date,
+          statusCode: code,
+          excusedViaWorkflow: Boolean(row.excuseApprovedAt),
+          note: row.notes || row.amendments?.[0]?.reason || null,
+        });
         break;
       case ATTENDANCE_STATUS_CODES.LEAVE:
         entry.excusedAbsences += 1;
         entry.totalAbsences += 1;
+        entry.absences.push({
+          date: row.date,
+          statusCode: code,
+          excusedViaWorkflow: Boolean(row.excuseApprovedAt),
+          note: row.notes || row.amendments?.[0]?.reason || null,
+        });
         break;
       case ATTENDANCE_STATUS_CODES.LATE:
         entry.lateCount += 1;
@@ -397,6 +419,12 @@ export async function getClassAbsenceWarningCounts({ classId, userId, dateFrom, 
       case ATTENDANCE_STATUS_CODES.HUMAN_CASE:
         entry.humanCaseCount += 1;
         entry.totalAbsences += 1;
+        entry.absences.push({
+          date: row.date,
+          statusCode: code,
+          excusedViaWorkflow: Boolean(row.excuseApprovedAt),
+          note: row.notes || row.amendments?.[0]?.reason || null,
+        });
         break;
       default:
         break;
@@ -426,6 +454,7 @@ export async function getClassAbsenceWarningCounts({ classId, userId, dateFrom, 
       deductionApproved: 0,
       deductionNotApproved: 0,
       deductionTotal: 0,
+      absences: [],
     };
     const counts = {
       ...rawCounts,

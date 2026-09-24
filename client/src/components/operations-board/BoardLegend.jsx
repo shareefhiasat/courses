@@ -65,7 +65,7 @@ export default function BoardLegend({
     </>
   );
 
-  const LegendGroup = ({ children, label }) => {
+  const LegendGroup = ({ children, label, accentColor }) => {
     const hasChildren = React.Children.toArray(children).some((c) => c != null && c !== false);
     if (!hasChildren) return null;
     return (
@@ -74,6 +74,7 @@ export default function BoardLegend({
         aria-label={label}
         title={label}
         role="group"
+        style={accentColor ? { borderColor: accentColor, background: `${accentColor}14` } : undefined}
       >
         {children}
       </div>
@@ -94,7 +95,7 @@ export default function BoardLegend({
       )}
       {showYourClassOnly && renderYourClassOnly}
       {showAttendance && (
-        <LegendGroup label={t('attendance') || 'Attendance'}>
+        <LegendGroup label={t('attendance') || 'Attendance'} accentColor="#f97316">
           {attendanceLegendColumns.map((col) => (
             <div key={col.id} className={gridStyles.legendItem} data-testid={`operations-board-legend-att-${col.id}`}>
               <span
@@ -108,14 +109,16 @@ export default function BoardLegend({
           ))}
         </LegendGroup>
       )}
-      {showAttendance && !hidePrivacyLegend && (
+      {showAttendance && !isInstructor && (
         <LegendGroup label={t('notes_and_participation') || 'Notes & Participation'}>
-          <div className={gridStyles.legendItem} style={{ gap: 4 }} data-testid="operations-board-legend-note-star">
-            <Star size={scale(11)} fill="#ef4444" color="#ef4444" />
-            <span className={gridStyles.legendLabel} style={{ color: '#ef4444' }}>
-              {t('operations_board_legend_note')}
-            </span>
-          </div>
+          {!hidePrivacyLegend && (
+            <div className={gridStyles.legendItem} style={{ gap: 4 }} data-testid="operations-board-legend-note-star">
+              <Star size={scale(11)} fill="#ef4444" color="#ef4444" />
+              <span className={gridStyles.legendLabel} style={{ color: '#ef4444' }}>
+                {t('operations_board_legend_note')}
+              </span>
+            </div>
+          )}
           {!isInstructor && (
             <div className={gridStyles.legendItem} style={{ gap: 4 }} data-testid="operations-board-legend-comment">
               <MessageSquare size={scale(11)} fill={BOARD_COMMENT_COLOR} color={BOARD_COMMENT_COLOR} />
@@ -136,7 +139,7 @@ export default function BoardLegend({
       )}
       {showWorkflow && !isInstructor && (
         <>
-          <LegendGroup label={t('workflow_documents') || 'Workflow documents'}>
+          <LegendGroup label={t('workflow_documents') || 'Workflow documents'} accentColor="#22c55e">
             <div className={gridStyles.legendItem} data-testid="operations-board-legend-wf-daily">
               <FilePenLine size={scale(14)} style={{ color: '#3b82f6' }} />
               <span className={gridStyles.legendLabel} style={{ color: '#3b82f6' }}>
@@ -150,7 +153,7 @@ export default function BoardLegend({
               </span>
             </div>
           </LegendGroup>
-          <LegendGroup label={t('workflow_statuses') || 'Workflow statuses'}>
+          <LegendGroup label={t('workflow_statuses') || 'Workflow statuses'} accentColor="#22c55e">
             {includeNotTaken && (
               <div className={gridStyles.legendItem} data-testid="operations-board-legend-wf-not-taken">
                 <span

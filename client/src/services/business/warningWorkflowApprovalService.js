@@ -2,6 +2,7 @@ import React from 'react';
 import { prepareAttendanceWarningData } from '../export/official-reports/engine/prepareAttendanceWarningData.js';
 import { AttendanceWarningTemplate } from '../export/official-reports/templates/attendanceWarning.template.jsx';
 import { renderOfficialPdf } from '../export/official-reports/renderers/pdfRenderer.js';
+import { fetchAbsenceWarningCounts } from './attendanceDeductionService.js';
 
 function sanitize(str) {
   return str ? String(str).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '';
@@ -34,6 +35,17 @@ export async function buildWarningActionFile(document, user, lang, status) {
   const warningType = resolveWarningTypeFromSubtype(document.attendanceSubtype, metadata);
   const isFinal = warningType === 'final';
 
+  let classAbsences = Array.isArray(metadata.absences) ? metadata.absences : [];
+  if (classAbsences.length === 0 && document.classId && document.targetStudentId) {
+    try {
+      const res = await fetchAbsenceWarningCounts({ classId: document.classId, userId: document.targetStudentId });
+      const rows = res?.data || res?.payload || [];
+      classAbsences = rows.find((r) => String(r.studentId) === String(document.targetStudentId))?.absences || [];
+    } catch {
+      classAbsences = [];
+    }
+  }
+
   const student = {
     studentId: document.targetStudentId,
     studentNumber: metadata.studentNumber || '',
@@ -43,6 +55,7 @@ export async function buildWarningActionFile(document, user, lang, status) {
     rankAr: metadata.rankAr || '',
     totalAbsences: metadata.totalAbsences ?? 0,
     unexcusedAbsences: metadata.unexcusedAbsences ?? 0,
+    classAbsences,
   };
 
   const reportMetadata = {

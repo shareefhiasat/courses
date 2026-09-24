@@ -167,6 +167,7 @@ export default function WelcomeDateControls({
     };
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: WELCOME_SIZES.gapSm, flexShrink: 0, justifyContent: 'center' }}>
+        {opsNavSuffix}
         <span
           style={{
             fontSize: '0.75rem',
@@ -188,7 +189,6 @@ export default function WelcomeDateControls({
           {opsViewMode === OPS_VIEW_MODES.WEEK ? <GitBranch size={12} color="#2563eb" /> : <FilePenLine size={12} color="#2563eb" />}
           {opsViewMode === OPS_VIEW_MODES.WEEK ? t('weekly_attendance', 'Weekly Attendance') : t('daily_attendance', 'Daily Attendance')}
         </span>
-        {opsNavSuffix}
         {!isInstructorOnly && (
           <NavButton onClick={handlePrev} ariaLabel={t('calendar_previous') || 'Previous'} dataTestid="welcome-day-prev" padding={WELCOME_SIZES.paddingXs} isDark={isDark}>
             {isRTL ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}

@@ -58,6 +58,7 @@ export default function BoardLaneHeader({
   canMoveTo,
   laneType = 'attendance',
   fontScale = 100,
+  locked = false,
 }) {
   const { lang } = useLang();
   const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
@@ -135,9 +136,11 @@ export default function BoardLaneHeader({
         <div className="flex items-center justify-center" style={{ minWidth: 0 }}>
           {onBulkMove && moveTargets.length > 0 && (
             <div className="relative">
-              <ColoredTooltip title={selectedCount > 0
-                ? (t('operations_board_bulk_move_selected') || 'Move selected to…')
-                : (t('operations_board_bulk_move') || 'Move all to…')} color={column.color} placement="top">
+              <ColoredTooltip title={locked
+                ? (t('operations_board_attendance_locked_weekly') || 'Attendance locked — weekly workflow in progress for this week.')
+                : selectedCount > 0
+                  ? (t('operations_board_bulk_move_selected') || 'Move selected to…')
+                  : (t('operations_board_bulk_move') || 'Move all to…')} color={locked ? '#dc2626' : column.color} placement="top">
                 <button
                     ref={bulkBtnRef}
                     type="button"
@@ -152,7 +155,9 @@ export default function BoardLaneHeader({
                     data-testid={`operations-board-lane-bulk-${column.id}`}
                     style={{ position: 'relative' }}
                   >
-                    <ArrowRightLeft size={icon(18)} style={{ color: column.color }} />
+                    {locked
+                      ? <Lock size={icon(18)} style={{ color: '#dc2626' }} />
+                      : <ArrowRightLeft size={icon(18)} style={{ color: column.color }} />}
                     {selectedCount > 0 && (
                       <span
                         className="text-[9px] font-bold tabular-nums flex items-center justify-center"
@@ -223,6 +228,7 @@ export default function BoardLaneHeader({
                     >
                       <span className="h-2 w-2 rounded-full" style={{ backgroundColor: target.color }} />
                       {t(target.i18nKey) || target.name}
+                      {locked && <Lock size={12} style={{ color: '#dc2626', flexShrink: 0 }} aria-hidden />}
                       <span style={{ marginInlineStart: 'auto', opacity: 0.7, fontSize: '0.75rem', fontWeight: 600 }}>
                         ({selectedCount > 0 ? selectedCount : count})
                       </span>

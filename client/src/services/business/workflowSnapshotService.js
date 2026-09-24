@@ -7,6 +7,8 @@ import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
 import { apiService } from '@services/api/apiService.js';
 import { getSubjects } from '@services/business/programService.js';
 import { getClasses } from '@services/business/classService.js';
+import { fetchAbsenceWarningCounts } from '@services/business/attendanceDeductionService.js';
+import { buildReportFilename } from '@services/export/official-reports/engine/reportFilename.js';
 
 /**
  * Get the Monday–Friday date range for the week containing the given date.
@@ -397,8 +399,18 @@ export async function getDailyWorkflowHistory({ date, classId, programId }) {
  */
 export async function generateWarningSnapshot({ student, metadata, warningType = 'first', lang = 'ar', user = null, workflowStatus = 'DRAFT' }) {
   try {
+    let classAbsences = student?.classAbsences ?? student?.absences ?? [];
+    if (classAbsences.length === 0 && metadata?.classId && student?.studentId) {
+      try {
+        const res = await fetchAbsenceWarningCounts({ classId: metadata.classId, userId: student.studentId });
+        const rows = res?.data || res?.payload || [];
+        classAbsences = rows.find((r) => String(r.studentId) === String(student.studentId))?.absences || [];
+      } catch {
+        classAbsences = [];
+      }
+    }
     const reportData = prepareAttendanceWarningData({
-      students: [student],
+      students: [{ ...student, classAbsences }],
       metadata,
       lang,
       warningType,
@@ -410,7 +422,17 @@ export async function generateWarningSnapshot({ student, metadata, warningType =
       reportData.approvedAt = new Date().toISOString();
     }
 
-    const filename = `${reportData.serial}_${warningType}_warning_${sanitize(metadata.classCode)}.pdf`;
+    const filename = buildReportFilename({
+      type: 'attendance-warning',
+      extra: warningType,
+      programName: lang === 'ar' ? metadata?.programNameAr || metadata?.programName : metadata?.programName,
+      className: lang === 'ar' ? metadata?.classNameAr || metadata?.className || metadata?.classCode : metadata?.className || metadata?.classCode,
+      studentName: lang === 'ar' ? student?.studentNameAr || student?.displayNameAr || student?.studentName : student?.studentName || student?.displayName,
+      studentNumber: student?.studentNumber,
+      serial: reportData.serial,
+      ext: 'pdf',
+      lang,
+    });
     const blob = await renderOfficialPdf(
       React.createElement(AttendanceWarningTemplate, { data: reportData, showWatermark: true }),
       {
@@ -426,10 +448,6 @@ export async function generateWarningSnapshot({ student, metadata, warningType =
     console.error('[workflowSnapshotService] generateWarningSnapshot error:', err);
     return { success: false, error: err.message };
   }
-}
-
-function sanitize(str) {
-  return str ? String(str).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '';
 }
 
 /**

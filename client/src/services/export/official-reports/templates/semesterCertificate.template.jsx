@@ -197,7 +197,7 @@ export function SemesterCertificateTemplate({ data, showWatermark = true }) {
                 )}
 
                 <div className={styles.officialPageFooter}>
-                  <span>{isAr ? 'الرقم التسلسلي' : 'Serial'}: {serial}</span>
+                  <span>{isAr ? 'الرقم التسلسلي' : 'Serial'}: <bdi>{serial}</bdi></span>
                   <span>{isAr ? 'تاريخ الإصدار' : 'Generated'}: {genDateTime}</span>
                   <span>{isAr ? 'صفحة' : 'Page'} {pageIndex + 1} / {totalPages}</span>
                 </div>

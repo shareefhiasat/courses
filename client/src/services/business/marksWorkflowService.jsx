@@ -8,6 +8,8 @@ import { persistAndLogExport } from '@services/business/exportDriveService.js';
 import { createCustomWorkflowDocument } from '@services/api/workflow-documents-api.js';
 import { getAllStudentMarksReport, getSubjectMarksDistribution } from '@services/business/enrollmentMarksService.js';
 import { academicTermToYearTerm } from '@utils/academicTermUtils.js';
+import { buildReportFilename } from '@services/export/official-reports/engine/reportFilename.js';
+import { notifyExportSuccess, withExportLoading } from '@services/export/official-reports/engine/exportToast.js';
 
 const DEFAULT_DISTRIBUTION = {
   homework: 5,
@@ -18,11 +20,6 @@ const DEFAULT_DISTRIBUTION = {
   midTermExam: 20,
   finalExam: 40,
 };
-
-function sanitizeFileName(name) {
-  if (!name) return '';
-  return String(name).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_');
-}
 
 async function loadMarksReportRows(filters) {
   const result = await getAllStudentMarksReport(filters);
@@ -111,19 +108,38 @@ async function buildCertificateData({ program, academicTerm, lang, user }) {
   return { reportData, metadata };
 }
 
-export async function exportClassMarksReport({ cls, program, subject, academicTerm, lang = 'ar', user }) {
-  const { reportData } = await buildClassReportData({ cls, program, subject, academicTerm, lang, user });
+export function exportClassMarksReport(params) {
+  return withExportLoading(
+    params?.lang === 'ar' ? 'جاري إنشاء كشف الدرجات...' : 'Generating marks sheet...',
+    () => exportClassMarksReportImpl(params),
+  );
+}
+
+async function exportClassMarksReportImpl({ cls, program, subject, academicTerm, lang = 'ar', user }) {
+  const { reportData, metadata } = await buildClassReportData({ cls, program, subject, academicTerm, lang, user });
+
+  const isAr = lang === 'ar';
+  const filename = buildReportFilename({
+    type: 'marks-sheet',
+    programName: isAr ? metadata.programNameAr || metadata.programName : metadata.programName,
+    className: isAr ? metadata.classNameAr || metadata.className : metadata.className,
+    subjectName: isAr ? metadata.subjectNameAr || metadata.subjectName : metadata.subjectName,
+    serial: reportData.serial,
+    ext: 'pdf',
+    lang,
+  });
 
   const blob = await renderOfficialPdf(
     <ClassSubjectMarksTemplate data={reportData} showWatermark />,
     {
-      filename: `${sanitizeFileName(reportData.title)}_${reportData.serial}.pdf`,
-      download: true,
+      filename,
+      download: false,
       serial: reportData.serial,
       lang,
     }
   );
 
+  notifyExportSuccess('marks-sheet', 'pdf', lang, blob, filename);
   return { success: true, blob, reportData };
 }
 
@@ -135,7 +151,7 @@ async function uploadAndInitiateWorkflow({
   description,
   program,
   academicTerm,
-  fileNamePrefix,
+  filename,
   exportType,
   user,
 }) {
@@ -147,7 +163,7 @@ async function uploadAndInitiateWorkflow({
       <ClassSubjectMarksTemplate data={reportData} showWatermark />
     ),
     {
-      filename: `${sanitizeFileName(fileNamePrefix)}_${reportData.serial}.pdf`,
+      filename,
       download: false,
       serial: reportData.serial,
       lang: reportData.lang || 'ar',
@@ -156,7 +172,7 @@ async function uploadAndInitiateWorkflow({
 
   const persisted = await persistAndLogExport({
     blob,
-    filename: `${sanitizeFileName(fileNamePrefix)}_${reportData.serial}`,
+    filename: filename.replace(/\.pdf$/i, ''),
     mimeType: 'application/pdf',
     format: 'PDF',
     exportType,
@@ -221,7 +237,13 @@ export async function initiateMarksCertificateWorkflow({ program, academicTerm, 
       description,
       program,
       academicTerm,
-      fileNamePrefix: `semester_certificate_${reportData.serial}`,
+      filename: buildReportFilename({
+        type: 'semester-certificate',
+        programName: lang === 'ar' ? metadata.programNameAr || metadata.programName : metadata.programName,
+        serial: reportData.serial,
+        ext: 'pdf',
+        lang,
+      }),
       exportType: 'marks_semester_certificate',
       user,
     });
@@ -250,7 +272,15 @@ export async function initiateMarksSheetWorkflow({ cls, program, subject, academ
       description,
       program,
       academicTerm,
-      fileNamePrefix: `subject_marks_sheet_${reportData.serial}`,
+      filename: buildReportFilename({
+        type: 'marks-sheet',
+        programName: lang === 'ar' ? metadata.programNameAr || metadata.programName : metadata.programName,
+        className: lang === 'ar' ? metadata.classNameAr || metadata.className : metadata.className,
+        subjectName: lang === 'ar' ? metadata.subjectNameAr || metadata.subjectName : metadata.subjectName,
+        serial: reportData.serial,
+        ext: 'pdf',
+        lang,
+      }),
       exportType: 'marks_subject_sheet',
       user,
     });

@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay, startOfMonth, endOfMonth, startOfWeek as dfStartOfWeek, endOfWeek } from 'date-fns';
+import { format, parse, parseISO, getISOWeek, startOfWeek, getDay, startOfMonth, endOfMonth, startOfWeek as dfStartOfWeek, endOfWeek } from 'date-fns';
 import enUS from 'date-fns/locale/en-US';
 import arSA from 'date-fns/locale/ar-SA';
 import { Box, CircularProgress, Stack, IconButton, Slider } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useLang } from '@contexts/LangContext';
+import { useAuth } from '@contexts/AuthContext';
 import { getScheduleStatus } from '@services/business/attendanceWorkspaceService.js';
+import { exportClassSummaryReport, exportClassDeductionReport } from '@services/business/studentSummaryReportService.js';
 import { apiService } from '@services/api/apiService.js';
 import { toast } from 'sonner';
 import chatSocket from '@services/realtime/chatSocket.js';
@@ -34,6 +36,7 @@ import { SCHEDULE_WORKFLOW_STATUS } from '@constants/workspaceStatusColors.js';
 import {
   Eye,
   EyeOff,
+  FileBarChart,
   FilePenLine,
   FileText,
   FileSpreadsheet,
@@ -243,7 +246,7 @@ function CalendarToolbar({ label, view, views, onNavigate, onView }) {
   );
 }
 
-function AgendaEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, hideNotesParticipation = false, hideParticipation = false }) {
+function AgendaEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, hideNotesParticipation = false, hideParticipation = false, onClassSessionClick = null }) {
   const r = event.resource || {};
   const color = resolveAttendanceEventColor(r.status);
   const iconSize = Math.round(12 * zoomFactor);
@@ -251,7 +254,7 @@ function AgendaEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, hi
   const tooltipColor = isDark ? '#94a3b8' : '#64748b';
   return (
     <ColoredTooltip
-      title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} hideNotesParticipation={hideNotesParticipation} hideParticipation={hideParticipation} />}
+      title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} hideNotesParticipation={hideNotesParticipation} hideParticipation={hideParticipation} onClassSessionClick={onClassSessionClick} />}
       color={tooltipColor}
       borderColor={color}
       placement="top"
@@ -305,7 +308,7 @@ function AttendanceCountsBreakdown({ counts, t, fontSize = '0.7rem' }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
       {items.map((item) => (
-        <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+        <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 3, color: item.color }}>
           <AttendanceStatusDots items={[item]} dotSize={10} className="shrink-0" />
           <span
             style={{
@@ -419,13 +422,15 @@ function EventStatusIndicators({ status, workflowKey, weeklyWorkflowKey, date, l
   );
 }
 
-export function AttendanceSummaryTooltip({ event, t, lang = 'en', hideNotesParticipation = false, hideParticipation = false }) {
+export function AttendanceSummaryTooltip({ event, t, lang = 'en', hideNotesParticipation = false, hideParticipation = false, onClassSessionClick = null }) {
+  const { user } = useAuth();
   const r = event.resource || {};
   const status = r.status || {};
   const workflowKey = r.workflowKey;
   const weeklyWorkflowKey = r.weeklyWorkflowKey;
   const counts = getAttendanceCountsFromStatus(status);
   const eventDate = r.date || (event.start ? toIsoDate(event.start) : null);
+  const weekNum = eventDate ? getISOWeek(parseISO(eventDate)) : null;
 
   const hasWeeklyWorkflow = weeklyWorkflowKey
     && weeklyWorkflowKey !== SCHEDULE_WORKFLOW_STATUS.NOT_TAKEN;
@@ -450,13 +455,18 @@ export function AttendanceSummaryTooltip({ event, t, lang = 'en', hideNotesParti
     <div style={{ maxWidth: 260, fontSize: '0.75rem', lineHeight: 1.45, color: labelColor }}>
       <div style={{ fontWeight: 700, color: labelColor }}>{event.title}</div>
       {eventDate && (
-        <div style={{ color: labelColor }}>{formatDate(eventDate, lang)}</div>
+        <div style={{ color: labelColor }}>{formatDate(eventDate, lang)}{weekNum ? ` — W${weekNum}` : ''}</div>
       )}
       {(
         <div style={sectionStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2, color: dailyWorkflowColor }}>
-            <FilePenLine size={12} style={{ color: dailyWorkflowColor }} />
-            <span style={{ fontWeight: 600, color: dailyWorkflowColor }}>{dailyWorkflowLabel}</span>
+            <span
+              style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', flex: 1 }}
+              onClick={(e) => { e.stopPropagation(); onClassSessionClick?.({ classId: r.classId, date: eventDate, mode: 'day', targetLane: 'status' }); }}
+            >
+              <FilePenLine size={12} style={{ color: dailyWorkflowColor }} />
+              <span style={{ fontWeight: 600, color: dailyWorkflowColor }}>{dailyWorkflowLabel}</span>
+            </span>
             {status.workflowSnapshotFile?.id && status.workflowDocumentId && (
               <IconButton
                 size="small"
@@ -501,9 +511,14 @@ export function AttendanceSummaryTooltip({ event, t, lang = 'en', hideNotesParti
       {hasWeeklyWorkflow && (
         <div style={sectionStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
-            <GitBranch size={14} style={{ color: weeklyWorkflowColor, flexShrink: 0 }} />
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: weeklyWorkflowColor }}>
-              {weeklyWorkflowLabel}
+            <span
+              style={{ display: 'flex', alignItems: 'center', gap: 5, color: weeklyWorkflowColor, cursor: 'pointer', flex: 1 }}
+              onClick={(e) => { e.stopPropagation(); onClassSessionClick?.({ classId: r.classId, date: eventDate, mode: 'week', targetLane: 'status' }); }}
+            >
+              <GitBranch size={14} style={{ color: weeklyWorkflowColor, flexShrink: 0 }} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: weeklyWorkflowColor }}>
+                {weeklyWorkflowLabel}
+              </span>
             </span>
             {status.weeklyWorkflowSnapshotFile?.id && status.weeklyWorkflowDocumentId && (
               <IconButton
@@ -574,11 +589,95 @@ export function AttendanceSummaryTooltip({ event, t, lang = 'en', hideNotesParti
           <div style={{ color: labelColor }}>{r.room}</div>
         </div>
       )}
+      {r.classId && (
+        <div style={sectionStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: labelColor }}>
+            <FileBarChart size={13} color="#0ea5e9" style={{ flexShrink: 0 }} />
+            <span style={{ fontWeight: 600, flex: 1 }}>{t('report_class_summary') || 'Class Summary'}</span>
+            <IconButton
+              size="small"
+              title={t('export_excel') || 'Excel'}
+              style={{ padding: 2, color: '#43a047' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                exportClassSummaryReport({
+                  classId: r.classId,
+                  classInfo: {
+                    className: r.classData?.nameEn || r.classData?.name || '',
+                    classNameAr: r.classData?.nameAr || '',
+                    subjectName: r.subjectName,
+                    programName: r.classData?.program?.nameEn || '',
+                    programNameAr: r.classData?.program?.nameAr || '',
+                    term: welcomeContext?.academicTerm || '',
+                  },
+                  format: 'excel',
+                  lang,
+                  user,
+                }).catch((err) => console.error('[Calendar] class summary export failed:', err));
+              }}
+            >
+              <FileSpreadsheet size={13} />
+            </IconButton>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: labelColor }}>
+            <FileBarChart size={13} color="#e53935" style={{ flexShrink: 0 }} />
+            <span style={{ fontWeight: 600, flex: 1 }}>{t('report_class_deduction') || 'Deduction Report'}</span>
+            <IconButton
+              size="small"
+              title={t('export_pdf') || 'PDF'}
+              style={{ padding: 2, color: '#e53935' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                exportClassDeductionReport({
+                  classId: r.classId,
+                  classInfo: {
+                    className: r.classData?.nameEn || r.classData?.name || '',
+                    classNameAr: r.classData?.nameAr || '',
+                    subjectName: r.subjectName,
+                    programName: r.classData?.program?.nameEn || '',
+                    programNameAr: r.classData?.program?.nameAr || '',
+                    term: welcomeContext?.academicTerm || '',
+                  },
+                  format: 'pdf',
+                  lang,
+                  user,
+                }).catch((err) => console.error('[Calendar] deduction report export failed:', err));
+              }}
+            >
+              <FileText size={13} />
+            </IconButton>
+            <IconButton
+              size="small"
+              title={t('export_excel') || 'Excel'}
+              style={{ padding: 2, color: '#f59e0b' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                exportClassDeductionReport({
+                  classId: r.classId,
+                  classInfo: {
+                    className: r.classData?.nameEn || r.classData?.name || '',
+                    classNameAr: r.classData?.nameAr || '',
+                    subjectName: r.subjectName,
+                    programName: r.classData?.program?.nameEn || '',
+                    programNameAr: r.classData?.program?.nameAr || '',
+                    term: welcomeContext?.academicTerm || '',
+                  },
+                  format: 'excel',
+                  lang,
+                  user,
+                }).catch((err) => console.error('[Calendar] deduction report export failed:', err));
+              }}
+            >
+              <FileSpreadsheet size={13} />
+            </IconButton>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function DayWeekEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, hideNotesParticipation = false, hideParticipation = false }) {
+function DayWeekEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, hideNotesParticipation = false, hideParticipation = false, onClassSessionClick = null }) {
   const r = event.resource || {};
   const iconSize = Math.round(12 * zoomFactor);
   const color = resolveAttendanceEventColor(r.status);
@@ -586,7 +685,7 @@ function DayWeekEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, h
   const isRTL = lang === 'ar';
   return (
     <ColoredTooltip
-      title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} hideNotesParticipation={hideNotesParticipation} hideParticipation={hideParticipation} />}
+      title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} hideNotesParticipation={hideNotesParticipation} hideParticipation={hideParticipation} onClassSessionClick={onClassSessionClick} />}
       color={tooltipColor}
       borderColor={color}
       placement="top"
@@ -629,7 +728,7 @@ function DayWeekEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, h
   );
 }
 
-function MonthEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, hideNotesParticipation = false, hideParticipation = false }) {
+function MonthEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, hideNotesParticipation = false, hideParticipation = false, onClassSessionClick = null }) {
   const r = event.resource || {};
   const color = resolveAttendanceEventColor(r.status);
   const iconSize = Math.round(10 * zoomFactor);
@@ -637,7 +736,7 @@ function MonthEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, hid
   const isRTL = lang === 'ar';
   return (
     <ColoredTooltip
-      title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} hideNotesParticipation={hideNotesParticipation} hideParticipation={hideParticipation} />}
+      title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} hideNotesParticipation={hideNotesParticipation} hideParticipation={hideParticipation} onClassSessionClick={onClassSessionClick} />}
       color={tooltipColor}
       borderColor={color}
       placement="top"
@@ -1243,10 +1342,10 @@ export default function BoardScheduleCalendar({
   const calendarComponents = useMemo(() => ({
     toolbar: CalendarToolbar,
     agenda: {
-      event: (props) => <AgendaEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} isDark={isDark} hideNotesParticipation={hideNotesParticipation} hideParticipation={hideParticipation} />,
+      event: (props) => <AgendaEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} isDark={isDark} hideNotesParticipation={hideNotesParticipation} hideParticipation={hideParticipation} onClassSessionClick={onClassSessionClick} />,
     },
     month: {
-      event: (props) => <MonthEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} isDark={isDark} hideNotesParticipation={hideNotesParticipation} hideParticipation={hideParticipation} />,
+      event: (props) => <MonthEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} isDark={isDark} hideNotesParticipation={hideNotesParticipation} hideParticipation={hideParticipation} onClassSessionClick={onClassSessionClick} />,
       dateHeader: (props) => (
         <MonthDateHeader
           {...props}
@@ -1259,14 +1358,14 @@ export default function BoardScheduleCalendar({
       ),
     },
     day: {
-      event: (props) => <DayWeekEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} isDark={isDark} hideNotesParticipation={hideNotesParticipation} hideParticipation={hideParticipation} />,
+      event: (props) => <DayWeekEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} isDark={isDark} hideNotesParticipation={hideNotesParticipation} hideParticipation={hideParticipation} onClassSessionClick={onClassSessionClick} />,
       header: (props) => <WeekDayHeader {...props} t={t} zoomFactor={zoomFactor} date={currentDate} hideWeekend={hideWeekend} />,
     },
     week: {
-      event: (props) => <DayWeekEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} isDark={isDark} hideNotesParticipation={hideNotesParticipation} hideParticipation={hideParticipation} />,
+      event: (props) => <DayWeekEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} isDark={isDark} hideNotesParticipation={hideNotesParticipation} hideParticipation={hideParticipation} onClassSessionClick={onClassSessionClick} />,
       header: (props) => <WeekDayHeader {...props} t={t} zoomFactor={zoomFactor} date={currentDate} hideWeekend={hideWeekend} />,
     },
-  }), [t, lang, zoomFactor, currentDate, isDark, hideWeekend, hideNotesParticipation, hideParticipation, eventsByDate]);
+  }), [t, lang, zoomFactor, currentDate, isDark, hideWeekend, hideNotesParticipation, hideParticipation, eventsByDate, onClassSessionClick]);
 
   const toolbarContextValue = useMemo(() => ({
     t, lang, isDark, date: currentDate, hideWeekend, onToggleWeekend: toggleWeekend, zoom: calendarZoom, onZoomChange: handleZoomChange, onZoomCommit: handleZoomCommit, embedded, expanded, onToggleExpand,

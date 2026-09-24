@@ -2832,6 +2832,7 @@ const WelcomePage = () => {
                         onOpenHistory={handleOpenHistory}
                         onDateChange={setSelectedDate}
                         viewMode={opsViewMode}
+                        onViewModeChange={setOpsViewMode}
                         onBoardDataChanged={refreshScheduleStatus}
                         onExportDailyTemplate={handleExportDailyTemplate}
                         onExportWeeklySchedule={handleExportWeeklySchedule}

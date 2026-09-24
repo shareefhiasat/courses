@@ -20,8 +20,6 @@ import { useLang } from '@contexts/LangContext';
 import {
   FileCheck,
   Paperclip,
-  CircleX,
-  Heart,
   Clock,
 } from 'lucide-react';
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
@@ -34,30 +32,6 @@ import {
   getAttendanceColor,
   getLocalizedAttendanceLabel,
 } from '@constants/attendanceTypes.js';
-
-const BREAKDOWN_CONFIG = [
-  {
-    key: 'unexcused',
-    studentKey: 'unexcusedAbsences',
-    statusCode: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
-    labelKey: 'violations.unexcused',
-    Icon: CircleX,
-  },
-  {
-    key: 'excused',
-    studentKey: 'excusedAbsences',
-    statusCode: ATTENDANCE_STATUS.EXCUSED_LEAVE,
-    labelKey: 'violations.excused',
-    Icon: FileCheck,
-  },
-  {
-    key: 'human',
-    studentKey: 'humanCaseCount',
-    statusCode: ATTENDANCE_STATUS.HUMAN_CASE,
-    labelKey: 'violations.human',
-    Icon: Heart,
-  },
-];
 
 function getStudentDisplayName(student, isAr) {
   if (!student) return '';
@@ -104,7 +78,7 @@ function TooltipContent({ event }) {
     stateColor = color;
   } else {
     stateText = t('violations.pending_review');
-    stateColor = color;
+    stateColor = '#3b82f6';
   }
 
   return (
@@ -339,43 +313,6 @@ function CalendarToolbar({ label, view, date }) {
   );
 }
 
-function AttendanceLegend({ items, isAr }) {
-  if (!items.length) return null;
-  return (
-    <Card className="py-2 px-3 border-0 shadow-sm">
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          flexWrap: 'wrap',
-        }}
-      >
-        {items.map((item) => {
-          const Icon = item.Icon;
-          const color = item.color;
-          return (
-            <Box
-              key={item.key}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 0.5,
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                color,
-              }}
-            >
-              <Icon size={12} style={{ color }} />
-              <span>{item.label} {item.count > 0 ? `(${item.count})` : ''}</span>
-            </Box>
-          );
-        })}
-      </Box>
-    </Card>
-  );
-}
-
 export default function ViolationStudentCalendar({
   student,
   students,
@@ -497,16 +434,6 @@ export default function ViolationStudentCalendar({
     const totalDeduction = events.reduce((sum, e) => sum + Number(e.deduction || 0), 0).toFixed(2);
     return { approvedCount, pendingCount, totalDeduction };
   }, [events, selectedStudent]);
-
-  const breakdownItems = useMemo(() => {
-    if (!selectedStudent) return [];
-    return BREAKDOWN_CONFIG.map((item) => ({
-      ...item,
-      label: t(item.labelKey),
-      count: selectedStudent[item.studentKey] || 0,
-      color: getAttendanceColor(item.statusCode),
-    }));
-  }, [selectedStudent, t]);
 
   const attendanceBarStatus = useMemo(() => {
     if (!selectedStudent) return null;
@@ -661,7 +588,6 @@ export default function ViolationStudentCalendar({
         </Box>
       )}
 
-      {selectedStudent && !loading && <AttendanceLegend items={breakdownItems} isAr={isAr} />}
     </Box>
   );
 }

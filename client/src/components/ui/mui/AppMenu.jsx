@@ -111,6 +111,11 @@ function AppMenuItem({
             ))}
           </Box>
         )}
+        {action.trailing && (
+          <Box onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} sx={{ display: 'flex', alignItems: 'center', ml: 0.5 }}>
+            {action.trailing}
+          </Box>
+        )}
         {hasChildren && (
           cascade
             ? (isRTL ? <ChevronLeft size={14} style={{ opacity: 0.6 }} /> : <ChevronRight size={14} style={{ opacity: 0.6 }} />)
@@ -199,6 +204,11 @@ function AppMenuItem({
                       {child.trailingActions.map((ta, taIdx) => (
                         <TrailingActionButton key={taIdx} action={ta} onClose={closeAll ?? onClose} />
                       ))}
+                    </Box>
+                  )}
+                  {child.trailing && (
+                    <Box onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} sx={{ display: 'flex', alignItems: 'center', ml: 0.5 }}>
+                      {child.trailing}
                     </Box>
                   )}
                 </MenuItem>

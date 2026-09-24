@@ -11,7 +11,7 @@ import {
   KanbanCards,
   KanbanCard,
 } from '@/components/kibo-ui/kanban';
-import { Star, ChevronRight, ChevronLeft, Circle, NotebookPen, Award, Loader2, Lock, GitBranch, FilePenLine } from 'lucide-react';
+import { Star, ChevronRight, ChevronLeft, Circle, NotebookPen, Award, Loader2, Lock, GitBranch, FilePenLine, FileBarChart, FileText, FileSpreadsheet, Layers } from 'lucide-react';
 import BoardStudentAvatar from './BoardStudentAvatar.jsx';
 import BoardLaneHeader from './BoardLaneHeader.jsx';
 import {
@@ -30,12 +30,46 @@ import { getParticipationsByClassAndDate, createParticipation } from '@services/
 import { formatDateShort } from '@utils/date-formatter.js';
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
+import { useAuth } from '@contexts/AuthContext';
+import { exportStudentSummaryReport } from '@services/business/studentSummaryReportService.js';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField } from '@mui/material';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
 import AttendanceStatusDots from './AttendanceStatusDots.jsx';
-import { ATTENDANCE_BOARD_COLORS, BOARD_PARTICIPATION_COLOR } from '@constants/workspaceStatusColors';
+import { ATTENDANCE_BOARD_COLORS, BOARD_PARTICIPATION_COLOR, WORKFLOW_STATUS_COLORS } from '@constants/workspaceStatusColors';
 
 const CARD_ORDER_KEY = 'operations_board_card_order';
+
+// Daily workflow statuses shown in the lock tooltip, in pipeline order.
+const LOCK_STATUS_ROWS = [
+  { key: 'DRAFT', labelKey: 'workflow.inbox.statusDraft', fallback: 'Draft' },
+  { key: 'SUBMITTED', labelKey: 'workflow.inbox.statusSubmitted', fallback: 'Confirmed' },
+  { key: 'UNDER_ADMIN_REVIEW', labelKey: 'workflow.inbox.statusUnderAdminReview', fallback: 'Admin Review' },
+  { key: 'UNDER_HR_REVIEW', labelKey: 'workflow.inbox.statusUnderHrReview', fallback: 'HR Review' },
+  { key: 'REJECTED', labelKey: 'workflow.inbox.statusRejected', fallback: 'Rejected' },
+  { key: 'APPROVED', labelKey: 'workflow.inbox.approved', fallback: 'Approved' },
+];
+
+function LockReasonContent({ lockReason, lockReasonType, lockStatusCounts, t }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, minWidth: 160 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+        <Lock size={12} color="#dc2626" />
+        {lockReasonType === 'weekly' && <GitBranch size={12} color="#dc2626" />}
+        {lockReasonType === 'daily' && <FilePenLine size={12} color="#dc2626" />}
+        <span>{lockReason}</span>
+      </div>
+      {lockStatusCounts && LOCK_STATUS_ROWS.map((row) => (
+        <div key={row.key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <GitBranch size={12} color={WORKFLOW_STATUS_COLORS[row.key]} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+          <span style={{ color: WORKFLOW_STATUS_COLORS[row.key], fontWeight: 600, minWidth: 14, textAlign: 'end' }}>
+            {lockStatusCounts[row.key] || 0}
+          </span>
+          <span style={{ color: WORKFLOW_STATUS_COLORS[row.key] }}>{t(row.labelKey) || row.fallback}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function scalePx(base, fontScale = 100) {
   return Math.max(6, Math.round(base * (fontScale / 100)));
@@ -129,8 +163,33 @@ function resolveDropColumn(over, columns, data) {
   return columns.find((col) => col.id === over.id)?.id || null;
 }
 
-function AttendanceCardHoverTooltip({ item, stats, participationCount, participationItems = [], t, lang, roleContext = {}, columns = [], onMoveLeft, onMoveRight, onQuickAction, readOnly = false, lockReason = '', lockReasonType = '' }) {
+function AttendanceCardHoverTooltip({ item, stats, participationCount, participationItems = [], t, lang, roleContext = {}, columns = [], onMoveLeft, onMoveRight, onQuickAction, readOnly = false, lockReason = '', lockReasonType = '', lockStatusCounts = null }) {
+  const { user } = useAuth();
   const studentName = resolveBoardStudentName(item, lang);
+  const runReport = (scope, format) => (e) => {
+    e.stopPropagation();
+    exportStudentSummaryReport({
+      student: {
+        studentId: item.userId,
+        studentNumber: item.studentNumber,
+        studentName: item.nameEn || item.name,
+        studentNameAr: item.nameAr,
+        rankEn: item.rankEn,
+        rankAr: item.rankAr,
+      },
+      classId: item.classId,
+      scope,
+      format,
+      lang,
+      user,
+      metadata: {
+        className: item.classNameEn || item.className,
+        classNameAr: item.classNameAr,
+        subjectName: item.subjectName,
+        programName: item.programName,
+      },
+    }).catch((err) => console.error('[Board] student summary export failed:', err));
+  };
   const displayColumn = maskAttendanceColumnForHR(item.column, roleContext);
   const statusCol = ATTENDANCE_COLUMNS.find((c) => c.id === displayColumn);
   const statusLabel = statusCol ? (t(statusCol.i18nKey) || statusCol.name) : displayColumn;
@@ -149,7 +208,7 @@ function AttendanceCardHoverTooltip({ item, stats, participationCount, participa
   const canAdvance = currentIdx >= 0 && currentIdx < colIds.length - 1 && canMoveAttendanceToColumn(colIds[currentIdx + 1], roleContext);
 
   return (
-    <div dir={isRTL ? 'rtl' : 'ltr'} style={{ maxWidth: 320, minWidth: 240, fontSize: '0.75rem', lineHeight: 1.45, color: labelColor }}>
+    <div dir={isRTL ? 'rtl' : 'ltr'} style={{ maxWidth: 384, minWidth: 240, fontSize: '0.75rem', lineHeight: 1.45, color: labelColor }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <BoardStudentAvatar
           name={studentName}
@@ -178,11 +237,8 @@ function AttendanceCardHoverTooltip({ item, stats, participationCount, participa
         <span style={{ color: statusColor, fontWeight: 600 }}>{statusLabel}</span>
       </div>
       {readOnly && lockReason && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, padding: 8, borderRadius: 6, backgroundColor: '#fef2f2', color: '#dc2626', fontWeight: 500 }}>
-          <Lock size={14} />
-          {lockReasonType === 'weekly' && <GitBranch size={14} />}
-          {lockReasonType === 'daily' && <FilePenLine size={14} />}
-          <span>{lockReason}</span>
+        <div style={{ marginBottom: 8, padding: 8, borderRadius: 6, backgroundColor: '#fef2f2', color: '#dc2626', fontWeight: 500 }}>
+          <LockReasonContent lockReason={lockReason} lockReasonType={lockReasonType} lockStatusCounts={lockStatusCounts} t={t} />
         </div>
       )}
       {!readOnly && (canRevert || canAdvance) && (
@@ -299,7 +355,7 @@ function AttendanceCardHoverTooltip({ item, stats, participationCount, participa
                       <th style={{ ...cellStyle, fontWeight: 600, width: '36%' }}>{t('student') || 'Student'}</th>
                       <th style={{ ...cellStyle, fontWeight: 600, width: '16%', textAlign: 'center' }}>{t('mark') || 'Mark'}</th>
                       <th style={{ ...cellStyle, fontWeight: 600, width: '32%' }}>{t('note') || 'Note'}</th>
-                      <th style={{ ...lastCellStyle, fontWeight: 600, width: '16%' }}>{t('date') || 'Date'}</th>
+                      <th style={{ ...lastCellStyle, fontWeight: 600, width: '16%', whiteSpace: 'nowrap' }}>{t('date') || 'Date'}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -314,7 +370,7 @@ function AttendanceCardHoverTooltip({ item, stats, participationCount, participa
                           <td style={cellStyle}>{getLocalizedUserName(p?.user, lang, studentName)}</td>
                           <td style={{ ...cellStyle, textAlign: 'center', fontWeight: 600 }}>{mark}</td>
                           <td style={cellStyle}>{note || '—'}</td>
-                          <td style={lastCellStyle}>{formatDayMonth(p?.createdAt)}</td>
+                          <td style={{ ...lastCellStyle, whiteSpace: 'nowrap' }}>{formatDayMonth(p?.createdAt)}</td>
                         </tr>
                       );
                     })}
@@ -325,8 +381,9 @@ function AttendanceCardHoverTooltip({ item, stats, participationCount, participa
           })()}
         </div>
       )}
-      {!readOnly && !hidePrivacy && onQuickAction && (
+      {((!readOnly && !hidePrivacy && onQuickAction) || item.userId) && (
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(148,163,184,0.35)' }}>
+          {!readOnly && !hidePrivacy && onQuickAction && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
             <button
               type="button"
@@ -359,6 +416,40 @@ function AttendanceCardHoverTooltip({ item, stats, participationCount, participa
             </button>
             )}
           </div>
+          )}
+          {item.userId && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: (!readOnly && !hidePrivacy && onQuickAction) ? 6 : 0 }}>
+            {[
+              { scope: 'class', label: t('report_student_summary_class') || 'Student Summary — This class', Icon: FileBarChart, color: '#0ea5e9' },
+              { scope: 'all', label: t('report_student_summary_all') || 'Student Summary — All classes', Icon: Layers, color: '#8b5cf6' },
+            ].map(({ scope, label, Icon, color }) => (
+              <div key={scope} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon size={14} color={color} style={{ flexShrink: 0 }} />
+                <span style={{ flex: 1, fontSize: '0.7rem', fontWeight: 600, color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{label}</span>
+                <ColoredTooltip title={t('export_pdf') || 'PDF'} color="#e53935" placement="top">
+                  <button
+                    type="button"
+                    onClick={runReport(scope, 'pdf')}
+                    aria-label={`${label} — PDF`}
+                    style={{ display: 'inline-flex', alignItems: 'center', border: 'none', background: 'none', padding: 2, cursor: 'pointer' }}
+                  >
+                    <FileText size={14} color="#e53935" />
+                  </button>
+                </ColoredTooltip>
+                <ColoredTooltip title={t('export_excel') || 'Excel'} color="#43a047" placement="top">
+                  <button
+                    type="button"
+                    onClick={runReport(scope, 'excel')}
+                    aria-label={`${label} — Excel`}
+                    style={{ display: 'inline-flex', alignItems: 'center', border: 'none', background: 'none', padding: 2, cursor: 'pointer' }}
+                  >
+                    <FileSpreadsheet size={14} color="#43a047" />
+                  </button>
+                </ColoredTooltip>
+              </div>
+            ))}
+          </div>
+          )}
         </div>
       )}
     </div>
@@ -390,6 +481,7 @@ export default function AttendanceBoard({
   readOnly = false,
   lockReason = '',
   lockReasonType = '',
+  lockStatusCounts = null,
 }) {
   const isRTL = lang === 'ar';
   const hrViewer = isHROnlyViewer(roleContext);
@@ -511,13 +603,27 @@ export default function AttendanceBoard({
       return;
     }
 
+    // Multi-select drag: if the dragged card is selected, move all selected
+    // cards in the same lane together. Note: dragOver already moved the
+    // dragged card out of fromColumn in boardData, so include it explicitly.
+    const moveIds = selectedIds.has(active.id)
+      ? [...new Set([active.id, ...boardData.filter((d) => d.column === fromColumn && selectedIds.has(d.id)).map((d) => d.id)])]
+      : [active.id];
+
     setBoardData((prev) => {
-      const next = prev.map((item) => (item.id === active.id ? { ...item, column: toColumn } : item));
+      const next = prev.map((item) => (moveIds.includes(item.id) ? { ...item, column: toColumn } : item));
       if (sortBy === 'system') persistCardOrder(next);
       return sortDataForBoard(next, sortBy, classId, date, lang);
     });
-    onDragEnd?.(active.id, fromColumn, toColumn);
-  }, [boardData, columns, data, classId, date, lang, sortBy, onDragEnd, onDragRejected, roleContext, persistCardOrder, readOnly, lockReason]);
+
+    if (moveIds.length > 1 && onBulkMove) {
+      setSelectedIds(new Set());
+      lastSelectedRef.current = null;
+      onBulkMove(fromColumn, toColumn, moveIds);
+    } else {
+      onDragEnd?.(active.id, fromColumn, toColumn);
+    }
+  }, [boardData, columns, data, classId, date, lang, sortBy, onDragEnd, onDragRejected, roleContext, persistCardOrder, readOnly, lockReason, selectedIds, onBulkMove]);
 
   const handleDragCancel = useCallback(() => {
     draggingRef.current = false;
@@ -560,14 +666,7 @@ export default function AttendanceBoard({
   }, [columns, roleContext, sortBy, persistCardOrder, onDragEnd, classId, date, lang, readOnly]);
 
   const handleCardSelect = useCallback((item, e) => {
-    if (readOnly) return;
-    const isToggle = e.ctrlKey || e.metaKey;
     const isRange = e.shiftKey;
-    if (!isToggle && !isRange) {
-      if (selectedIds.size > 0) setSelectedIds(new Set());
-      lastSelectedRef.current = item.id;
-      return;
-    }
     e.stopPropagation();
     e.preventDefault();
     if (isRange && lastSelectedRef.current && lastSelectedRef.current !== item.id) {
@@ -591,7 +690,7 @@ export default function AttendanceBoard({
       return next;
     });
     lastSelectedRef.current = item.id;
-  }, [readOnly, selectedIds.size, boardData]);
+  }, [selectedIds.size, boardData]);
 
   const handleLaneBulkMove = useCallback((fromColumn, toColumn) => {
     const laneSelected = boardData.filter((d) => d.column === fromColumn && selectedIds.has(d.id)).map((d) => d.id);
@@ -739,6 +838,7 @@ export default function AttendanceBoard({
             t={t}
             pulse
             onBulkMove={onBulkMove ? handleLaneBulkMove : undefined}
+            locked={readOnly}
             selectedCount={laneSelectedCount}
             columns={columns}
             canMoveTo={(from, to) => canMoveAttendanceToColumn(to, roleContext)}
@@ -873,24 +973,52 @@ export default function AttendanceBoard({
                   key={item.id}
                   name={studentName}
                   className="operations-attendance-card cursor-default py-3 px-2 my-1.5"
-                  style={{ '--card-status-color': statusColor, direction: isRTL ? 'rtl' : 'ltr', position: 'relative', padding: '12px 14px' }}
+                  overlayStack={selectedIds.has(item.id) && selectedIds.size > 1}
+                  overlayBadge={selectedIds.has(item.id) && selectedIds.size > 1 ? selectedIds.size : null}
+                  style={{
+                    '--card-status-color': statusColor,
+                    direction: isRTL ? 'rtl' : 'ltr',
+                    position: 'relative',
+                    padding: '12px 14px',
+                    ...(selectedIds.has(item.id) ? {
+                      outline: `2px solid ${statusColor}`,
+                      outlineOffset: 2,
+                      backgroundColor: `${statusColor}14`,
+                    } : {}),
+                  }}
                 >
                   {readOnly && lockReason && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: 4,
-                        right: 4,
-                        zIndex: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                    <ColoredTooltip
+                      title={(
+                        <LockReasonContent
+                          lockReason={lockReason}
+                          lockReasonType={lockReasonType}
+                          lockStatusCounts={lockStatusCounts}
+                          t={t}
+                        />
+                      )}
+                      color="#dc2626"
+                      placement="bottom"
+                      slotProps={{
+                        tooltip: { sx: { bgcolor: '#fef2f2', border: '1px solid #fecaca' } },
+                        arrow: { sx: { color: '#fef2f2', '&::before': { border: '1px solid #fecaca' } } },
                       }}
-                      title={lockReason}
-                      data-testid={`card-lock-${item.id}`}
                     >
-                      <Lock size={scalePx(12, fontScale)} color="#dc2626" />
-                    </div>
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 4,
+                          insetInlineStart: 4,
+                          zIndex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                        data-testid={`card-lock-${item.id}`}
+                      >
+                        <Lock size={scalePx(12, fontScale)} color="#dc2626" />
+                      </div>
+                    </ColoredTooltip>
                   )}
                   <ColoredTooltip
                     title={(
@@ -909,11 +1037,15 @@ export default function AttendanceBoard({
                         readOnly={readOnly}
                         lockReason={lockReason}
                         lockReasonType={lockReasonType}
+                        lockStatusCounts={lockStatusCounts}
                       />
                     )}
                     color={statusColor}
                     placement="top"
+                    enterDelay={500}
+                    enterNextDelay={300}
                     leaveDelay={300}
+                    slotProps={{ tooltip: { sx: { maxWidth: 400 } } }}
                   >
                     <div
                       className="relative flex items-center gap-2.5 select-none py-1 my-2"
@@ -923,12 +1055,6 @@ export default function AttendanceBoard({
                         e.stopPropagation();
                         onCardClick(item);
                       }}
-                      style={selectedIds.has(item.id) ? {
-                        outline: `2px solid ${statusColor}`,
-                        outlineOffset: 2,
-                        borderRadius: 6,
-                        backgroundColor: `${statusColor}14`,
-                      } : undefined}
                       data-selected={selectedIds.has(item.id) || undefined}
                     >
                       {canRevert && (
@@ -1062,6 +1188,7 @@ export default function AttendanceBoard({
         </Button>
       </DialogActions>
     </Dialog>
+
     </>
   );
 }

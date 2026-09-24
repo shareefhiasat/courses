@@ -70,6 +70,8 @@ export const KanbanCard = (
     dragColor,
     style: cardStyle,
     disabled = false,
+    overlayStack = false,
+    overlayBadge = null,
     ...cardProps
   }
 ) => {
@@ -129,15 +131,60 @@ export const KanbanCard = (
       </div>
       {activeCardId === id && (
         <t.In>
-          <Card
-            className={cn(
-              "cursor-grab gap-4 rounded-md p-1 shadow-sm animate-pulse ring-2",
-              isDragging && "cursor-grabbing",
-              className
-            )}
-            style={overlayStyle}>
-            {children ?? <p className="m-0 font-medium text-sm">{name}</p>}
-          </Card>
+          <div style={{ position: 'relative' }}>
+            {overlayStack && [22, 11].map((offset) => (
+              <Card
+                key={offset}
+                aria-hidden
+                className={cn("gap-4 rounded-md p-1 shadow-sm ring-2", className)}
+                style={{
+                  ...overlayStyle,
+                  position: 'absolute',
+                  inset: 0,
+                  transform: `translateY(${-offset}px)`,
+                  opacity: offset === 22 ? 0.55 : 0.8,
+                  boxShadow: 'none',
+                  overflow: 'hidden',
+                  pointerEvents: 'none',
+                }}
+              >
+                {children ?? <p className="m-0 font-medium text-sm">{name}</p>}
+              </Card>
+            ))}
+            <Card
+              className={cn(
+                "cursor-grab gap-4 rounded-md p-1 shadow-sm animate-pulse ring-2",
+                isDragging && "cursor-grabbing",
+                className
+              )}
+              style={{ ...overlayStyle, position: 'relative' }}>
+              {overlayBadge && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: -10,
+                    insetInlineEnd: -10,
+                    minWidth: 22,
+                    height: 22,
+                    borderRadius: 11,
+                    padding: '0 6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: ringColor,
+                    color: '#fff',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                    zIndex: 1,
+                  }}
+                >
+                  {overlayBadge}
+                </span>
+              )}
+              {children ?? <p className="m-0 font-medium text-sm">{name}</p>}
+            </Card>
+          </div>
         </t.In>
       )}
     </>

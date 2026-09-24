@@ -5,6 +5,7 @@ import {
 } from '@services/export/official-reports/index.jsx';
 import { persistAndLogExport, mimeTypeForFormat } from '@services/business/exportDriveService.js';
 import { extractExportFileId, extractExportFolderId } from '@utils/exportSuccessUrls';
+import { buildReportFilename } from '@services/export/official-reports/engine/reportFilename.js';
 import { loadWeeklyScheduleSources } from '@services/business/weeklyScheduleExportService.js';
 import { useAuth } from '@contexts/AuthContext';
 import OfficialReportsExportDialog from '@components/export/OfficialReportsExportDialog.jsx';
@@ -28,8 +29,6 @@ const SchedulingExportDialog = ({
   const [exporting, setExporting] = useState(false);
   const [exportingMode, setExportingMode] = useState(null);
   const [successResult, setSuccessResult] = useState(null);
-
-  const sanitize = (str) => (str ? String(str).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '');
 
   const isButtonDisabled = () => false;
 
@@ -55,7 +54,15 @@ const SchedulingExportDialog = ({
           instructorAvailability: sources.instructorAvailability,
           timeSlots: sources.timeSlots,
         });
-        const filename = `${reportData.serial}_weekly_schedule_${sanitize(metadata.programName || metadata.className || 'schedule')}`;
+        const filename = buildReportFilename({
+          type: 'weekly-schedule',
+          programName: metadata.programName,
+          className: metadata.className,
+          subjectName: metadata.subjectName,
+          serial: reportData.serial,
+          ext: exportFormat === 'excel' ? 'xlsx' : 'pdf',
+          lang,
+        }).replace(/\.(pdf|xlsx)$/i, '');
         const blob = await exportWeeklyScheduleReport(reportData, { format: exportFormat, filename });
         const blobUrl = URL.createObjectURL(blob);
         const persisted = await persistAndLogExport({

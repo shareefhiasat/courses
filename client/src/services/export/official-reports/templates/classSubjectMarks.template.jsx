@@ -64,7 +64,7 @@ export function ClassSubjectMarksTemplate({ data, showWatermark = true }) {
           )}
           <div className={styles.officialContent}>
             <div className={styles.serialLine}>
-              {isAr ? 'الرقم التسلسلي' : 'Serial'}: {serial}
+              {isAr ? 'الرقم التسلسلي' : 'Serial'}: <bdi>{serial}</bdi>
               {' · '}
               {isAr ? 'صفحة' : 'Page'} {pageIndex + 1} / {totalPages}
             </div>

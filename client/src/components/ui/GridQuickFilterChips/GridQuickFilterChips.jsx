@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import styles from './GridQuickFilterChips.module.css';
 
 /** Shared palette for dashboard summary / quick-filter chips (light + dark). */
@@ -224,8 +225,10 @@ const GridQuickFilterChips = ({
           </>
         );
 
+        const tooltipTitle = typeof chip.tooltip === 'function' ? chip.tooltip(t) : chip.tooltip;
+
         if (!isClickable) {
-          return (
+          const chipEl = (
             <span
               key={chip.id}
               className={styles.chip}
@@ -235,9 +238,14 @@ const GridQuickFilterChips = ({
               {content}
             </span>
           );
+          return tooltipTitle ? (
+            <ColoredTooltip key={chip.id} title={tooltipTitle} color={colors.color} placement="top">
+              {chipEl}
+            </ColoredTooltip>
+          ) : chipEl;
         }
 
-        return (
+        const chipButton = (
           <button
             key={chip.id}
             type="button"
@@ -258,6 +266,12 @@ const GridQuickFilterChips = ({
             {content}
           </button>
         );
+
+        return tooltipTitle ? (
+          <ColoredTooltip key={chip.id} title={tooltipTitle} color={colors.color} placement="top">
+            {chipButton}
+          </ColoredTooltip>
+        ) : chipButton;
       })}
     </div>
   );

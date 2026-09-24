@@ -301,7 +301,7 @@ router.get('/report', ops.view, getAllStudentMarksReport);
  */
 router.get('/history/:userId/:subjectId/:classId', ops.view, getStudentMarksHistory);
 
-router.get('/attendance-deduction', ops.view, getAttendanceDeductionSuggestion);
+router.get('/attendance-deduction', requireAnyPermission('marks-entry.canView', 'qr-scanner.canMarkAttendance', 'qr-scanner.canManualInput', 'qr-scanner.canUseQRScanner', 'attendance.canView', 'operations.canView'), getAttendanceDeductionSuggestion);
 router.get('/absence-deduction-rules', requireAnyPermission('marks-entry.canView', 'qr-scanner.canMarkAttendance', 'qr-scanner.canManualInput', 'qr-scanner.canUseQRScanner', 'attendance.canView', 'operations.canView'), getAbsenceDeductionRules);
 router.get('/deduction-history', ops.view, getStudentDeductionHistory);
 router.get('/absence-warning-counts', requireAnyPermission('marks-entry.canView', 'qr-scanner.canMarkAttendance', 'qr-scanner.canManualInput', 'qr-scanner.canUseQRScanner', 'attendance.canView', 'operations.canView'), getAbsenceWarningCounts);

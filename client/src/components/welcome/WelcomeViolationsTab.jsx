@@ -25,6 +25,7 @@ import {
   Clock,
   FileX2,
   FileText,
+  FileSpreadsheet,
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
@@ -34,6 +35,9 @@ import {
   CircleX,
   Bell,
   CalendarDays,
+  CalendarRange,
+  Calendar,
+  Users,
   Maximize2,
   Minimize2,
 } from 'lucide-react';
@@ -65,6 +69,7 @@ import { getWarningWorkflowHistory } from '@services/business/workflowSnapshotSe
 import { format, parseISO } from 'date-fns';
 import { formatForDateInput } from '@utils/date-formatter.js';
 import { getWeekRange } from '@services/business/workflowSnapshotService.js';
+import { exportClassSummaryReport, exportProgramSummaryReport } from '@services/business/studentSummaryReportService.js';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
@@ -251,7 +256,7 @@ function getBreakdownTooltipTitle(item, isDark) {
       <div style={{ color: textColor }}>
         <strong style={{ color: item.color }}>{item.count}</strong>
         {' '}
-        <span style={{ color: item.count > 0 ? item.color : noteColor }}>{item.label}</span>
+        <span style={{ color: item.color }}>{item.label}</span>
       </div>
     );
   }
@@ -260,7 +265,7 @@ function getBreakdownTooltipTitle(item, isDark) {
       <span>
         <strong style={{ color: item.color }}>{item.count}</strong>
         {' '}
-        <span style={{ color: item.count > 0 ? item.color : noteColor }}>{item.label}</span>
+        <span style={{ color: item.color }}>{item.label}</span>
       </span>
       <span style={{ opacity: 0.85, fontSize: '0.95em', whiteSpace: 'pre-line', color: noteColor }}>
         {item.note}
@@ -286,11 +291,11 @@ function BreakdownBar({ items, isDark, isAr, title, showTotal = true }) {
         const value = item.value ?? item.count;
         const display = item.display ?? item.count;
         const isActive = value > 0;
-        const lineColor = isActive ? item.color : zeroColor.text;
+        const lineColor = item.color;
         return (
           <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
             <Icon size={13} style={{ color: item.color }} />
-            <span style={{ fontWeight: 600, minWidth: 16, color: lineColor }}>{display}</span>
+            <span style={{ fontWeight: 600, minWidth: 16, color: item.color }}>{display}</span>
             <span style={{ opacity: isActive ? 1 : 0.75, color: lineColor }}>{item.label}</span>
           </div>
         );
@@ -370,6 +375,32 @@ function BreakdownBar({ items, isDark, isAr, title, showTotal = true }) {
           />
         ))}
       </div>
+    </ColoredTooltip>
+  );
+}
+
+/**
+ * Header tooltip that explains the stacked period/class-total rows in a column.
+ * `lines` = [{ icon: ReactNode, text: string }]
+ */
+function HeaderScopeTooltip({ lines, children }) {
+  return (
+    <ColoredTooltip
+      title={(
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, padding: '2px 0', minWidth: 200 }}>
+          {lines.map((line, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, lineHeight: 1.4 }}>
+              <span style={{ display: 'inline-flex', flexShrink: 0 }}>{line.icon}</span>
+              <span>{line.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      color="#334155"
+      placement="bottom"
+      arrow
+    >
+      {children}
     </ColoredTooltip>
   );
 }
@@ -723,6 +754,7 @@ export default function WelcomeViolationsTab({
       label: t('violations.all'),
       count: filterCounts.total,
       variant: 'slate',
+      tooltip: t('violations.filter_all_tooltip') || 'All students in the class — shows everyone.',
     },
     {
       id: 'dismissed',
@@ -730,6 +762,7 @@ export default function WelcomeViolationsTab({
       count: filterCounts.dismissed,
       variant: 'red',
       icon: <UserX size={13} />,
+      tooltip: t('violations.filter_disconnected_tooltip') || 'Students whose violation case was dismissed or disconnected.',
     },
     {
       id: 'final',
@@ -737,6 +770,7 @@ export default function WelcomeViolationsTab({
       count: filterCounts.final,
       variant: 'red',
       icon: <AlertCircle size={13} />,
+      tooltip: t('violations.filter_final_tooltip') || 'Students who received a final warning — the second-level warning after a first warning.',
     },
     {
       id: 'first',
@@ -744,6 +778,7 @@ export default function WelcomeViolationsTab({
       count: filterCounts.first,
       variant: 'amber',
       icon: <AlertTriangle size={13} />,
+      tooltip: t('violations.filter_first_tooltip') || 'Students who received a first warning for absences or violations.',
     },
     {
       id: 'has_workflow',
@@ -751,6 +786,7 @@ export default function WelcomeViolationsTab({
       count: filterCounts.hasWorkflow,
       variant: 'purple',
       icon: <FileCheck size={13} />,
+      tooltip: t('violations.filter_in_review_tooltip') || 'Students with a pending workflow document, e.g. a warning letter awaiting admin or HR review.',
     },
     {
       id: 'compliant',
@@ -758,6 +794,7 @@ export default function WelcomeViolationsTab({
       count: filterCounts.compliant,
       variant: 'green',
       icon: <CheckCircle2 size={13} />,
+      tooltip: t('violations.filter_compliant_tooltip') || 'Students with no warning at all — clean record.',
     },
   ], [t, filterCounts]);
 
@@ -907,8 +944,18 @@ export default function WelcomeViolationsTab({
   }, [sortedStudents, selectedClassId]);
 
   const isWeekMode = violationsViewMode === 'week';
+  // Two-line tooltip for class-total values: label on top, scope note below
+  const classTotalTip = (label) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, lineHeight: 1.4, textAlign: 'center' }}>
+      <span>{label}</span>
+      <span style={{ opacity: 0.75, fontWeight: 400 }}>{t('violations.tip_class_scope_days')}</span>
+    </div>
+  );
+
+  const headerPeriodLabel = isWeekMode ? t('this_week') : t('violations.today');
+  const HeaderPeriodIcon = isWeekMode ? CalendarRange : Calendar;
   const visibleColumnCount =
-    (showAvatars ? 1 : 0) + 1 + 1 + 1 + (canViewDeduction ? 2 : 0) + (isWeekMode ? 0 : 1) + 1 + 1;
+    (showAvatars ? 1 : 0) + 1 + 1 + 1 + (canViewDeduction ? 2 : 0) + 1 + 1 + 1;
 
   // Compact legend chips reused at top and bottom of the violations panel
   const legendChips = (
@@ -916,11 +963,12 @@ export default function WelcomeViolationsTab({
       {/* Breakdown types */}
       {BREAKDOWN_ITEMS.map((item) => {
         const Icon = item.icon;
+        const count = calendarStudent?.[item.studentKey] || 0;
         return (
           <div key={item.key} className={gridStyles.legendItem}>
             <Icon size={12} style={{ color: item.color }} />
             <span style={{ color: item.color }}>
-              {t(item.labelKey)}
+              {t(item.labelKey)}{count > 0 ? ` (${count})` : ''}
             </span>
           </div>
         );
@@ -931,11 +979,12 @@ export default function WelcomeViolationsTab({
           {/* Deduction rates */}
           <ColoredTooltip
             title={t('violations.pending_review_0_50_approved_0_25')}
-            color={getColor('muted', isDark).text}
+            color={getColor('blue', isDark).dot}
             placement="top"
           >
             <div className={gridStyles.legendItem} style={{ cursor: 'help' }}>
-              <span style={{ color: getColor('muted', isDark).text }}>
+              <Clock size={12} style={{ color: getColor('blue', isDark).dot }} />
+              <span style={{ color: getColor('blue', isDark).dot }}>
                 {t('violations.pending')}
               </span>
             </div>
@@ -1067,6 +1116,53 @@ export default function WelcomeViolationsTab({
                 style={{ width: '100%', '--border': isDark ? '#4b5563' : '#9ca3af' }}
               />
             </div>
+            {/* Class / program attendance summary exports */}
+            {[
+              { format: 'excel', Icon: FileSpreadsheet, color: '#43a047', label: t('export_excel') || 'Excel' },
+            ].map(({ format, Icon, color, label }) => (
+              <ColoredTooltip
+                key={format}
+                title={`${selectedClassId ? (t('report_class_summary') || 'Class Summary') : (t('report_program_summary') || 'Program Summary')} — ${label}`}
+                color={color}
+                placement="bottom"
+              >
+                <IconButton
+                  size="small"
+                  sx={{ width: 28, height: 28, flexShrink: 0, color }}
+                  onClick={() => {
+                    if (selectedClassId && selectedClass) {
+                      exportClassSummaryReport({
+                        classId: selectedClass.id,
+                        classInfo: {
+                          className: selectedClass.nameEn || selectedClass.name || '',
+                          classNameAr: selectedClass.nameAr || '',
+                          subjectName: selectedClass.subject?.nameEn || '',
+                          subjectNameAr: selectedClass.subject?.nameAr || '',
+                          programName: welcomeContext?.program?.nameEn || selectedClass.program?.nameEn || '',
+                          programNameAr: welcomeContext?.program?.nameAr || selectedClass.program?.nameAr || '',
+                          term: welcomeContext?.academicTerm || welcomeContext?.term || '',
+                        },
+                        format,
+                        lang,
+                        user,
+                      }).catch((err) => console.error('[Violations] class summary export failed:', err));
+                    } else {
+                      exportProgramSummaryReport({
+                        programId: welcomeContext?.programId,
+                        programName: welcomeContext?.program?.nameEn || '',
+                        academicTerm: welcomeContext?.academicTerm,
+                        classes,
+                        format,
+                        lang,
+                        user,
+                      }).catch((err) => console.error('[Violations] program summary export failed:', err));
+                    }
+                  }}
+                >
+                  <Icon size={16} />
+                </IconButton>
+              </ColoredTooltip>
+            ))}
             <Box
               sx={{
                 flex: 1,
@@ -1193,26 +1289,54 @@ export default function WelcomeViolationsTab({
                   <span className="inline-flex items-center gap-1">{t('violations.student')}<SortIcon columnKey={SORT_KEYS.NAME} /></span>
                 </TableHead>
                 <TableHead className="w-28 text-center py-2 px-2 cursor-pointer select-none" onClick={() => handleSort(SORT_KEYS.ABSENCES)} data-tour="violations-col-total-absences">
-                  <span className="inline-flex items-center gap-1">{t('violations.absences')}<SortIcon columnKey={SORT_KEYS.ABSENCES} /></span>
+                  <HeaderScopeTooltip
+                    lines={[
+                      { icon: <HeaderPeriodIcon size={12} />, text: t('violations.hdr_top_period', { label: t('violations.absences'), period: headerPeriodLabel }) },
+                      { icon: <Users size={12} />, text: t('violations.hdr_bottom_class', { label: t('violations.absences') }) },
+                    ]}
+                  >
+                    <span className="inline-flex items-center gap-1">{t('violations.absences')}<SortIcon columnKey={SORT_KEYS.ABSENCES} /></span>
+                  </HeaderScopeTooltip>
                 </TableHead>
                 <TableHead className="w-32 text-center py-2 px-2" data-tour="violations-col-breakdown">
-                  {t('violations.breakdown')}
+                  <HeaderScopeTooltip
+                    lines={[
+                      { icon: <CircleX size={12} />, text: t('violations.hdr_breakdown_icons', { period: headerPeriodLabel }) },
+                      { icon: <HeaderPeriodIcon size={12} />, text: t('violations.hdr_bar_period', { period: headerPeriodLabel }) },
+                      { icon: <Users size={12} />, text: t('violations.hdr_bar_class') },
+                      { icon: <FileX2 size={12} />, text: t('violations.hdr_breakdown_note') },
+                    ]}
+                  >
+                    <span className="inline-flex items-center gap-1">{t('violations.breakdown')}</span>
+                  </HeaderScopeTooltip>
                 </TableHead>
                 {canViewDeduction && (
                   <>
                     <TableHead className="w-24 text-center py-2 px-1 cursor-pointer select-none" onClick={() => handleSort(SORT_KEYS.DEDUCTION_APPROVED)} data-tour="violations-col-deduction-approved">
-                      <span className="inline-flex items-center gap-1">{t('violations.deduction_approved')}<SortIcon columnKey={SORT_KEYS.DEDUCTION_APPROVED} /></span>
+                      <HeaderScopeTooltip
+                        lines={[
+                          { icon: <HeaderPeriodIcon size={12} />, text: t('violations.hdr_top_period', { label: t('violations.deduction_approved'), period: headerPeriodLabel }) },
+                          { icon: <Users size={12} />, text: t('violations.hdr_bottom_class', { label: t('violations.deduction_approved') }) },
+                        ]}
+                      >
+                        <span className="inline-flex items-center gap-1">{t('violations.deduction_approved')}<SortIcon columnKey={SORT_KEYS.DEDUCTION_APPROVED} /></span>
+                      </HeaderScopeTooltip>
                     </TableHead>
                     <TableHead className="w-24 text-center py-2 px-1 cursor-pointer select-none" onClick={() => handleSort(SORT_KEYS.DEDUCTION_NOT_APPROVED)} data-tour="violations-col-deduction-not-approved">
-                      <span className="inline-flex items-center gap-1">{t('violations.deduction_not_approved')}<SortIcon columnKey={SORT_KEYS.DEDUCTION_NOT_APPROVED} /></span>
+                      <HeaderScopeTooltip
+                        lines={[
+                          { icon: <HeaderPeriodIcon size={12} />, text: t('violations.hdr_top_period', { label: t('violations.deduction_not_approved'), period: headerPeriodLabel }) },
+                          { icon: <Users size={12} />, text: t('violations.hdr_bottom_class', { label: t('violations.deduction_not_approved') }) },
+                        ]}
+                      >
+                        <span className="inline-flex items-center gap-1">{t('violations.deduction_not_approved')}<SortIcon columnKey={SORT_KEYS.DEDUCTION_NOT_APPROVED} /></span>
+                      </HeaderScopeTooltip>
                     </TableHead>
                   </>
                 )}
-                {!isWeekMode && (
-                  <TableHead className="w-28 py-2 px-2 cursor-pointer select-none" align={isAr ? 'right' : 'left'} onClick={() => handleSort(SORT_KEYS.WARNING)} data-tour="violations-col-warning">
-                    <span className="inline-flex items-center gap-1">{t('violations.status')}<SortIcon columnKey={SORT_KEYS.WARNING} /></span>
-                  </TableHead>
-                )}
+                <TableHead className="w-28 py-2 px-2 cursor-pointer select-none" align={isAr ? 'right' : 'left'} onClick={() => handleSort(SORT_KEYS.WARNING)} data-tour="violations-col-warning">
+                  <span className="inline-flex items-center gap-1">{t('violations.status')}<SortIcon columnKey={SORT_KEYS.WARNING} /></span>
+                </TableHead>
                 <TableHead className="w-44 py-2 px-3" data-tour="violations-col-recorded">
                   {t('violations.warnings')}
                 </TableHead>
@@ -1255,6 +1379,8 @@ export default function WelcomeViolationsTab({
                   const breakdownItems = getBreakdownItems(s, t);
                   const classTotalBarItems = getClassTotalBarItems(s, t, classTotalColor, classApprovedColor, classNotApprovedColor, canViewDeduction);
                   const periodTotalLabel = isWeekMode ? t('violations.week_total') : t('violations.day_total');
+                  const periodScopeLabel = isWeekMode ? t('this_week') : t('violations.today');
+                  const PeriodScopeIcon = isWeekMode ? CalendarRange : Calendar;
 
                   const rowStatus = getRowStatusVariant(s, hasPendingWf);
                   const chipVariant = CHIP_VARIANTS[ROW_STATUS_VARIANTS[rowStatus]];
@@ -1333,19 +1459,21 @@ export default function WelcomeViolationsTab({
                         </div>
                       </TableCell>
 
-                      {/* Absences — two stacked values: total (dot) + unexcused (CircleX) */}
+                      {/* Absences — two stacked values: period total (calendar) + class total (users) */}
                       <TableCell className="text-center py-2 px-2">
                         <div className="inline-flex flex-col items-center gap-0.5 text-[10px] font-semibold">
-                          <ColoredTooltip title={`${periodTotalLabel} — ${t('violations.absences')}`} color={totalColor.text} borderColor={totalColor.dot} placement="top" arrow>
+                          <ColoredTooltip title={t('violations.tip_period_absences', { period: periodTotalLabel }) || `${periodTotalLabel} — ${t('violations.absences')}`} color={totalColor.text} borderColor={totalColor.dot} placement="top" arrow>
                             <span className="inline-flex items-center gap-0.5" style={{ color: totalColor.text, cursor: 'default' }}>
+                              <PeriodScopeIcon size={10} style={{ color: totalColor.dot, flexShrink: 0 }} />
                               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: totalColor.dot }} />
                               {s.totalAbsences || 0}
                             </span>
                           </ColoredTooltip>
-                          <ColoredTooltip title={t('violations.unexcused')} color={unexcusedColor.text} borderColor={unexcusedColor.dot} placement="top" arrow>
-                            <span className="inline-flex items-center gap-0.5" style={{ color: unexcusedColor.text, cursor: 'default' }}>
-                              <CircleX size={10} style={{ color: unexcusedColor.dot }} />
-                              {s.unexcusedAbsences || 0}
+                          <ColoredTooltip title={classTotalTip(t('violations.tip_class_absences') || `${t('violations.class_total')} — ${t('violations.absences')}`)} color={classTotalColor.text} borderColor={classTotalColor.dot} placement="top" arrow>
+                            <span className="inline-flex items-center gap-0.5" style={{ color: classTotalColor.text, cursor: 'default' }}>
+                              <Users size={10} style={{ color: classTotalColor.dot, flexShrink: 0 }} />
+                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: classTotalColor.dot }} />
+                              {s.classTotalAbsences || 0}
                             </span>
                           </ColoredTooltip>
                         </div>
@@ -1363,7 +1491,7 @@ export default function WelcomeViolationsTab({
                                 <ColoredTooltip
                                   key={item.key}
                                   title={getBreakdownTooltipTitle(item, isDark)}
-                                  color={isDark ? '#f1f5f9' : '#0f172a'}
+                                  color={item.color}
                                   borderColor={item.color}
                                   placement="top"
                                   arrow
@@ -1379,14 +1507,12 @@ export default function WelcomeViolationsTab({
                               );
                             })}
                           </div>
-                          {isWeekMode && (
-                            <BreakdownBar
-                              items={breakdownItems}
-                              isDark={isDark}
-                              isAr={isAr}
-                              title={t('violations.week_breakdown')}
-                            />
-                          )}
+                          <BreakdownBar
+                            items={breakdownItems}
+                            isDark={isDark}
+                            isAr={isAr}
+                            title={isWeekMode ? t('violations.week_breakdown') : t('violations.day_breakdown')}
+                          />
                           <BreakdownBar
                             items={classTotalBarItems}
                             isDark={isDark}
@@ -1402,14 +1528,16 @@ export default function WelcomeViolationsTab({
                           {/* Approved — two stacked dot values: period + class total */}
                           <TableCell className="text-center py-2 px-1">
                             <div className="inline-flex flex-col items-center gap-0.5 text-[10px] font-semibold">
-                              <ColoredTooltip title={`${periodTotalLabel} — ${t('violations.deduction_approved')}`} color={approvedColor.text} borderColor={approvedColor.dot} placement="top" arrow>
+                              <ColoredTooltip title={t('violations.tip_period_approved', { period: periodScopeLabel }) || `${periodTotalLabel} — ${t('violations.deduction_approved')}`} color={approvedColor.text} borderColor={approvedColor.dot} placement="top" arrow>
                                 <span className="inline-flex items-center gap-0.5" style={{ color: approvedColor.text, cursor: 'default' }}>
+                                  <PeriodScopeIcon size={10} style={{ color: approvedColor.dot, flexShrink: 0 }} />
                                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: approvedColor.dot }} />
                                   {Number(s.deductionApproved || 0).toFixed(2)}
                                 </span>
                               </ColoredTooltip>
-                              <ColoredTooltip title={`${t('violations.class_total')} — ${t('violations.deduction_approved')}`} color={classApprovedColor.text} borderColor={classApprovedColor.dot} placement="top" arrow>
+                              <ColoredTooltip title={classTotalTip(t('violations.tip_class_approved') || `${t('violations.class_total')} — ${t('violations.deduction_approved')}`)} color={classApprovedColor.text} borderColor={classApprovedColor.dot} placement="top" arrow>
                                 <span className="inline-flex items-center gap-0.5" style={{ color: classApprovedColor.text, cursor: 'default' }}>
+                                  <Users size={10} style={{ color: classApprovedColor.dot, flexShrink: 0 }} />
                                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: classApprovedColor.dot }} />
                                   {Number(s.classDeductionApproved || 0).toFixed(2)}
                                 </span>
@@ -1419,14 +1547,16 @@ export default function WelcomeViolationsTab({
                           {/* Not Approved — two stacked dot values: period + class total */}
                           <TableCell className="text-center py-2 px-1">
                             <div className="inline-flex flex-col items-center gap-0.5 text-[10px] font-semibold">
-                              <ColoredTooltip title={`${periodTotalLabel} — ${t('violations.deduction_not_approved')}`} color={notApprovedColor.text} borderColor={notApprovedColor.dot} placement="top" arrow>
+                              <ColoredTooltip title={t('violations.tip_period_not_approved', { period: periodScopeLabel }) || `${periodTotalLabel} — ${t('violations.deduction_not_approved')}`} color={notApprovedColor.text} borderColor={notApprovedColor.dot} placement="top" arrow>
                                 <span className="inline-flex items-center gap-0.5" style={{ color: notApprovedColor.text, cursor: 'default' }}>
+                                  <PeriodScopeIcon size={10} style={{ color: notApprovedColor.dot, flexShrink: 0 }} />
                                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: notApprovedColor.dot }} />
                                   {Number(s.deductionNotApproved || 0).toFixed(2)}
                                 </span>
                               </ColoredTooltip>
-                              <ColoredTooltip title={`${t('violations.class_total')} — ${t('violations.deduction_not_approved')}`} color={classNotApprovedColor.text} borderColor={classNotApprovedColor.dot} placement="top" arrow>
+                              <ColoredTooltip title={classTotalTip(t('violations.tip_class_not_approved') || `${t('violations.class_total')} — ${t('violations.deduction_not_approved')}`)} color={classNotApprovedColor.text} borderColor={classNotApprovedColor.dot} placement="top" arrow>
                                 <span className="inline-flex items-center gap-0.5" style={{ color: classNotApprovedColor.text, cursor: 'default' }}>
+                                  <Users size={10} style={{ color: classNotApprovedColor.dot, flexShrink: 0 }} />
                                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: classNotApprovedColor.dot }} />
                                   {Number(s.classDeductionNotApproved || 0).toFixed(2)}
                                 </span>
@@ -1436,8 +1566,7 @@ export default function WelcomeViolationsTab({
                         </>
                       )}
 
-                      {!isWeekMode && (
-                        <TableCell align={isAr ? 'right' : 'left'} className="py-2 px-2">
+                      <TableCell align={isAr ? 'right' : 'left'} className="py-2 px-2">
                         <ColoredTooltip
                         title={
                           s.warningType === 'dismissed'
@@ -1446,7 +1575,7 @@ export default function WelcomeViolationsTab({
                               ? (t('violations.final_warning'))
                               : s.warningType === 'first'
                                 ? (t('violations.first_warning'))
-                                : (t('violations.compliant'))
+                                : (t('violations.compliant_tooltip', { count: s.classUnexcusedAbsences || 0 }) || t('violations.compliant'))
                         }
                         color={warningColor.text}
                         placement="top"
@@ -1464,7 +1593,6 @@ export default function WelcomeViolationsTab({
                         </span>
                       </ColoredTooltip>
                       </TableCell>
-                    )}
 
                       {/* Existing Warnings / Links */}
                       <TableCell className="py-2 px-3">
@@ -1534,7 +1662,7 @@ export default function WelcomeViolationsTab({
                                 }
                                 disabled={s.warningType ? hasPendingWf : false}
                                 onClick={() => { if (rowDraggingRef.current) return; handleOpenReview(s); }}
-                                sx={{ width: 30, height: 30 }}
+                                sx={{ width: 30, height: 30, ...(hasPendingWf ? { color: '#3b82f6' } : {}) }}
                                 data-testid="violations-review-action"
                               >
                                 {hasPendingWf ? (

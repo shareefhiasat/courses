@@ -9,16 +9,18 @@ import {
   exportDailyOfficialForDate,
   exportAttendanceOfficialForScope,
 } from '@services/business/accessScopeExportService.js';
-import { FileText, FileSpreadsheet, AlertCircle, CheckCircle2, ExternalLink, Workflow as WorkflowIcon, FilePenLine, GitBranch, FileSignature, Star, CircleDashed } from 'lucide-react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton } from '@mui/material';
+import { FileText, FileSpreadsheet, AlertCircle, CheckCircle2, ExternalLink, Workflow as WorkflowIcon, FilePenLine, GitBranch, FileSignature, Star, CircleDashed, FileBarChart, Paintbrush } from 'lucide-react';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, Box } from '@mui/material';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import useQRPermissions from '@hooks/useQRPermissions';
 import { isHROnlyViewer, canViewParticipation } from '@components/operations-board/hrAttendancePrivacy.js';
 import AppMenu from '@components/ui/mui/AppMenu.jsx';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip.jsx';
 import InitiateWorkflowDialog from '@components/workspace/InitiateWorkflowDialog.jsx';
 import UploadSignedDialog from '@components/workflow/UploadSignedDialog.jsx';
 import { handleFilePreview } from '@utils/fileUtils.js';
 import { findExistingAttendanceWorkflow } from '@services/business/workflowInitiationService.js';
+import { exportClassSummaryReport, exportClassDeductionReport } from '@services/business/studentSummaryReportService.js';
 import { getWeekRange } from '@services/business/workflowSnapshotService.js';
 import { toIsoDate } from '@components/operations-board/boardClassCalendarUtils.js';
 import { WORKFLOW_STATUS } from '@constants/workflowStatusTypes.jsx';
@@ -52,6 +54,20 @@ function ScheduleContextMenu({
   const [signedUploadTarget, setSignedUploadTarget] = useState(null); // 'daily' | 'weekly' | null
   const [dailyIncludeNotes, setDailyIncludeNotes] = useState(false);
   const [dailyIncludeParticipation, setDailyIncludeParticipation] = useState(false);
+  const [colorizeClassSummary, setColorizeClassSummary] = useState(() => {
+    try {
+      const saved = localStorage.getItem('schedule_colorize_class_summary');
+      return saved !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('schedule_colorize_class_summary', colorizeClassSummary ? 'true' : 'false');
+    } catch { /* ignore */ }
+  }, [colorizeClassSummary]);
   const canToggleDailyNotes = isAdmin || isSuperAdmin;
 
   const cls = session?.class;
@@ -114,8 +130,8 @@ function ScheduleContextMenu({
     }
   }, [onClose]);
 
-  const buildExportBanner = useCallback((label, format, blob, filename, blobUrl, date = dateStr) => ({
-    pillColor: '#059669',
+  const buildExportBanner = useCallback((label, format, blob, filename, blobUrl, date = dateStr, workflowStatus = null) => ({
+    pillColor: workflowStatus ? getWorkflowBadgeColor(String(workflowStatus).toUpperCase()).bg : '#059669',
     icon: <CheckCircle2 size={16} className="shrink-0" />,
     message: (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem' }}>
@@ -218,6 +234,8 @@ function ScheduleContextMenu({
       result.blob,
       result.filename || 'workflow_document',
       blobUrl,
+      dateStr,
+      existingWorkflow?.status || null,
     ));
     setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
   }, [existingWorkflow, cls, program, subject, academicTerm, lang, user, dateStr, slotInstructor, onExportSuccess, buildExportBanner, t, dailyIncludeNotes, dailyIncludeParticipation]);
@@ -275,6 +293,7 @@ function ScheduleContextMenu({
       result.filename || 'weekly_workflow_preview',
       result.blobUrl,
       weekRange,
+      existingWeeklyWorkflow?.status || null,
     ));
     setTimeout(() => URL.revokeObjectURL(result.blobUrl), 60000);
   }, [existingWeeklyWorkflow, cls, subject, program, lang, user, dateStr, onExportSuccess, buildExportBanner, t]);
@@ -569,6 +588,123 @@ function ScheduleContextMenu({
         attendanceChildren.push({ divider: true });
         attendanceChildren.push(weeklyWorkflowItem);
       }
+
+      if (cls?.id) {
+        const classInfo = {
+          className: cls.nameEn || cls.name || '',
+          classNameAr: cls.nameAr || '',
+          subjectName: subject?.nameEn || subject?.name || '',
+          subjectNameAr: subject?.nameAr || '',
+          programName: program?.nameEn || program?.name || '',
+          programNameAr: program?.nameAr || '',
+          term: academicTerm,
+        };
+        const showReportBanner = (label, format, result) => {
+          if (!result?.blob) return;
+          const blobUrl = URL.createObjectURL(result.blob);
+          const baseName = (result.filename || 'report').replace(/\.(pdf|xlsx)$/i, '');
+          onExportSuccess?.(buildExportBanner(
+            `${label} — ${format === EXPORT_FORMAT.EXCEL ? (t('export_excel') || 'Excel') : (t('export_pdf') || 'PDF')}`,
+            format,
+            result.blob,
+            baseName,
+            blobUrl,
+            null,
+          ));
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        };
+        const runClassSummary = (format) => runExport(`class-summary-${format}`, async () => {
+          console.log('[ScheduleContextMenu] exporting class summary:', { classId: cls.id, format, colorize: colorizeClassSummary });
+          const result = await exportClassSummaryReport({ classId: cls.id, classInfo, format, lang, user, notify: false, colorize: colorizeClassSummary });
+          showReportBanner(t('report_class_summary') || 'Class Summary', format, result);
+        });
+        const runClassDeduction = (format) => runExport(`class-deduction-${format}`, async () => {
+          const result = await exportClassDeductionReport({ classId: cls.id, classInfo, format, lang, user, notify: false });
+          showReportBanner(t('report_class_deduction') || 'Deduction Report', format, result);
+        });
+        attendanceChildren.push({ divider: true });
+        attendanceChildren.push({
+          id: 'class-summary',
+          label: t('report_class_summary') || 'Class Summary',
+          icon: <FileBarChart size={18} color="#0ea5e9" />,
+          onClick: () => runClassSummary('excel'),
+          trailing: (
+            <ColoredTooltip
+              title={
+                colorizeClassSummary
+                  ? (t('colorize_class_summary_on') || 'Colorize rows')
+                  : (t('colorize_class_summary_off') || 'Plain rows')
+              }
+              color={colorizeClassSummary ? '#0ea5e9' : '#64748b'}
+              placement="top"
+            >
+              <Box
+                role="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const newValue = !colorizeClassSummary;
+                  console.log('[ScheduleContextMenu] colorizeClassSummary toggled:', { classId: cls?.id, newValue });
+                  setColorizeClassSummary(newValue);
+                  try {
+                    localStorage.setItem('schedule_colorize_class_summary', newValue ? 'true' : 'false');
+                  } catch { /* ignore */ }
+                }}
+                aria-label={
+                  colorizeClassSummary
+                    ? (t('colorize_class_summary_on') || 'Colorize rows')
+                    : (t('colorize_class_summary_off') || 'Plain rows')
+                }
+                sx={{
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 22,
+                  height: 22,
+                  borderRadius: 0.75,
+                  opacity: 0.75,
+                  color: colorizeClassSummary ? '#0ea5e9' : '#94a3b8',
+                  '&:hover': { bgcolor: 'action.selected', opacity: 1 },
+                }}
+              >
+                <Paintbrush
+                  size={16}
+                  fill={colorizeClassSummary ? '#0ea5e9' : 'none'}
+                  color={colorizeClassSummary ? '#0ea5e9' : '#94a3b8'}
+                />
+              </Box>
+            </ColoredTooltip>
+          ),
+          trailingActions: [
+            {
+              title: t('export_excel') || 'Excel',
+              icon: <FileSpreadsheet size={16} style={{ color: '#43a047' }} />,
+              tooltipColor: '#43a047',
+              onClick: () => runClassSummary('excel'),
+            },
+          ],
+        });
+        attendanceChildren.push({
+          id: 'class-deduction',
+          label: t('report_class_deduction') || 'Deduction Report',
+          icon: <FileBarChart size={18} color="#e53935" />,
+          onClick: () => runClassDeduction('pdf'),
+          trailingActions: [
+            {
+              title: t('export_pdf') || 'PDF',
+              icon: <FileText size={16} style={{ color: '#e53935' }} />,
+              tooltipColor: '#e53935',
+              onClick: () => runClassDeduction('pdf'),
+            },
+            {
+              title: t('export_excel') || 'Excel',
+              icon: <FileSpreadsheet size={16} style={{ color: '#f59e0b' }} />,
+              tooltipColor: '#f59e0b',
+              onClick: () => runClassDeduction('excel'),
+            },
+          ],
+        });
+      }
     }
 
     items.push({
@@ -599,7 +735,7 @@ function ScheduleContextMenu({
     }
 
     return items;
-  }, [t, handleScan, handleOpenOperations, handleOpenWeeklyWorkflow, handleInitiateWorkflow, handleHistory, handleOpenFilteredNotifications, isAdmin, hrOnly, instructorOnly, canSeeParticipation, existingWorkflow, existingWeeklyWorkflow, handleGoToOperationsFromWorkflow, handleDailyPdf, handleDailyExcel, handleWeeklyPdf, handleWeeklyExcel, handleSignedClick, canUploadSignedCopy, canToggleDailyNotes, dailyIncludeNotes, dailyIncludeParticipation]);
+  }, [t, handleScan, handleOpenOperations, handleOpenWeeklyWorkflow, handleInitiateWorkflow, handleHistory, handleOpenFilteredNotifications, isAdmin, hrOnly, instructorOnly, canSeeParticipation, existingWorkflow, existingWeeklyWorkflow, handleGoToOperationsFromWorkflow, handleDailyPdf, handleDailyExcel, handleWeeklyPdf, handleWeeklyExcel, handleSignedClick, canUploadSignedCopy, canToggleDailyNotes, dailyIncludeNotes, dailyIncludeParticipation, colorizeClassSummary]);
 
   return (
     <>
