@@ -36,7 +36,7 @@ const WelcomeHeader = ({ user, role }) => {
           fontWeight: 700,
           margin: 0,
           color: isDark ? '#f1f5f9' : '#1e293b',
-        }}displayU
+        }}
       >
         {t(greetingKey)}, {userName}
       </h1>

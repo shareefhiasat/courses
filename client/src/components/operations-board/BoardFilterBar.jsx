@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { Box, Tab, Tabs, ToggleButton, ToggleButtonGroup, IconButton } from '@mui/material';
-import { ArrowUpDown, ArrowDownAZ, Calendar, KanbanSquare, Workflow, Users, User, UserX, ArrowLeftRight, LayoutTemplate, Eye, EyeOff, Expand, FileSpreadsheet, FileText } from 'lucide-react';
+import { ArrowUpDown, ArrowDownAZ, Calendar, KanbanSquare, Workflow, Users, User, UserX, ArrowLeftRight, LayoutTemplate, Eye, EyeOff, Expand, FileSpreadsheet, FileText, CheckCircle2, ExternalLink, Download } from 'lucide-react';
 import DatePicker from '@components/ui/DatePicker/DatePicker';
 import { Input } from '@/components/kibo/ui/input';
 import { Select } from '@components/ui';
@@ -11,6 +11,7 @@ import { exportClassSummaryReport, exportProgramSummaryReport, exportClassDeduct
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import BoardScheduleCalendar from './BoardScheduleCalendar.jsx';
 import { shouldHideNotesParticipation, canViewParticipation } from './hrAttendancePrivacy.js';
+import { openDriveFileInCollabora } from '@utils/collaboraUtils.js';
 import { CARD_TYPE } from './operationsBoardConstants.js';
 
 const PANEL_COLORS = {
@@ -129,6 +130,7 @@ export default function BoardFilterBar({
   view = 'kanban',
   calendarView,
   onCalendarViewChange,
+  onActionBanner,
 }) {
   const { t, lang } = useLang();
   const { user } = useAuth();
@@ -137,27 +139,81 @@ export default function BoardFilterBar({
   const hideNotesParticipation = shouldHideNotesParticipation(roleContext);
   const hideParticipation = !canViewParticipation(roleContext);
 
+  // Show the board pill banner on export success with an "Open file" action.
+  const showExportBanner = useCallback((titleKey, fallbackTitle, format, { blob, filename, fileId } = {}) => {
+    if (!onActionBanner || !blob) return;
+    const blobUrl = URL.createObjectURL(blob);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5 * 60 * 1000);
+    const downloadFile = () => {
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename || 'export.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+    const openFile = async () => {
+      if (format === 'excel') {
+        // Prefer the Collabora viewer when the export was persisted to Drive.
+        if (fileId && (await openDriveFileInCollabora(fileId))) return;
+        downloadFile();
+      } else {
+        window.open(blobUrl, '_blank');
+      }
+    };
+    const fmt = format === 'excel' ? 'Excel' : 'PDF';
+    const done = lang === 'ar' ? 'تم التصدير بنجاح' : 'Export successful';
+    const openLabel = lang === 'ar' ? 'فتح الملف' : 'Open file';
+    const collaboraLabel = t('export_open_collabora') || 'Open in Collabora';
+    const saveLabel = t('export_save_file') || 'Save';
+    onActionBanner({
+      pillColor: '#059669',
+      icon: <CheckCircle2 size={16} className="shrink-0" />,
+      message: `${t(titleKey) || fallbackTitle} — ${fmt} — ${done}`,
+      // Excel exports persisted to Drive get a choice: open in Collabora or save.
+      actions: format === 'excel' && fileId
+        ? [
+            { label: collaboraLabel, icon: <ExternalLink size={14} />, onClick: async () => { if (!(await openDriveFileInCollabora(fileId))) downloadFile(); } },
+            { label: saveLabel, icon: <Download size={14} />, onClick: downloadFile },
+          ]
+        : [{ label: openLabel, icon: <ExternalLink size={14} />, onClick: openFile }],
+    });
+  }, [onActionBanner, lang, t]);
+
+  const showExportError = useCallback((label, err) => {
+    console.error('[BoardFilterBar] export failed:', err);
+    if (!onActionBanner) return;
+    onActionBanner({
+      pillColor: '#dc2626',
+      icon: <FileText size={16} className="shrink-0" />,
+      message: `${label} — ${lang === 'ar' ? 'فشل التصدير' : 'Export failed'}`,
+    });
+  }, [onActionBanner, lang]);
+
   // Report icons beside the class dropdown: class summary when a class is
   // selected, program-level summary (all classes) when it is not.
   const runSummaryReport = useCallback((format) => () => {
     const classes = welcomeContext?.classes || [];
     const selectedClass = classes.find((c) => String(c.id) === String(filters.classId));
-    if (filters.classId && selectedClass) {
+    if (filters.classId) {
       exportClassSummaryReport({
-        classId: selectedClass.id,
+        classId: filters.classId,
         classInfo: {
-          className: selectedClass.nameEn || selectedClass.name || '',
-          classNameAr: selectedClass.nameAr || '',
-          subjectName: selectedClass.subject?.nameEn || selectedClass.subjectName || '',
-          subjectNameAr: selectedClass.subject?.nameAr || selectedClass.subjectNameAr || '',
-          programName: welcomeContext?.program?.nameEn || selectedClass.program?.nameEn || '',
-          programNameAr: welcomeContext?.program?.nameAr || selectedClass.program?.nameAr || '',
-          term: welcomeContext?.academicTerm || selectedClass.term || '',
+          className: selectedClass?.nameEn || selectedClass?.name || '',
+          classNameAr: selectedClass?.nameAr || '',
+          subjectName: selectedClass?.subject?.nameEn || selectedClass?.subjectName || '',
+          subjectNameAr: selectedClass?.subject?.nameAr || selectedClass?.subjectNameAr || '',
+          programName: welcomeContext?.program?.nameEn || selectedClass?.program?.nameEn || '',
+          programNameAr: welcomeContext?.program?.nameAr || selectedClass?.program?.nameAr || '',
+          term: welcomeContext?.academicTerm || selectedClass?.term || '',
         },
         format,
         lang,
         user,
-      }).catch((err) => console.error('[BoardFilterBar] class summary export failed:', err));
+        notify: false,
+        reportDate: filters.date,
+      }).then((res) => showExportBanner('report_class_summary', 'Class Summary Report', format, res))
+        .catch((err) => showExportError(t('report_class_summary') || 'Class Summary', err));
       return;
     }
     exportProgramSummaryReport({
@@ -167,33 +223,50 @@ export default function BoardFilterBar({
       format,
       lang,
       user,
-    }).catch((err) => console.error('[BoardFilterBar] program summary export failed:', err));
-  }, [filters.classId, welcomeContext, lang, user]);
+      notify: false,
+      reportDate: filters.date,
+    }).then((res) => showExportBanner('report_program_summary', 'Program Summary Report', format, res))
+      .catch((err) => showExportError(t('report_program_summary') || 'Program Summary', err));
+  }, [filters.classId, filters.date, welcomeContext, lang, user, showExportBanner, showExportError, t]);
 
   // Class-level deduction report (all students' absence dates + deductions).
   const runDeductionReport = useCallback((format) => () => {
     const classes = welcomeContext?.classes || [];
     const selectedClass = classes.find((c) => String(c.id) === String(filters.classId));
-    if (!filters.classId || !selectedClass) return;
+    if (!filters.classId) return;
     exportClassDeductionReport({
-      classId: selectedClass.id,
+      classId: filters.classId,
       classInfo: {
-        className: selectedClass.nameEn || selectedClass.name || '',
-        classNameAr: selectedClass.nameAr || '',
-        subjectName: selectedClass.subject?.nameEn || selectedClass.subjectName || '',
-        subjectNameAr: selectedClass.subject?.nameAr || selectedClass.subjectNameAr || '',
-        programName: welcomeContext?.program?.nameEn || selectedClass.program?.nameEn || '',
-        programNameAr: welcomeContext?.program?.nameAr || selectedClass.program?.nameAr || '',
-        term: welcomeContext?.academicTerm || selectedClass.term || '',
+        className: selectedClass?.nameEn || selectedClass?.name || '',
+        classNameAr: selectedClass?.nameAr || '',
+        subjectName: selectedClass?.subject?.nameEn || selectedClass?.subjectName || '',
+        subjectNameAr: selectedClass?.subject?.nameAr || selectedClass?.subjectNameAr || '',
+        programName: welcomeContext?.program?.nameEn || selectedClass?.program?.nameEn || '',
+        programNameAr: welcomeContext?.program?.nameAr || selectedClass?.program?.nameAr || '',
+        term: welcomeContext?.academicTerm || selectedClass?.term || '',
       },
       format,
       lang,
       user,
-    }).catch((err) => console.error('[BoardFilterBar] deduction report export failed:', err));
-  }, [filters.classId, welcomeContext, lang, user]);
+      notify: false,
+      reportDate: filters.date,
+    }).then((res) => showExportBanner('report_class_deduction', 'Class Deduction Report', format, res))
+      .catch((err) => showExportError(t('report_class_deduction') || 'Deduction Report', err));
+  }, [filters.classId, filters.date, welcomeContext, lang, user, showExportBanner, showExportError, t]);
 
   const summaryReportIcons = (
     <>
+      {filters.classId && (
+        <ColoredTooltip
+          title={`${t('report_class_deduction') || 'Deduction Report'} — ${t('export_pdf') || 'PDF'}`}
+          color="#e53935"
+          placement="bottom"
+        >
+          <IconButton size="small" onClick={runDeductionReport('pdf')} sx={{ width: 28, height: 28, flexShrink: 0, color: '#e53935' }}>
+            <FileText size={16} />
+          </IconButton>
+        </ColoredTooltip>
+      )}
       <ColoredTooltip
         title={`${filters.classId ? (t('report_class_summary') || 'Class Summary') : (t('report_program_summary') || 'Program Summary')} — ${t('export_excel') || 'Excel'}`}
         color="#43a047"
@@ -204,26 +277,15 @@ export default function BoardFilterBar({
         </IconButton>
       </ColoredTooltip>
       {filters.classId && (
-        <>
-          <ColoredTooltip
-            title={`${t('report_class_deduction') || 'Deduction Report'} — ${t('export_pdf') || 'PDF'}`}
-            color="#e53935"
-            placement="bottom"
-          >
-            <IconButton size="small" onClick={runDeductionReport('pdf')} sx={{ width: 28, height: 28, flexShrink: 0, color: '#e53935' }}>
-              <FileText size={16} />
-            </IconButton>
-          </ColoredTooltip>
-          <ColoredTooltip
-            title={`${t('report_class_deduction') || 'Deduction Report'} — ${t('export_excel') || 'Excel'}`}
-            color="#f59e0b"
-            placement="bottom"
-          >
-            <IconButton size="small" onClick={runDeductionReport('excel')} sx={{ width: 28, height: 28, flexShrink: 0, color: '#f59e0b' }}>
-              <FileSpreadsheet size={16} />
-            </IconButton>
-          </ColoredTooltip>
-        </>
+        <ColoredTooltip
+          title={`${t('report_class_deduction') || 'Deduction Report'} — ${t('export_excel') || 'Excel'}`}
+          color="#f59e0b"
+          placement="bottom"
+        >
+          <IconButton size="small" onClick={runDeductionReport('excel')} sx={{ width: 28, height: 28, flexShrink: 0, color: '#f59e0b' }}>
+            <FileSpreadsheet size={16} />
+          </IconButton>
+        </ColoredTooltip>
       )}
     </>
   );

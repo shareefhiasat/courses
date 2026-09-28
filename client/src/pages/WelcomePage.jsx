@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspens
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
-import { ChevronLeft, ChevronRight, FileText, FileSpreadsheet, CalendarDays, CalendarX, Coffee, ClipboardList, FileCheck2, FileX2, CalendarPlus, Lock, CheckCircle2, ShieldCheck, X, ExternalLink, DoorOpen, GraduationCap, Clock, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, FileSpreadsheet, CalendarDays, CalendarX, Coffee, ClipboardList, FileCheck2, FileX2, CalendarPlus, Lock, CheckCircle2, ShieldCheck, X, ExternalLink, DoorOpen, GraduationCap, Clock, Trash2, Download } from 'lucide-react';
 import { useAuth } from '@contexts/AuthContext';
 import DraggableFloatingPanel from '@components/ui/DraggableFloatingPanel';
 import WelcomeDateControls from '@components/welcome/WelcomeDateControls';
@@ -28,7 +28,6 @@ import OfficialWeeklyScheduleGrid from '@components/workspace/OfficialWeeklySche
 import ClassHistoryDrawer from '@components/workspace/ClassHistoryDrawer';
 import InboxOutboxDrawer from '@components/workspace/InboxOutboxDrawer';
 import ScheduleContextMenu from '@components/workspace/ScheduleContextMenu';
-import ScheduleSpeedDial from '@components/workspace/ScheduleSpeedDial';
 import ScheduleMarksActionsDialog from '@components/welcome/ScheduleMarksActionsDialog';
 import WeeklyWorkflowCreatedDialog from '@components/welcome/WeeklyWorkflowCreatedDialog.jsx';
 import OfficialReportsExportDialog from '@components/export/OfficialReportsExportDialog.jsx';
@@ -58,7 +57,7 @@ import {
   exportWeeklyScheduleForScope,
 } from '@services/business/accessScopeExportService.js';
 import { getApprovedSnapshotForWeek, getWeekRange, getClosureStatus, closePeriod, reopenPeriod, getInProgressWeeklyWorkflow, getWeeklyWorkflowHistory } from '@services/business/workflowSnapshotService.js';
-import { getScheduleStatus } from '@services/business/attendanceWorkspaceService.js';
+import { getScheduleStatus, getAllPrograms, getInstructorPrograms, getProgramTerms } from '@services/business/attendanceWorkspaceService.js';
 import { initiateWeeklyWorkflow } from '@services/business/workflowInitiationService.js';
 import { deleteWorkflowDocument } from '@services/business/workflowService.js';
 import { openExportFile } from '@services/db/exportHistoryService.js';
@@ -66,6 +65,8 @@ import { EXPORT_FORMAT, downloadBlob } from '@services/export/official-reports/i
 import { prepareWeeklyScheduleData } from '@services/export/official-reports/engine/prepareWeeklyScheduleData';
 import { academicTermToYearTerm, getAcademicTermDisplayName } from '@utils/academicTermUtils';
 import { isOnboardingTourEnabled, endManualTour } from '@utils/tourConfig.js';
+import { openDriveFileInCollabora } from '@utils/collaboraUtils.js';
+import { WEEK_DAY_CODES } from '@utils/schedulingDisplayUtils.js';
 import useQRPermissions from '@hooks/useQRPermissions';
 import useScheduleStatusRealtime from '@hooks/useScheduleStatusRealtime.js';
 import { usePermissions } from '@hooks/usePermissions';
@@ -120,7 +121,7 @@ function getWeekDayDates(selectedDate, hideWeekends = true) {
 }
 
 const WelcomePage = () => {
-  const { user, role, isInstructor, isAdmin, isHR, isSuperAdmin, isStudent } = useAuth();
+  const { user, role, isInstructor, isAdmin, isHR, isSuperAdmin, isStudent, isProgramCommander } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -142,6 +143,7 @@ const WelcomePage = () => {
     return null;
   });
   const [scheduleData, setScheduleData] = useState(null);
+  const [termRange, setTermRange] = useState(null);
   const [statusMap, setStatusMap] = useState({});
   const [loading, setLoading] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
@@ -169,8 +171,8 @@ const WelcomePage = () => {
   const [historyState, setHistoryState] = useState({ open: false, classInfo: null, date: null, initialTab: null });
 
   const instructorId = user?.dbId;
-  const canInteractAll = isAdmin || isSuperAdmin || isHR;
-  const isInstructorOnly = isInstructor && !isAdmin && !isHR && !isSuperAdmin;
+  const canInteractAll = isAdmin || isSuperAdmin || isHR || isProgramCommander;
+  const isInstructorOnly = isInstructor && !isAdmin && !isHR && !isSuperAdmin && !isProgramCommander;
   const hideNotesParticipation = isHR && !isAdmin && !isSuperAdmin;
   const hideNotesComments = (isHR && !isAdmin && !isSuperAdmin) || isInstructorOnly;
   const { canExport } = useQRPermissions();
@@ -304,6 +306,33 @@ const WelcomePage = () => {
     }, 10000);
   }, [clearExportBanner]);
 
+  // Excel export banner with "Open in Collabora" (when persisted to Drive) + "Save".
+  const showWorkflowExcelBanner = useCallback(({ blob, filename, fileId, title }) => {
+    const blobUrl = URL.createObjectURL(blob);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5 * 60 * 1000);
+    const downloadFile = () => {
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename || 'export.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+    const collaboraLabel = t('export_open_collabora') || 'Open in Collabora';
+    const saveLabel = t('export_save_file') || 'Save';
+    showExportBanner({
+      pillColor: '#059669',
+      icon: <CheckCircle2 size={16} className="shrink-0" />,
+      message: `${title} — ${t('export_success') || 'Export successful'}`,
+      actions: fileId
+        ? [
+            { label: collaboraLabel, icon: <ExternalLink size={14} />, onClick: async () => { if (!(await openDriveFileInCollabora(fileId))) downloadFile(); } },
+            { label: saveLabel, icon: <Download size={14} />, onClick: downloadFile },
+          ]
+        : [{ label: saveLabel, icon: <Download size={14} />, onClick: downloadFile }],
+    });
+  }, [showExportBanner, t]);
+
   useEffect(() => () => {
     if (exportBannerTimerRef.current) clearTimeout(exportBannerTimerRef.current);
   }, []);
@@ -364,11 +393,22 @@ const WelcomePage = () => {
     prevTabRef.current = tabParam;
   }, [tabParam]);
 
+  const clampToTermRange = useCallback((d) => {
+    if (!termRange) return d;
+    const start = termRange.startDate ? new Date(termRange.startDate) : null;
+    const end = termRange.endDate ? new Date(termRange.endDate) : null;
+    if (start) start.setHours(0, 0, 0, 0);
+    if (end) end.setHours(23, 59, 59, 999);
+    if (start && d < start) { const s = new Date(start); s.setHours(12, 0, 0, 0); return s; }
+    if (end && d > end) { const e = new Date(end); e.setHours(12, 0, 0, 0); return e; }
+    return d;
+  }, [termRange]);
+
   // Sync selectedDate when the URL date param changes (e.g., browser back/forward)
   useEffect(() => {
     const urlDate = searchParams.get('date');
     if (!urlDate) return;
-    const parsed = new Date(`${urlDate}T12:00:00`);
+    const parsed = clampToTermRange(new Date(`${urlDate}T12:00:00`));
     if (isNaN(parsed.getTime())) return;
     if (isInstructor) {
       const today = new Date();
@@ -376,10 +416,36 @@ const WelcomePage = () => {
       if (parsed.getTime() > today.getTime()) return;
     }
     const currentIso = selectedDateRef.current.toISOString().split('T')[0];
-    if (urlDate !== currentIso) {
+    if (parsed.toISOString().split('T')[0] !== currentIso) {
       setSelectedDate(parsed);
     }
-  }, [searchParams, isInstructor]);
+  }, [searchParams, isInstructor, clampToTermRange]);
+
+  // Weekday indexes (0=Sun..6=Sat) that have at least one scheduled class slot
+  // for the in-scope classes — used to skip empty days in ops day navigation
+  // and to show a "no classes" overlay in the operations board.
+  const scheduledDayIndexes = useMemo(() => {
+    const days = scheduleData?.days || [];
+    const cid = classIdParam ? String(classIdParam) : null;
+    const scope = new Set(
+      (isInstructorOnly && instructorId
+        ? cohortClasses.filter((c) => Number(c.instructorId) === Number(instructorId))
+        : cohortClasses
+      ).map((c) => String(c.id)),
+    );
+    const set = new Set();
+    days.forEach((day) => {
+      const idx = WEEK_DAY_CODES.indexOf(day.dayCode);
+      if (idx < 0) return;
+      const hasClass = Object.values(day?.slots || {}).some(
+        (slot) => slot && !slot.isBreak && slot.classId != null
+          && (!cid || String(slot.classId) === cid)
+          && scope.has(String(slot.classId)),
+      );
+      if (hasClass) set.add(idx);
+    });
+    return set.size > 0 ? set : null;
+  }, [scheduleData, classIdParam, cohortClasses, isInstructorOnly, instructorId]);
 
   const welcomeBoardContext = useMemo(() => {
     if (!selection?.program?.id || !selection?.academicTerm?.id) return null;
@@ -398,8 +464,9 @@ const WelcomePage = () => {
       academicTerm: selection.academicTerm,
       classes: scopedClasses,
       subjects: cohortSubjects,
+      scheduledDayIndexes,
     };
-  }, [selection, selectedDate, cohortClasses, cohortSubjects, isInstructorOnly, instructorId, classIdParam]);
+  }, [selection, selectedDate, cohortClasses, cohortSubjects, isInstructorOnly, instructorId, classIdParam, scheduledDayIndexes]);
 
   const handleTabChange = useCallback((_, value) => {
     const targetTab = visibleTabs[value] || 'schedule';
@@ -805,6 +872,37 @@ const WelcomePage = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Validate persisted selection against scoped programs (drops stale out-of-scope program)
+  useEffect(() => {
+    const validateSelection = async () => {
+      if (!selection?.program?.id) return;
+      try {
+        const progResult = isInstructor ? await getInstructorPrograms() : await getAllPrograms();
+        if (!progResult.success) return;
+        const allowedIds = new Set((progResult.data || []).map((p) => Number(p.id)));
+        if (!allowedIds.has(Number(selection.program.id))) {
+          sessionStorage.removeItem(WELCOME_SELECTION_KEY);
+          localStorage.removeItem('workspace_last_program_id');
+          setSelection(null);
+          setScheduleData(null);
+          setStatusMap({});
+          // strip stale program params from URL (operations board reads them directly)
+          setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete('programId');
+            next.delete('termId');
+            next.delete('classId');
+            return next;
+          });
+        }
+      } catch {
+        // ignore — keep current selection
+      }
+    };
+    validateSelection();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const persistSelection = useCallback((next) => {
     setSelection(next);
     try {
@@ -842,8 +940,23 @@ const WelcomePage = () => {
       params.set('termId', String(payload.academicTerm.id));
       return params;
     });
+    // Snap the working date into the selected term's defined range
+    const tStart = payload.academicTerm?.startDate ? new Date(payload.academicTerm.startDate) : null;
+    const tEnd = payload.academicTerm?.endDate ? new Date(payload.academicTerm.endDate) : null;
+    if (tStart || tEnd) {
+      const today = new Date();
+      today.setHours(12, 0, 0, 0);
+      const inRange = (!tStart || today >= tStart) && (!tEnd || today <= tEnd);
+      const target = inRange ? today : (tStart || tEnd);
+      const cur = selectedDate;
+      if ((tStart && cur < tStart) || (tEnd && cur > tEnd)) {
+        const snapped = new Date(target);
+        snapped.setHours(12, 0, 0, 0);
+        setSelectedDate(snapped);
+      }
+    }
     setContextSwitcherOpen(false);
-  }, [setSearchParams, persistSelection]);
+  }, [setSearchParams, persistSelection, selectedDate]);
 
   const handleBackToProgram = useCallback(() => {
     const next = selection ? { ...selection, academicTerm: null } : null;
@@ -1019,6 +1132,7 @@ const WelcomePage = () => {
       });
 
       setScheduleData(prepared);
+      setTermRange(sources.termRange || null);
 
       setCohortClasses(sources.cohortClasses || []);
       const classIds = (sources.cohortClasses || []).map((c) => c.id).filter(Boolean);
@@ -1210,31 +1324,27 @@ const WelcomePage = () => {
     });
   }, []);
 
-  const handleClearSelection = useCallback(() => {
-    setSelectedSession(null);
-    setSelectedSlot(null);
-    setClickedDate(null);
-  }, []);
-
   const handleSetSelectedDate = useCallback((date) => {
-    const d = date instanceof Date ? new Date(date) : new Date();
+    let d = date instanceof Date ? new Date(date) : new Date();
     d.setHours(12, 0, 0, 0);
+    d = clampToTermRange(d);
     if (isInstructorOnly) {
       const today = new Date();
       today.setHours(12, 0, 0, 0);
       if (d.getTime() > today.getTime()) {
         d.setTime(today.getTime());
+        d = clampToTermRange(d);
       }
     }
     setSelectedDate(d);
-    if (isInstructorOnly) {
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.set('date', toIsoDate(d));
-        return next;
-      }, { replace: true });
-    }
-  }, [isInstructorOnly, setSelectedDate, setSearchParams]);
+    // Always sync the date param — a stale URL date snaps selectedDate back
+    // whenever the URL->state sync effect re-runs (e.g. termRange reload).
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('date', toIsoDate(d));
+      return next;
+    }, { replace: true });
+  }, [isInstructorOnly, setSelectedDate, setSearchParams, clampToTermRange]);
 
   const handleOpenInbox = useCallback((tab, classId) => {
     setInboxInitialTab(tab);
@@ -1287,35 +1397,36 @@ const WelcomePage = () => {
             format,
             skipDownload: true,
           });
-      const blobUrl = URL.createObjectURL(result.blob);
-      showExportBanner({
-        pillColor: '#059669',
-        icon: <CheckCircle2 size={16} className="shrink-0" />,
-        message: (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0px', fontSize: '0.75rem' }}>
-            {`${t('weekly_schedule')} ${format === EXPORT_FORMAT.PDF ? t('export_pdf') : t('export_excel')} — ${t('export_success')}`}
-            <button
-              type="button"
-              className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
-              onClick={() =>
-                format === EXPORT_FORMAT.EXCEL
-                  ? downloadBlob(result.blob, `${result.filename}.xlsx`)
-                  : window.open(blobUrl, '_blank')
-              }
-              style={{ marginLeft: '8px' }}
-              aria-label={
-                format === EXPORT_FORMAT.EXCEL
-                  ? (t('download_file') || 'Download file')
-                  : (t('open_in_new_tab') || 'Open in new tab')
-              }
-            >
-              <ExternalLink size={14} />
-            </button>
-          </span>
-        ),
-      });
-      // Clean up blob URL after some time
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      if (format === EXPORT_FORMAT.EXCEL) {
+        showWorkflowExcelBanner({
+          blob: result.blob,
+          filename: `${result.filename}.xlsx`,
+          fileId: result.fileId,
+          title: `${t('weekly_schedule')} ${t('export_excel')}`,
+        });
+      } else {
+        const blobUrl = URL.createObjectURL(result.blob);
+        showExportBanner({
+          pillColor: '#059669',
+          icon: <CheckCircle2 size={16} className="shrink-0" />,
+          message: (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0px', fontSize: '0.75rem' }}>
+              {`${t('weekly_schedule')} ${t('export_pdf')} — ${t('export_success')}`}
+              <button
+                type="button"
+                className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
+                onClick={() => window.open(blobUrl, '_blank')}
+                style={{ marginLeft: '8px' }}
+                aria-label={t('open_in_new_tab') || 'Open in new tab'}
+              >
+                <ExternalLink size={14} />
+              </button>
+            </span>
+          ),
+        });
+        // Clean up blob URL after some time
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      }
     } catch (err) {
       console.error('[WelcomePage] weekly schedule export failed:', err);
       setSnackbar({
@@ -1325,7 +1436,7 @@ const WelcomePage = () => {
         progress: null,
       });
     }
-  }, [selection?.program, selection?.academicTerm, selectedSession, lang, t, user, showExportBanner]);
+  }, [selection?.program, selection?.academicTerm, selectedSession, lang, t, user, showExportBanner, showWorkflowExcelBanner]);
 
   const handleExportDailyTemplate = useCallback(async (format = EXPORT_FORMAT.PDF, options = {}) => {
     if (!selection?.program || !selection?.academicTerm) {
@@ -1358,6 +1469,15 @@ const WelcomePage = () => {
       setSnackbar({ open: false, message: '', severity: 'info', progress: null });
       const blobUrl = URL.createObjectURL(result.blob);
       // Show bottom announcement banner with link
+      if (format === EXPORT_FORMAT.EXCEL) {
+        showWorkflowExcelBanner({
+          blob: result.blob,
+          filename: `${result.filename}.xlsx`,
+          fileId: result.fileId,
+          title: t('daily_template') || 'Daily Template',
+        });
+        return;
+      }
       showExportBanner({
         pillColor: '#059669',
         icon: <CheckCircle2 size={16} className="shrink-0" />,
@@ -1367,17 +1487,9 @@ const WelcomePage = () => {
             <button
               type="button"
               className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
-              onClick={() =>
-                format === EXPORT_FORMAT.EXCEL
-                  ? downloadBlob(result.blob, `${result.filename}.xlsx`)
-                  : window.open(blobUrl, '_blank')
-              }
+              onClick={() => window.open(blobUrl, '_blank')}
               style={{ marginLeft: '8px' }}
-              aria-label={
-                format === EXPORT_FORMAT.EXCEL
-                  ? (t('download_file') || 'Download file')
-                  : (t('open_in_new_tab') || 'Open in new tab')
-              }
+              aria-label={t('open_in_new_tab') || 'Open in new tab'}
             >
               <ExternalLink size={14} />
             </button>
@@ -1397,7 +1509,7 @@ const WelcomePage = () => {
     } finally {
       setExportingKey(null);
     }
-  }, [selection?.program, selection?.academicTerm, selectedSession, lang, user, t, showExportBanner]);
+  }, [selection?.program, selection?.academicTerm, selectedSession, lang, user, t, showExportBanner, showWorkflowExcelBanner]);
 
   const handleOpsWorkflowExport = useCallback(async (format) => {
     if (!opsSelectedWorkflow || !welcomeBoardContext?.program) return;
@@ -1440,9 +1552,33 @@ const WelcomePage = () => {
           approvedAt: opsSelectedWorkflow.approvedAt || null,
         });
         if (format === EXPORT_FORMAT.EXCEL) {
-          downloadBlob(result.blob, `${result.filename}.xlsx`);
+          showWorkflowExcelBanner({
+            blob: result.blob,
+            filename: `${result.filename}.xlsx`,
+            fileId: result.fileId,
+            title: `${t('attendance_summary') || 'Attendance Summary'} — ${t('export_excel') || 'Excel'}`,
+          });
         } else {
-          window.open(result.blobUrl, '_blank');
+          const pdfUrl = result.blobUrl || URL.createObjectURL(result.blob);
+          showExportBanner({
+            pillColor: '#059669',
+            icon: <CheckCircle2 size={16} className="shrink-0" />,
+            message: (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0px', fontSize: '0.75rem' }}>
+                {`${t('attendance_summary') || 'Attendance Summary'} ${t('export_pdf') || 'PDF'} — ${t('export_success') || 'Export successful'}`}
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
+                  onClick={() => window.open(pdfUrl, '_blank')}
+                  style={{ marginLeft: '8px' }}
+                  aria-label={t('open_in_new_tab') || 'Open in new tab'}
+                >
+                  <ExternalLink size={14} />
+                </button>
+              </span>
+            ),
+          });
+          setTimeout(() => URL.revokeObjectURL(pdfUrl), 60000);
         }
       } else {
         const cls = selectedClass || {
@@ -1467,23 +1603,45 @@ const WelcomePage = () => {
           date,
           format,
           skipDownload: true,
-          skipPersist: true,
+          skipPersist: opsSelectedWorkflow.status !== 'APPROVED',
           workflowStatus: opsSelectedWorkflow.status || null,
           approvedBy: opsSelectedWorkflow.approvedBy || null,
           approvedAt: opsSelectedWorkflow.approvedAt || null,
         });
         const blobUrl = URL.createObjectURL(result.blob);
         if (format === EXPORT_FORMAT.EXCEL) {
-          downloadBlob(result.blob, `${result.filename}.xlsx`);
+          showWorkflowExcelBanner({
+            blob: result.blob,
+            filename: `${result.filename}.xlsx`,
+            fileId: result.fileId,
+            title: `${t('daily_official') || 'Daily Official'} — ${t('export_excel') || 'Excel'}`,
+          });
         } else {
-          window.open(blobUrl, '_blank');
+          showExportBanner({
+            pillColor: '#059669',
+            icon: <CheckCircle2 size={16} className="shrink-0" />,
+            message: (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0px', fontSize: '0.75rem' }}>
+                {`${t('daily_official') || 'Daily Official'} ${t('export_pdf') || 'PDF'} — ${t('export_success') || 'Export successful'}`}
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
+                  onClick={() => window.open(blobUrl, '_blank')}
+                  style={{ marginLeft: '8px' }}
+                  aria-label={t('open_in_new_tab') || 'Open in new tab'}
+                >
+                  <ExternalLink size={14} />
+                </button>
+              </span>
+            ),
+          });
         }
         setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
       }
     } catch (err) {
       console.error('[WelcomePage] operations workflow export failed:', err);
     }
-  }, [opsSelectedWorkflow, welcomeBoardContext, lang, user, selectedDate]);
+  }, [opsSelectedWorkflow, welcomeBoardContext, lang, user, selectedDate, showExportBanner, showWorkflowExcelBanner, t]);
 
   // Fetch the latest approved weekly attendance violation snapshot and closure status for the selected week (HR/Admin only)
   useEffect(() => {
@@ -2284,8 +2442,10 @@ const WelcomePage = () => {
             isDark={isDark}
             isRTL={isRTL}
             t={t}
+            termRange={termRange}
             weekNavPrefix={weeklyWorkflowInitiateButton}
             opsNavSuffix={opsNavSuffix}
+            scheduledDayIndexes={scheduledDayIndexes}
           />
         </DraggableFloatingPanel>
       )}
@@ -2690,12 +2850,14 @@ const WelcomePage = () => {
                   dayFocus={scheduleDayFocus}
                   setDayFocus={setScheduleDayFocus}
                   hideWeekends={hideWeekends}
+                  termRange={termRange}
                   isInstructorOnly={isInstructorOnly}
                   isDark={isDark}
                   isRTL={isRTL}
                   t={t}
                   weekNavPrefix={weeklyWorkflowInitiateButton}
                   opsNavSuffix={opsNavSuffix}
+                  scheduledDayIndexes={scheduledDayIndexes}
                 />
               )}
             </Box>
@@ -2737,7 +2899,7 @@ const WelcomePage = () => {
                       onToggleExpand={handleToggleScheduleExpand}
                       hideNotesParticipation={hideNotesParticipation}
                       hideNotesComments={hideNotesComments}
-                      hideParticipation={!canViewParticipation({ isInstructor, isAdmin, isHR, isSuperAdmin })}
+                      hideParticipation={!canViewParticipation({ isInstructor, isAdmin, isHR, isSuperAdmin, isProgramCommander })}
                       hideTooltips={isInstructorOnly}
                       hideLegend={false}
                       isInstructorViewer={isInstructorOnly}
@@ -2748,20 +2910,6 @@ const WelcomePage = () => {
                       onExportWeeklySchedule={handleExportWeeklySchedule}
                       onExportDailyTemplate={handleExportDailyTemplate}
                     />
-                    {selectedSlot && !menuAnchorEl && selectedSession && !isInstructorOnly && !isAdmin && !isSuperAdmin && !isScheduleLocked && (
-                      <ScheduleSpeedDial
-                        session={selectedSession}
-                        selectedDate={clickedDate || selectedDate}
-                        program={selection?.program}
-                        academicTerm={selection?.academicTerm}
-                        onClose={handleClearSelection}
-                        onOpenInbox={handleOpenInbox}
-                        onOpenHistory={handleOpenHistory}
-                        onOpenNotifications={handleOpenNotifications}
-                        pdfOnly={tabParam === 'schedule'}
-                        onExportSuccess={showExportBanner}
-                      />
-                    )}
                   </div>
                 )}
 
@@ -2796,6 +2944,7 @@ const WelcomePage = () => {
                   violationsViewMode={violationsViewMode}
                   expanded={violationsExpanded}
                   onToggleExpand={handleToggleViolationsExpand}
+                  onExportSuccess={showExportBanner}
                 />
               </Box>
             )}
@@ -3318,6 +3467,17 @@ const WelcomePage = () => {
             </AnnouncementTag>
             <AnnouncementTitle className="text-xs font-medium gap-1.5">
               {exportBanner.message}
+              {exportBanner.actions?.map((act, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
+                  onClick={act.onClick}
+                >
+                  {act.icon}
+                  {act.label}
+                </button>
+              ))}
               <button
                 type="button"
                 className="ml-0.5 shrink-0 rounded-full p-0.5 hover:bg-white/25 transition-colors"

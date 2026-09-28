@@ -554,22 +554,22 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false, 
     flexDirection: 'column',
     alignItems: 'flex-start',
     width: '100%',
-    marginBottom: '12px',
-    paddingBottom: '8px',
-    gap: '8px',
+    marginBottom: '8px',
+    paddingBottom: '5px',
+    gap: '5px',
     borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}`,
   }), [isDark]);
 
   const groupToggleBtnStyle = useMemo(() => ({
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '8px',
-    padding: '6px 10px',
+    gap: '5px',
+    padding: '2px 8px',
     borderRadius: '8px',
     border: 'none',
     background: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9',
     color: isDark ? '#e2e8f0' : '#334155',
-    fontSize: '13px',
+    fontSize: '11px',
     fontWeight: 600,
     cursor: 'pointer',
     transition: 'all 0.2s ease',
@@ -692,8 +692,8 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false, 
           <DayFilterBanner date={date} lang={lang} t={t} isDark={isDark} />
         )}
         {lectureLog.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', padding: '6px 10px', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff' }}>
-            {getThemedIcon('ui', 'search', 17, theme)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', padding: '4px 10px', borderRadius: '8px', border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff' }}>
+            {getThemedIcon('ui', 'search', 15, theme)}
             <input
               type="text"
               value={searchTerm}
@@ -704,7 +704,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false, 
                 border: 'none',
                 background: 'transparent',
                 outline: 'none',
-                fontSize: '16px',
+                fontSize: '13px',
                 color: isDark ? '#f1f5f9' : '#1e293b',
               }}
             />
@@ -1214,22 +1214,22 @@ export function DateGroupedList({
     flexDirection: 'column',
     alignItems: 'flex-start',
     width: '100%',
-    marginBottom: '8px',
-    paddingBottom: '6px',
-    gap: '6px',
+    marginBottom: '6px',
+    paddingBottom: '4px',
+    gap: '4px',
     borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0'}`,
   }), [isDark]);
 
   const groupToggleBtnStyle = useMemo(() => ({
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '6px',
-    padding: '4px 8px',
+    gap: '5px',
+    padding: '2px 6px',
     borderRadius: '8px',
     border: 'none',
     background: isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9',
     color: isDark ? '#e2e8f0' : '#334155',
-    fontSize: '12px',
+    fontSize: '11px',
     fontWeight: 600,
     cursor: 'pointer',
     transition: 'all 0.2s ease',
@@ -1321,15 +1321,15 @@ export function DayFilterBanner({ date, lang, t, isDark }) {
       display: 'flex',
       alignItems: 'center',
       gap: '6px',
-      marginBottom: '12px',
-      padding: '8px 14px',
+      marginBottom: '8px',
+      padding: '6px 12px',
       borderRadius: '8px',
       border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
       background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
-      fontSize: '16px',
+      fontSize: '13px',
       color: isDark ? '#94a3b8' : '#64748b',
     }}>
-      {getThemedIcon('ui', 'calendar', 18, isDark ? 'inverse' : 'primary')}
+      {getThemedIcon('ui', 'calendar', 15, isDark ? 'inverse' : 'primary')}
       <span>{t('showing_history_for') || 'Showing history for'}: <strong style={{ color: isDark ? '#f1f5f9' : '#1e293b' }}>{formatDate(dateStr, lang)}</strong></span>
     </div>
   );

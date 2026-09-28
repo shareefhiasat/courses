@@ -1,4 +1,6 @@
 import * as workspaceDb from '../db/attendance-workspace-postgres.js';
+import { applyListScope } from '../utils/applyListScope.js';
+import { assertProgramInScope, assertClassInScope } from '../utils/scopeAccess.js';
 import { info, error } from '../utils/common/logger.js';
 
 const serviceName = 'attendanceWorkspaceController';
@@ -20,7 +22,7 @@ export const getInstructorPrograms = async (req, res) => {
 
 export const getAllPrograms = async (req, res) => {
   try {
-    const result = await workspaceDb.getAllPrograms();
+    const result = await applyListScope(req, await workspaceDb.getAllPrograms(), 'program');
     return res.json(result);
   } catch (err) {
     error(`${serviceName}:getAllPrograms:error`, { error: err.message });
@@ -31,6 +33,10 @@ export const getAllPrograms = async (req, res) => {
 export const getScheduleGrid = async (req, res) => {
   try {
     const { programId, instructorId, academicTermId, startDate, endDate } = req.query;
+    if (programId) {
+      const guard = await assertProgramInScope(req, programId);
+      if (!guard.ok) return res.status(403).json({ success: false, error: 'Program out of scope' });
+    }
     const result = await workspaceDb.getScheduleGrid({ programId, instructorId, academicTermId, startDate, endDate });
     return res.json(result);
   } catch (err) {
@@ -46,6 +52,8 @@ export const getProgramTerms = async (req, res) => {
     if (!programId) {
       return res.status(400).json({ success: false, error: 'programId is required' });
     }
+    const guard = await assertProgramInScope(req, programId);
+    if (!guard.ok) return res.status(403).json({ success: false, error: 'Program out of scope' });
     const result = await workspaceDb.getProgramTerms({ programId, instructorId });
     return res.json(result);
   } catch (err) {
@@ -60,6 +68,8 @@ export const getWeeklySchedule = async (req, res) => {
     if (!programId) {
       return res.status(400).json({ success: false, error: 'programId is required' });
     }
+    const guard = await assertProgramInScope(req, programId);
+    if (!guard.ok) return res.status(403).json({ success: false, error: 'Program out of scope' });
     const result = await workspaceDb.getWeeklySchedule({
       programId,
       academicTermId,
@@ -80,7 +90,10 @@ export const getScheduleStatus = async (req, res) => {
     }
 
     const ids = classIds ? classIds.split(',').map((id) => parseInt(id)).filter(Boolean) : [];
-    const result = await workspaceDb.getScheduleStatus({ classIds: ids, date });
+    // Scope: drop classes the user can't access
+    const scoped = await Promise.all(ids.map(async (id) => (await assertClassInScope(req, id)).ok ? id : null));
+    const scopedIds = scoped.filter((id) => id != null);
+    const result = await workspaceDb.getScheduleStatus({ classIds: scopedIds, date });
     return res.json(result);
   } catch (err) {
     error(`${serviceName}:getScheduleStatus:error`, { error: err.message });

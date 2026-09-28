@@ -86,10 +86,11 @@ const getImageTypeField = (type) => {
  * Check if user has permission to access target user's images
  */
 const checkImageAccessPermission = async (currentUser, targetDatabaseUserId) => {
-  // Admins, super admins, and HR can access any user's images
+  // Admins, super admins, HR, and program commanders can access any user's images
   if (currentUser.roles.includes(LMS_ROLES.ADMIN) ||
       currentUser.roles.includes(LMS_ROLES.SUPER_ADMIN) ||
-      currentUser.roles.includes(LMS_ROLES.HR)) {
+      currentUser.roles.includes(LMS_ROLES.HR) ||
+      currentUser.roles.includes(LMS_ROLES.PROGRAM_COMMANDER)) {
     return true;
   }
 

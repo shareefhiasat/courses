@@ -854,7 +854,7 @@ export default function SmartDrivePage() {
     } else if (action === 'download') {
       await Promise.all(items.map((item) => {
         if (isDriveFile(item)) {
-          return downloadFile(item.id);
+          return downloadFile(item.id, item.name);
         }
         return Promise.resolve();
       }));

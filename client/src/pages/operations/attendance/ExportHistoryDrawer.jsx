@@ -436,8 +436,12 @@ const ExportHistoryDrawer = ({
   }, [date]);
 
   const filteredHistory = useMemo(() => {
-    if (!targetDate) return history;
-    return history.filter((record) => {
+    // 'other' is a client-only sentinel: everything that is not a known daily/weekly type.
+    const base = typeFilter === 'other'
+      ? history.filter((record) => record.exportType !== 'attendance_daily_official' && record.exportType !== 'official_attendance')
+      : history;
+    if (!targetDate) return base;
+    return base.filter((record) => {
       if (statusFilter !== 'all') {
         const recordStatus = record.metadata?.workflowStatus;
         const isApproved = recordStatus === 'APPROVED' || (!recordStatus && (record.exportType === 'attendance_daily_official' || record.exportType === 'official_attendance'));
@@ -472,7 +476,7 @@ const ExportHistoryDrawer = ({
       }
       return false;
     });
-  }, [history, targetDate, statusFilter]);
+  }, [history, targetDate, statusFilter, typeFilter]);
 
   useEffect(() => {
     onVisibleCount?.(filteredHistory.length);
@@ -482,7 +486,8 @@ const ExportHistoryDrawer = ({
     setLoading(true);
     try {
       const params = { limit: 200 };
-      if (typeFilter !== 'all') params.exportType = typeFilter;
+      // 'other' has no backend exportType — fetch all and filter client-side.
+      if (typeFilter !== 'all' && typeFilter !== 'other') params.exportType = typeFilter;
       if (formatFilter !== 'all') params.format = formatFilter;
       if (search) params.search = search;
       if (classId) params.classId = classId;

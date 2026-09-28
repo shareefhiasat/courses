@@ -5,6 +5,7 @@
 
 import { toast } from 'sonner';
 import { startExportLoading } from '../index.jsx';
+import { openDriveFileInCollabora } from '@utils/collaboraUtils.js';
 
 /** Show the global 'generating report' overlay while fn() runs. */
 export async function withExportLoading(message, fn) {
@@ -37,8 +38,9 @@ export const REPORT_TITLES = {
  * @param {string} lang - 'en' | 'ar'
  * @param {Blob} [blob] - exported file blob; enables the "Open file" action
  * @param {string} [filename] - shown as the toast description
+ * @param {string} [fileId] - persisted drive file id; Excel opens in the Collabora viewer when present
  */
-export function notifyExportSuccess(kind, format, lang, blob, filename) {
+export function notifyExportSuccess(kind, format, lang, blob, filename, fileId) {
   const label = REPORT_TITLES[kind]?.[lang === 'ar' ? 'ar' : 'en'] || kind;
   const fmt = format === 'excel' ? 'Excel' : 'PDF';
   const done = lang === 'ar' ? 'تم التصدير بنجاح' : 'Export successful';
@@ -57,8 +59,11 @@ export function notifyExportSuccess(kind, format, lang, blob, filename) {
     action: blobUrl
       ? {
           label: openLabel,
-          onClick: () => {
+          onClick: async () => {
             if (format === 'excel') {
+              // Prefer the Collabora viewer when the export was persisted to Drive;
+              // fall back to a direct blob download otherwise.
+              if (fileId && (await openDriveFileInCollabora(fileId))) return;
               const a = document.createElement('a');
               a.href = blobUrl;
               a.download = filename || 'export.xlsx';

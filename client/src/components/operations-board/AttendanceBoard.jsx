@@ -11,7 +11,7 @@ import {
   KanbanCards,
   KanbanCard,
 } from '@/components/kibo-ui/kanban';
-import { Star, ChevronRight, ChevronLeft, Circle, NotebookPen, Award, Loader2, Lock, GitBranch, FilePenLine, FileBarChart, FileText, FileSpreadsheet, Layers } from 'lucide-react';
+import { Star, ChevronRight, ChevronLeft, Circle, NotebookPen, Award, Loader2, Lock, GitBranch, FilePenLine, FileBarChart, FileText, FileSpreadsheet, Layers, CheckCircle2, ExternalLink, Paperclip } from 'lucide-react';
 import BoardStudentAvatar from './BoardStudentAvatar.jsx';
 import BoardLaneHeader from './BoardLaneHeader.jsx';
 import {
@@ -163,7 +163,7 @@ function resolveDropColumn(over, columns, data) {
   return columns.find((col) => col.id === over.id)?.id || null;
 }
 
-function AttendanceCardHoverTooltip({ item, stats, participationCount, participationItems = [], t, lang, roleContext = {}, columns = [], onMoveLeft, onMoveRight, onQuickAction, readOnly = false, lockReason = '', lockReasonType = '', lockStatusCounts = null }) {
+function AttendanceCardHoverTooltip({ item, stats, participationCount, participationItems = [], t, lang, roleContext = {}, columns = [], onMoveLeft, onMoveRight, onQuickAction, onActionBanner, readOnly = false, lockReason = '', lockReasonType = '', lockStatusCounts = null }) {
   const { user } = useAuth();
   const studentName = resolveBoardStudentName(item, lang);
   const runReport = (scope, format) => (e) => {
@@ -182,12 +182,38 @@ function AttendanceCardHoverTooltip({ item, stats, participationCount, participa
       format,
       lang,
       user,
+      notify: false,
       metadata: {
         className: item.classNameEn || item.className,
         classNameAr: item.classNameAr,
         subjectName: item.subjectName,
         programName: item.programName,
       },
+    }).then(({ blob, filename } = {}) => {
+      if (!onActionBanner || !blob) return;
+      const blobUrl = URL.createObjectURL(blob);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5 * 60 * 1000);
+      const openFile = () => {
+        if (format === 'excel') {
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = filename || 'export.xlsx';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        } else {
+          window.open(blobUrl, '_blank');
+        }
+      };
+      const fmt = format === 'excel' ? 'Excel' : 'PDF';
+      const done = lang === 'ar' ? 'تم التصدير بنجاح' : 'Export successful';
+      const openLabel = lang === 'ar' ? 'فتح الملف' : 'Open file';
+      onActionBanner({
+        pillColor: '#059669',
+        icon: <CheckCircle2 size={16} className="shrink-0" />,
+        message: `${t('report_student_summary') || 'Student Summary Report'} — ${fmt} — ${done}`,
+        action: { label: openLabel, icon: <ExternalLink size={14} />, onClick: openFile },
+      });
     }).catch((err) => console.error('[Board] student summary export failed:', err));
   };
   const displayColumn = maskAttendanceColumnForHR(item.column, roleContext);
@@ -201,6 +227,10 @@ function AttendanceCardHoverTooltip({ item, stats, participationCount, participa
   const isRTL = lang === 'ar';
   const labelColor = '#64748b';
   const nameColor = '#1e293b';
+  // Note/attachment saved when the card was moved to Excused/Human Case.
+  const attachmentUrl = item.attachmentUrl || item.raw?.attachmentUrl || null;
+  const attachmentName = item.attachmentName || item.raw?.attachmentName || null;
+  const canReviseNote = !readOnly && !hidePrivacy && !!onQuickAction;
 
   const colIds = (columns || []).map((c) => c.id);
   const currentIdx = colIds.indexOf(item.column);
@@ -307,7 +337,7 @@ function AttendanceCardHoverTooltip({ item, stats, participationCount, participa
           </div>
         </div>
       )}
-      {!hidePrivacy && (item.notes || participationCount > 0) && (
+      {!hidePrivacy && (item.notes || attachmentUrl || participationCount > 0) && (
         <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid rgba(148,163,184,0.35)' }}>
           {item.notes && (() => {
             const notesList = (Array.isArray(item.notes) ? item.notes : [item.notes])
@@ -327,12 +357,33 @@ function AttendanceCardHoverTooltip({ item, stats, participationCount, participa
                 color="#ef4444"
                 placement="top"
               >
-                <div style={{ marginBottom: 2, color: '#ef4444', fontWeight: 600, cursor: 'default' }}>
+                <div
+                  role={canReviseNote ? 'button' : undefined}
+                  onClick={canReviseNote ? (e) => { e.stopPropagation(); onQuickAction(item, 'note'); } : undefined}
+                  style={{ marginBottom: 2, color: '#ef4444', fontWeight: 600, cursor: canReviseNote ? 'pointer' : 'default', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                >
+                  <NotebookPen size={12} />
                   {notesList.length || 1} {t('operations_board_has_note') || 'Has a note'}
                 </div>
               </ColoredTooltip>
             );
           })()}
+          {attachmentUrl && (
+            <ColoredTooltip
+              title={attachmentName || t('operations_board_view_attachment') || 'View attachment'}
+              color="#0ea5e9"
+              placement="top"
+            >
+              <div
+                role="button"
+                onClick={(e) => { e.stopPropagation(); window.open(attachmentUrl, '_blank', 'noopener,noreferrer'); }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 2, color: '#0ea5e9', fontWeight: 600, cursor: 'pointer' }}
+              >
+                <Paperclip size={12} />
+                {attachmentName || (t('operations_board_view_attachment') || 'View attachment')}
+              </div>
+            </ColoredTooltip>
+          )}
           {showParticipation && participationCount > 0 && (() => {
             const formatDayMonth = (date) => {
               const formatted = formatDateShort(date, lang);
@@ -474,6 +525,7 @@ export default function AttendanceBoard({
   collapsedLanes = new Set(),
   onToggleLaneCollapse,
   onBulkMove,
+  onActionBanner,
   participationRefreshKey = 0,
   fontScale = 100,
   showAvatars = true,
@@ -702,7 +754,8 @@ export default function AttendanceBoard({
   const handleOpenQuickAction = useCallback((item, type) => {
     if (readOnly) return;
     if (type === 'participation' && !participationViewer) return;
-    const initialText = '';
+    // Prefill existing note so clicking the note icon revises it in place.
+    const initialText = type === 'note' && typeof item?.notes === 'string' ? item.notes : '';
     const initialPoints = 1;
     setQuickAction({ open: true, item, type, text: initialText, points: initialPoints, saving: false, error: null });
   }, [readOnly, participationViewer]);
@@ -1034,6 +1087,7 @@ export default function AttendanceBoard({
                         onMoveLeft={handleQuickRevert}
                         onMoveRight={handleQuickAdvance}
                         onQuickAction={handleOpenQuickAction}
+                        onActionBanner={onActionBanner}
                         readOnly={readOnly}
                         lockReason={lockReason}
                         lockReasonType={lockReasonType}

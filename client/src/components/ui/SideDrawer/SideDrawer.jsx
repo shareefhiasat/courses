@@ -43,7 +43,7 @@ const AUTO_HIDE_STRIP_PX = 8;
 const AUTO_HIDE_LEAVE_DELAY_MS = 250;
 
 const SideDrawer = ({ isOpen, onClose, onOpen }) => {
-  const { user, isAdmin, isSuperAdmin, isHR, isInstructor, role, impersonating, stopImpersonation, logout } = useAuth();
+  const { user, isAdmin, isProgramCommander, isSuperAdmin, isHR, isInstructor, role, impersonating, stopImpersonation, logout } = useAuth();
   const { t, lang } = useLang();
   const toInitCap = (text) => {
     if (!text || lang === 'ar') return text;
@@ -867,6 +867,16 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
   // Program supervisor admin menu (scoped admin, no system tools)
   const programAdminLinks = [
     {
+      id: 'main-progadmin',
+      label: nl('main', 'Main'),
+      icon: getThemedIcon('ui', 'home', 18, theme),
+      children: [
+        { id: 'student-dashboard-progadmin', path: '/student-dashboard', screenId: 'student-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('student_dashboard', 'Student Dashboard') },
+        { id: 'summary-dashboard-progadmin', path: '/summary-dashboard', screenId: 'summary-dashboard', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('summary_dashboard', 'Summary Dashboard') },
+        { id: 'scheduling-calendar-progadmin', path: '/scheduling-calendar', screenId: 'scheduling-calendar', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('scheduling_calendar', 'Scheduling Calendar') },
+      ],
+    },
+    {
       id: 'drive-progadmin',
       label: nl('drive', 'Drive'),
       icon: getThemedIcon('ui', 'hard_drive', 18, theme),
@@ -923,7 +933,7 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
           label: nl('permission_matrix', 'Permission Matrix'),
         });
       }
-    } else if (isAdmin) {
+    } else if (isAdmin || isProgramCommander) {
       links = [...programAdminLinks];
     } else if (isInstructor) {
       links = [...instructorLinks];
@@ -1184,7 +1194,14 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
                     </div>
                     {/* Role badge overlay */}
                     {(() => {
-                      const role = resolveUserRole(user);
+                      // Prefer program_commander — resolveUserRole's priority
+                      // list doesn't include it, so commander+admin users would
+                      // otherwise get the generic admin badge.
+                      const role = isSuperAdmin
+                        ? resolveUserRole(user)
+                        : isProgramCommander
+                          ? 'program_commander'
+                          : resolveUserRole(user);
                       if (!role) return null;
                       const roleIcon = getUserRoleIcon(role);
                       const roleColor = getUserRoleColor(role);

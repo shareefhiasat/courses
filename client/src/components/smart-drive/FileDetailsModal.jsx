@@ -277,7 +277,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
   const footer = (
     <div className="flex items-center gap-3">
       {onDownload && (
-        <Button variant="primary" onClick={() => onDownload(file.id)} data-tour="details-modal-download">
+        <Button variant="primary" onClick={() => onDownload(file.id, file.name)} data-tour="details-modal-download">
           {t('drive.download')}
         </Button>
       )}
@@ -513,7 +513,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
               <div style={{ padding: '2rem', color: 'var(--text-muted, #6b7280)', textAlign: 'center' }}>
                 <p style={{ marginBottom: '1rem' }}>{t('drive.previewNotAvailable')}</p>
                 {onDownload && (
-                  <Button variant="primary" onClick={() => onDownload(file.id)}>
+                  <Button variant="primary" onClick={() => onDownload(file.id, file.name)}>
                     {t('drive.download')}
                   </Button>
                 )}

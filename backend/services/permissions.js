@@ -34,7 +34,7 @@ export const permissionsService = {
       });
       
       // Get all roles
-      const roles = ['super_admin', 'admin', 'hr', 'instructor', 'student'];
+      const roles = ['super_admin', 'admin', 'hr', 'program_commander', 'instructor', 'student'];
       
       // Build tree structure
       const tree = screens.map(screen => ({

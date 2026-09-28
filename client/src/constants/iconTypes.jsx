@@ -73,7 +73,8 @@ export const ICON_TYPES = {
     instructor: <GraduationCap size={16} />,
     hr: <Users size={16} />,
     owner: <Star size={16} />,
-    student: <User size={16} />
+    student: <User size={16} />,
+    program_commander: <Star size={16} />
   },
   
   // Attendance Status Icons
@@ -683,7 +684,8 @@ export const ROLE_COLORS = {
   instructor: '#0ea5e9',
   hr: '#8b5cf6',
   owner: '#f59e0b',
-  student: '#16a34a'
+  student: '#16a34a',
+  program_commander: '#b45309'
 };
 
 export const getUserRoleColor = (role) => {

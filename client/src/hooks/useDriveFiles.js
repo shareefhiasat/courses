@@ -326,7 +326,7 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
     }
   }, [refreshFiles, removeFromState]);
 
-  const downloadFile = useCallback(async (fileId) => {
+  const downloadFile = useCallback(async (fileId, fileName = null) => {
     try {
       // Use apiService to get auth headers automatically
       const response = await apiService.get(`${API_BASE}/files/${fileId}/download`, {
@@ -342,10 +342,14 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
       const blob = response.data || response;
       const blobUrl = window.URL.createObjectURL(blob);
 
+      // Resolve a real filename — blob URLs carry no Content-Disposition,
+      // so an empty download attribute names the file after the blob UUID.
+      const known = fileName || files.find((f) => String(f.id) === String(fileId))?.name;
+
       // Create a hidden anchor tag to trigger download from blob
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = ''; // Let browser determine filename from Content-Disposition
+      link.download = known || 'download';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

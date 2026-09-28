@@ -272,7 +272,7 @@ const INSTRUCTOR_SELECT_WIDTH = { minWidth: '360px', width: '360px', flex: '0 1 
 const ROOM_SELECT_WIDTH = { minWidth: '420px', width: '420px', flex: '0 0 420px', maxWidth: '100%' };
 
 const SchedulingCalendarPage = () => {
-  const { user, isAdmin, isHR, isSuperAdmin, isInstructor } = useAuth();
+  const { user, isProgramCommander, isHR, isSuperAdmin, isInstructor } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
@@ -502,7 +502,7 @@ const SchedulingCalendarPage = () => {
   });
 
   const canEditCalendar = isHR || isSuperAdmin;
-  const canViewCalendar = canEditCalendar || isAdmin || isInstructor;
+  const canViewCalendar = canEditCalendar || isProgramCommander || isInstructor;
 
   useEffect(() => {
     currentDateRef.current = currentDate;
@@ -1503,7 +1503,7 @@ const SchedulingCalendarPage = () => {
     if (eventType === 'session') {
       const session = event.raw.session;
       if (session) setPopupSession(session);
-    } else if (eventType === 'break') {
+    } else if (eventType === 'break' && canEditCalendar) {
       setCalendarEventDialog({
         open: true,
         mode: 'edit',
@@ -1512,7 +1512,7 @@ const SchedulingCalendarPage = () => {
         initialStart: event.start,
         initialEnd: event.end,
       });
-    } else if (eventType === 'holiday') {
+    } else if (eventType === 'holiday' && canEditCalendar) {
       setCalendarEventDialog({
         open: true,
         mode: 'edit',
@@ -1522,7 +1522,7 @@ const SchedulingCalendarPage = () => {
         initialEnd: event.end,
       });
     }
-  }, []);
+  }, [canEditCalendar]);
 
   // Handle calendar drag-to-create (select time range) - open unified dialog
   const onBeforeCreateEvent = useCallback((eventData) => {
@@ -2178,6 +2178,10 @@ const SchedulingCalendarPage = () => {
     console.log('[SchedulingCalendarPage] Drop data:', { classItemData, eventType });
 
     if (eventType === 'break' || eventType === 'holiday') {
+      if (!canEditCalendar) {
+        console.log('[SchedulingCalendarPage] View-only role, ignoring event drop');
+        return;
+      }
       console.log('[SchedulingCalendarPage] Processing event type drop:', eventType);
       const cal = calendarRef.current?.getInstance();
       const rawAnchor = cal?.getDate?.();
@@ -2259,7 +2263,7 @@ const SchedulingCalendarPage = () => {
     setModalClassroomId(defaultClassroomId || null);
     setValidationResult(null);
     setShowCreateModal(true);
-  }, [mainTab, currentDate, currentView, hideWeekends, instructors]);
+  }, [mainTab, currentDate, currentView, hideWeekends, instructors, canEditCalendar]);
 
   // Handle session creation from modal
   const handleCreateSession = useCallback(async () => {
@@ -3323,7 +3327,7 @@ const SchedulingCalendarPage = () => {
               </div>
             )}
 
-            {mainTab === 'sessions' && (
+            {mainTab === 'sessions' && canEditCalendar && (
               <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexShrink: 0 }}>
                 <div style={{ width: '1px', backgroundColor: theme === 'dark' ? '#374151' : '#d1d5db', margin: '0 0.25rem' }} />
                 <button

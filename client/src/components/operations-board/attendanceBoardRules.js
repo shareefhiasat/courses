@@ -30,7 +30,7 @@ export function getAttendanceColumnsForRole(roleContext = {}) {
 }
 
 export function canMoveAttendanceToColumn(targetColumn, roleContext = {}) {
-  const { isInstructor, isAdmin, isHR, isSuperAdmin } = roleContext;
+  const { isInstructor, isAdmin, isHR, isSuperAdmin, isProgramCommander } = roleContext;
   const isInstructorOnly = isInstructor && !isAdmin && !isHR && !isSuperAdmin;
   if (isInstructorOnly) {
     return INSTRUCTOR_MOVE_TARGETS.has(targetColumn);
@@ -41,6 +41,10 @@ export function canMoveAttendanceToColumn(targetColumn, roleContext = {}) {
   }
   if (isHROnlyViewer(roleContext)) {
     return HR_MOVE_TARGETS.has(targetColumn);
+  }
+  // Program commander is a read-only observer (view-only permissions); no lane moves
+  if (isProgramCommander) {
+    return false;
   }
   return Object.values(ATTENDANCE_BOARD_LANES).includes(targetColumn);
 }

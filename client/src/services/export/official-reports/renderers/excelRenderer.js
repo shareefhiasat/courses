@@ -1300,6 +1300,9 @@ export async function exportStudentSummaryExcel(data) {
  * @param {Array} dataList - prepared student summary data objects
  */
 export async function exportClassDeductionExcel(dataList) {
+  if (!Array.isArray(dataList) || dataList.length === 0) {
+    throw new Error('No students to export — the deduction report would be empty');
+  }
   const workbook = new ExcelJS.Workbook();
   const usedNames = new Set();
   for (const [i, data] of dataList.entries()) {
@@ -1513,6 +1516,9 @@ export async function exportClassSummaryExcel(data) {
  * @param {Array} dataList - prepared class summary data objects
  */
 export async function exportProgramSummaryExcel(dataList) {
+  if (!Array.isArray(dataList) || dataList.length === 0) {
+    throw new Error('No classes to export — the program summary report would be empty');
+  }
   const workbook = new ExcelJS.Workbook();
   const usedNames = new Set();
   for (let i = 0; i < dataList.length; i++) {

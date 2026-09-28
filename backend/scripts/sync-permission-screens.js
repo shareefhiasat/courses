@@ -40,10 +40,20 @@ const ADMIN_VIEW_ONLY_SCREENS = new Set([
 ]);
 
 const ADMIN_ALLOWED_SCREENS = new Set([
-  'welcome', 'summary-dashboard', 'qr-scanner', 'scheduling-calendar', 'attendance', 'operations',
-  'drive', 'student-profile', 'profile', 'chat', 'notifications', 'workflow',
+  'welcome', 'qr-scanner', 'attendance', 'operations',
+  'drive', 'student-dashboard', 'student-profile', 'profile', 'chat', 'notifications', 'workflow',
   'classes-availability', 'instructor-availability-view', 'room-availability-view',
 ]);
+
+// Program commander: admin-like visibility plus view-only access to HR screens
+// (summary-dashboard, scheduling-calendar). No create/update/delete on those.
+const PROGRAM_COMMANDER_VIEW_SCREENS = new Set([
+  'welcome', 'attendance', 'operations', 'drive', 'student-dashboard', 'student-profile',
+  'profile', 'chat', 'notifications', 'workflow', 'qr-scanner',
+  'classes-availability', 'instructor-availability-view', 'room-availability-view',
+  'summary-dashboard', 'scheduling-calendar',
+]);
+const PROGRAM_COMMANDER_EXPORT_SCREENS = new Set(['summary-dashboard']);
 
 const DEFAULT_ROLE_PRESETS = {
   super_admin: () => true,
@@ -57,6 +67,14 @@ const DEFAULT_ROLE_PRESETS = {
     if (ADMIN_VIEW_ONLY_SCREENS.has(screen.screenId)) return opType === 'canView';
     if (screen.category === 'settings') return opType === 'canView';
     return ['canView', 'canCreate', 'canUpdate', 'canExport'].includes(opType);
+  },
+  program_commander: (screen, opType) => {
+    if (['permission-matrix', 'user-category-access', 'users'].includes(screen.screenId)) return false;
+    if (!PROGRAM_COMMANDER_VIEW_SCREENS.has(screen.screenId)) return false;
+    if (PROGRAM_COMMANDER_EXPORT_SCREENS.has(screen.screenId)) {
+      return ['canView', 'canExport'].includes(opType);
+    }
+    return opType === 'canView';
   },
   instructor: (screen, opType) => {
     if (!INSTRUCTOR_ALLOWED_SCREENS.has(screen.screenId)) return false;

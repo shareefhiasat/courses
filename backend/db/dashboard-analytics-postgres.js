@@ -274,7 +274,7 @@ async function getActivityAnalytics({ userId, role, scope = 'all', classId }) {
   if (isInstructor) {
     // Get instructor's classes
     const enrollments = await prisma.enrollment.findMany({
-      where: { instructorId: userId, status: 'active' },
+      where: { instructorId: userId, status: { code: 'ENROLLED' } },
       select: { classId: true },
     });
     const classIds = enrollments.map(e => e.classId).filter(Boolean);
@@ -282,7 +282,7 @@ async function getActivityAnalytics({ userId, role, scope = 'all', classId }) {
   } else if (!isAdmin && userId) {
     // For students, filter to their enrollments
     const enrollments = await prisma.enrollment.findMany({
-      where: { userId, status: 'active' },
+      where: { userId, status: { code: 'ENROLLED' } },
       select: { classId: true },
     });
     const classIds = enrollments.map(e => e.classId).filter(Boolean);

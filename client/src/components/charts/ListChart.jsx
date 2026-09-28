@@ -742,9 +742,6 @@ function ListChart({
       case 'notes':
         return item.notes || item.comment || '—';
 
-      case 'titleEn':
-        return item.titleEn || getLocalizedName(item, 'en') || '—';
-
       case 'nameEn':
         if (item.nameEn) {
           return item.nameEn || getLocalizedName(item, 'en') || '—';

@@ -29,6 +29,7 @@ import {
   FilePenLine,
   GitBranch,
   ExternalLink,
+  FileSpreadsheet,
 } from 'lucide-react';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import BoardStudentAvatar from '@components/operations-board/BoardStudentAvatar.jsx';
@@ -39,7 +40,8 @@ import {
   approveAttendanceExcuse,
   uploadChatAttachment,
 } from '@services/business/attendanceDeductionService.js';
-import { previewWarningLetter, initiateWarningWorkflow } from '@services/business/violationViewService.js';
+import { previewWarningLetter, exportWarningLetterExcel, initiateWarningWorkflow } from '@services/business/violationViewService.js';
+import { downloadBlob, startExportLoading } from '@services/export/official-reports/index.jsx';
 import {
   getWeekRange,
   getApprovedSnapshotForWeek,
@@ -306,12 +308,34 @@ export default function ViolationReviewDialog({
   const handlePreview = async () => {
     if (!student.warningType || previewing) return;
     setPreviewing(true);
+    const stopLoading = startExportLoading(t('violations.generating_warning_letter') || 'Generating warning letter...');
     try {
       const url = await previewWarningLetter(student, student.warningType, lang, metadata);
       window.open(url, '_blank', 'noopener,noreferrer');
+      toast.success(t('violations.preview_ready') || 'Preview ready');
     } catch (err) {
       setError(err.message || 'Failed to preview warning letter');
+      toast.error(t('violations.preview_warning_failed', { msg: err.message || 'Failed to preview warning letter' }));
     } finally {
+      stopLoading();
+      setPreviewing(false);
+    }
+  };
+
+  // Same warning letter as Excel — generates the workbook and downloads it.
+  const handlePreviewExcel = async () => {
+    if (!student.warningType || previewing) return;
+    setPreviewing(true);
+    const stopLoading = startExportLoading(t('violations.generating_warning_letter') || 'Generating warning letter...');
+    try {
+      const { blob, filename } = await exportWarningLetterExcel(student, student.warningType, lang, metadata);
+      downloadBlob(blob, filename);
+      toast.success(t('export_success') || 'Export successful');
+    } catch (err) {
+      setError(err.message || 'Failed to export warning letter');
+      toast.error(t('violations.preview_warning_failed', { msg: err.message || 'Failed to export warning letter' }));
+    } finally {
+      stopLoading();
       setPreviewing(false);
     }
   };
@@ -820,6 +844,24 @@ export default function ViolationReviewDialog({
                   startIcon={previewing ? <CircularProgress size={16} color="inherit" /> : <Eye size={16} />}
                 >
                   {t('violations.preview')}
+                </Button>
+              </span>
+            </ColoredTooltip>
+            <ColoredTooltip
+              title={t('violations.preview_excel') || 'Excel version'}
+              color="#059669"
+              placement="top"
+            >
+              <span>
+                <Button
+                  onClick={handlePreviewExcel}
+                  disabled={issuing || previewing}
+                  size="small"
+                  variant="outlined"
+                  color="success"
+                  startIcon={previewing ? <CircularProgress size={16} color="inherit" /> : <FileSpreadsheet size={16} />}
+                >
+                  {t('export_excel') || 'Excel'}
                 </Button>
               </span>
             </ColoredTooltip>

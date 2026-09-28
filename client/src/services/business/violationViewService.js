@@ -7,6 +7,7 @@ import { prepareAttendanceWarningData, resolveWarningType } from '../export/offi
 import React from 'react';
 import { AttendanceWarningTemplate } from '../export/official-reports/templates/attendanceWarning.template.jsx';
 import { renderOfficialPdf } from '../export/official-reports/renderers/pdfRenderer.js';
+import { exportAttendanceWarningExcel } from '../export/official-reports/renderers/excelRenderer.js';
 import { getClassesByProgram } from './classService.js';
 import { getClassById } from './classService.js';
 import { apiService } from '../api/apiService.js';
@@ -83,7 +84,7 @@ function sanitize(str) {
   return str ? String(str).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '';
 }
 
-async function buildWarningReportBlob(student, warningType, lang, metadata, { preview = false, workflowStatus, approvedBy, approvedAt } = {}) {
+function buildWarningReportData(student, warningType, lang, metadata, { preview = false, workflowStatus, approvedBy, approvedAt } = {}) {
   const reportData = prepareAttendanceWarningData({
     students: [student],
     metadata,
@@ -100,6 +101,11 @@ async function buildWarningReportBlob(student, warningType, lang, metadata, { pr
     reportData.approvedByUser = null;
     reportData.approvedAt = null;
   }
+  return reportData;
+}
+
+async function buildWarningReportBlob(student, warningType, lang, metadata, opts = {}) {
+  const reportData = buildWarningReportData(student, warningType, lang, metadata, opts);
 
   return renderOfficialPdf(
     React.createElement(AttendanceWarningTemplate, { data: reportData, showWatermark: true }),
@@ -115,6 +121,13 @@ async function buildWarningReportBlob(student, warningType, lang, metadata, { pr
 export async function previewWarningLetter(student, warningType, lang, metadata) {
   const blob = await buildWarningReportBlob(student, warningType, lang, metadata, { preview: true });
   return URL.createObjectURL(blob);
+}
+
+/** Same warning letter as the PDF preview, rendered as an .xlsx workbook. */
+export async function exportWarningLetterExcel(student, warningType, lang, metadata) {
+  const reportData = buildWarningReportData(student, warningType, lang, metadata, { preview: true });
+  const blob = await exportAttendanceWarningExcel(reportData);
+  return { blob, filename: `${reportData.serial}_warning_${sanitize(metadata.className)}.xlsx` };
 }
 
 function blobToBase64(blob) {

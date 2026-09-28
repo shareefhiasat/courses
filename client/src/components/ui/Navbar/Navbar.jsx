@@ -35,7 +35,7 @@ const ACCENT_FALLBACK = DEFAULT_ACCENT;
 
 const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   const authContext = useAuth();
-  const { user, isAdmin, isSuperAdmin, isInstructor, isHR, isStudent, logout, impersonating, stopImpersonation } = authContext || {};
+  const { user, isAdmin, isSuperAdmin, isInstructor, isHR, isStudent, isProgramCommander, logout, impersonating, stopImpersonation } = authContext || {};
   const navigate = useNavigate();
   const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -798,6 +798,13 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     </div>
                     </ColoredTooltip>
                   )}
+                  {isProgramCommander && (
+                    <ColoredTooltip title={t('program_commander') || 'Program Commander'} placement="left" color={getUserRoleColor('program_commander')}>
+                    <div style={{ background: 'transparent', color: '#ffffff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'none' }}>
+                      {React.cloneElement(getUserRoleIcon('program_commander'), { fill: getUserRoleColor('program_commander') })}
+                    </div>
+                    </ColoredTooltip>
+                  )}
                 </div>
                 {showDropdown && (
                   <div className="dropdown-menu" style={{ [lang === 'ar' ? 'left' : 'right']: 0, top: 42, zIndex: 9999 }}>
@@ -843,7 +850,12 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                             {getUserRoleIcon('hr')} {t('hr')}
                           </span>
                         )}
-                        {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
+                        {isProgramCommander && (
+                          <span style={{ color: getUserRoleColor('program_commander'), background: `${getUserRoleColor('program_commander')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            {getUserRoleIcon('program_commander')} {t('program_commander') || 'Program Commander'}
+                          </span>
+                        )}
+                        {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && !isProgramCommander && (
                           <span style={{ color: getUserRoleColor('student'), background: `${getUserRoleColor('student')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>{t('student')}</span>
                         )}
                       </div>
@@ -994,7 +1006,12 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                             {getUserRoleIcon('hr')} {t('hr')}
                           </span>
                         )}
-                        {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
+                        {isProgramCommander && (
+                          <span style={{ color: getUserRoleColor('program_commander'), background: `${getUserRoleColor('program_commander')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
+                            {getUserRoleIcon('program_commander')} {t('program_commander') || 'Program Commander'}
+                          </span>
+                        )}
+                        {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && !isProgramCommander && (
                           <span style={{ color: getUserRoleColor('student'), background: `${getUserRoleColor('student')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>{t('student')}</span>
                         )}
                       </div>

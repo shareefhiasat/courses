@@ -31,7 +31,8 @@ const LMS_ROLES = {
   ADMIN: 'admin',
   HR: 'hr',
   INSTRUCTOR: 'instructor',
-  STUDENT: 'student'
+  STUDENT: 'student',
+  PROGRAM_COMMANDER: 'program_commander'
 };
 
 /**

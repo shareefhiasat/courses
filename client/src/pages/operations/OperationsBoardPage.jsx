@@ -11,7 +11,7 @@ import chatSocket from '@services/realtime/chatSocket.js';
 import { Announcement, AnnouncementTag, AnnouncementTitle } from '@/components/kibo-ui/announcement';
 import { Banner, BannerIcon, BannerTitle, BannerClose } from '@/components/kibo-ui/banner';
 import { toast } from 'sonner';
-import { Undo2, Info, AlertTriangle, CheckCircle2, AlertCircle, X, Lock } from 'lucide-react';
+import { Undo2, Info, AlertTriangle, CheckCircle2, AlertCircle, X, Lock, CalendarX } from 'lucide-react';
 import { isOnboardingTourEnabled, endManualTour } from '@utils/tourConfig.js';
 import './OperationsBoardPage.css';
 import {
@@ -668,6 +668,16 @@ export default function OperationsBoardPage({
     return f;
   }, [searchParams, workflowId, welcomeContext, viewMode, lang]);
 
+  // Day-mode overlay: the selected date falls on a weekday with no scheduled
+  // classes for the in-scope classes (weekend / day off in the weekly template).
+  const isNoClassDay = useMemo(() => {
+    const scheduled = welcomeContext?.scheduledDayIndexes;
+    if (viewMode === 'week' || !scheduled?.size || !filters.date) return false;
+    const iso = typeof filters.date === 'string' ? filters.date.slice(0, 10) : '';
+    if (!iso) return false;
+    return !scheduled.has(new Date(`${iso}T12:00:00`).getDay());
+  }, [welcomeContext, viewMode, filters.date]);
+
   // Auto-switch to attendance lane only when classId first appears and no workflowId is requested
   // Skip in week mode — week mode only supports the workflow/status lane
   // Skip in status lane day view because it now uses a class dropdown for the daily workflow board.
@@ -838,8 +848,21 @@ export default function OperationsBoardPage({
         if (lane === LANES.STATUS && result.data.length === 0 && !noWorkflowsToastShownRef.current) {
           noWorkflowsToastShownRef.current = true;
           toast.info(t('operations_board_no_workflows_banner'), {
+            // Fixed id dedupes StrictMode double-mount / concurrent loads —
+            // sonner replaces a toast with the same id instead of stacking it.
+            id: 'ops-no-workflows',
+            closeButton: false,
             duration: 6000,
             icon: <Info size={16} />,
+            style: {
+              background: theme === 'dark' ? '#0c4a6e' : '#e0f2fe',
+              border: '1px solid rgba(14, 165, 233, 0.45)',
+              boxShadow: '0 8px 24px rgba(14, 165, 233, 0.18)',
+              color: theme === 'dark' ? '#e0f2fe' : '#082f49',
+              fontSize: lang === 'ar' ? '15px' : '13.5px',
+              fontWeight: lang === 'ar' ? 600 : 500,
+              lineHeight: 1.6,
+            },
           });
         }
       } else {
@@ -1643,12 +1666,17 @@ export default function OperationsBoardPage({
           download: false,
           workflowStatus: item.status || null,
         });
-        if (result?.blobUrl) {
-          window.open(result.blobUrl, '_blank');
-        } else if (result?.blob) {
-          const blobUrl = URL.createObjectURL(result.blob);
-          window.open(blobUrl, '_blank');
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        if (result?.blobUrl || result?.blob) {
+          const pdfUrl = result.blobUrl || URL.createObjectURL(result.blob);
+          setTimeout(() => URL.revokeObjectURL(pdfUrl), 5 * 60 * 1000);
+          toast.success(t('file_ready_click_to_open', { label: 'PDF' })?.replace('{label}', 'PDF') || 'PDF file ready', {
+            description: result.filename,
+            duration: 10000,
+            action: {
+              label: t('open_in_new_tab') || 'Open in new tab',
+              onClick: () => window.open(pdfUrl, '_blank'),
+            },
+          });
         } else {
           console.warn('[handlePreviewWorkflow] Weekly preview did not return a PDF');
         }
@@ -1679,8 +1707,15 @@ export default function OperationsBoardPage({
           skipPersist: true,
         });
         const blobUrl = URL.createObjectURL(result.blob);
-        window.open(blobUrl, '_blank');
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 5 * 60 * 1000);
+        toast.success(t('file_ready_click_to_open', { label: 'PDF' })?.replace('{label}', 'PDF') || 'PDF file ready', {
+          description: result.filename,
+          duration: 10000,
+          action: {
+            label: t('open_in_new_tab') || 'Open in new tab',
+            onClick: () => window.open(blobUrl, '_blank'),
+          },
+        });
       }
     } catch (err) {
       console.error('[OperationsBoardPage] preview workflow failed:', err);
@@ -2195,6 +2230,7 @@ export default function OperationsBoardPage({
           showLaneReset={panelTab === 'board' && view === VIEWS.KANBAN}
           showAvatars={showAvatars}
           onToggleShowAvatars={handleToggleShowAvatars}
+          onActionBanner={showActionBanner}
         />
       </div>
 
@@ -2202,7 +2238,14 @@ export default function OperationsBoardPage({
       {panelTab !== 'calendar' && (
       <div ref={boardViewportRef} className="operations-board-viewport flex-1 min-h-0 min-w-0 w-full" data-tour="operations-board-viewport">
         <div className="operations-board-content h-full">
-        {loading ? (
+        {isNoClassDay ? (
+          <div className="flex h-full min-h-[240px] flex-col items-center justify-center gap-2" data-testid="operations-board-no-classes">
+            <CalendarX size={32} style={{ color: theme === 'dark' ? '#64748b' : '#94a3b8' }} />
+            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: theme === 'dark' ? '#cbd5e1' : '#475569' }}>
+              {t('operations_board_no_classes_day') || 'No classes scheduled for this day'}
+            </div>
+          </div>
+        ) : loading ? (
           <div className="flex h-full min-h-[240px] items-center justify-center" data-testid="operations-board-loading">
             <SimpleLoading type="brand" size="lg" />
           </div>
@@ -2231,6 +2274,7 @@ export default function OperationsBoardPage({
             collapsedLanes={collapsedSet}
             onToggleLaneCollapse={(columnId) => toggleLaneCollapse(boardCollapseKey, columnId)}
             onBulkMove={handleBulkMove}
+            onActionBanner={showActionBanner}
             participationRefreshKey={participationRefreshKey}
             fontScale={fontScale}
             showAvatars={showAvatars}
@@ -2353,16 +2397,25 @@ export default function OperationsBoardPage({
                   · {t('operations_board_notification_sent') || 'Notification sent'}
                 </span>
               )}
-              {actionBanner.onUndo && (
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
-                  onClick={actionBanner.onUndo}
-                  data-testid="operations-board-action-undo"
-                >
-                  <Undo2 size={14} />
-                  {t('operations_board_undo') || 'Undo'}
-                </button>
+              {(actionBanner.onUndo || actionBanner.action || actionBanner.actions?.length) && (
+                (actionBanner.actions || [
+                  actionBanner.action || {
+                    icon: <Undo2 size={14} />,
+                    label: t('operations_board_undo') || 'Undo',
+                    onClick: actionBanner.onUndo,
+                  },
+                ]).map((act, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
+                    onClick={act.onClick}
+                    data-testid={i === 0 ? 'operations-board-action-undo' : `operations-board-action-${i}`}
+                  >
+                    {act.icon}
+                    {act.label}
+                  </button>
+                ))
               )}
               <button
                 type="button"

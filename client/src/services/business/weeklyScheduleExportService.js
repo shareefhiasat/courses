@@ -75,6 +75,7 @@ async function loadFromAttendanceWorkspace({ programId, academicTermId }) {
     classes = [],
     breakSessions = [],
     instructorAvailability = [],
+    termRange = null,
   } = result.data;
 
   const programTimeSlots = timeSlots
@@ -87,6 +88,7 @@ async function loadFromAttendanceWorkspace({ programId, academicTermId }) {
     instructorAvailability,
     timeSlots: programTimeSlots,
     cohortClasses: classes,
+    termRange,
     fromDatabase: sessions.length > 0,
   };
 }
@@ -189,12 +191,23 @@ export async function loadWeeklyScheduleSources({
     .filter((ts) => ts.isActive !== false)
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
+  let termRange = null;
+  for (const c of cohortClasses) {
+    if (c.startDate && (!termRange?.startDate || new Date(c.startDate) < new Date(termRange.startDate))) {
+      termRange = { ...(termRange || {}), startDate: c.startDate };
+    }
+    if (c.endDate && (!termRange?.endDate || new Date(c.endDate) > new Date(termRange.endDate))) {
+      termRange = { ...(termRange || {}), endDate: c.endDate };
+    }
+  }
+
   return {
     sessions,
     breakSessions: breaksRes?.data || breaksRes?.payload || [],
     instructorAvailability: availRes?.data || availRes?.payload || [],
     timeSlots: programTimeSlots,
     cohortClasses,
+    termRange,
     fromDatabase: sessions.length > 0,
   };
 }

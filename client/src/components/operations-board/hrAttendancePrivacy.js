@@ -2,12 +2,18 @@ import { ATTENDANCE_COLUMNS } from '@services/business/operationsBoardService.js
 
 /** HR-only viewers (not also Admin/SuperAdmin). */
 export function isHROnlyViewer(roleContext = {}) {
-  return Boolean(roleContext.isHR && !roleContext.isAdmin && !roleContext.isSuperAdmin);
+  return Boolean(roleContext.isHR && !roleContext.isAdmin && !roleContext.isSuperAdmin && !roleContext.isProgramCommander);
 }
 
 /** Instructor-only viewers (not also Admin/HR/SuperAdmin). */
 export function isInstructorOnlyViewer(roleContext = {}) {
-  return Boolean(roleContext.isInstructor && !roleContext.isAdmin && !roleContext.isHR && !roleContext.isSuperAdmin);
+  return Boolean(
+    roleContext.isInstructor
+    && !roleContext.isAdmin
+    && !roleContext.isHR
+    && !roleContext.isSuperAdmin
+    && !roleContext.isProgramCommander
+  );
 }
 
 /** Map Late → Present for HR-facing attendance display. @deprecated HR sees real attendance statuses. */
@@ -43,7 +49,7 @@ export function shouldHideNotesCommentsOnly(roleContext = {}) {
 
 /** Participation is instructor-only by default; admins and superadmins can also view it. */
 export function canViewParticipation(roleContext = {}) {
-  return isInstructorOnlyViewer(roleContext) || Boolean(roleContext.isAdmin) || Boolean(roleContext.isSuperAdmin);
+  return isInstructorOnlyViewer(roleContext) || Boolean(roleContext.isAdmin) || Boolean(roleContext.isSuperAdmin) || Boolean(roleContext.isProgramCommander);
 }
 
 export function filterActivityEntriesForHR(entries, roleContext = {}) {

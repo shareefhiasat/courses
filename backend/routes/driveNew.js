@@ -442,6 +442,45 @@ router.get('/files/:fileId/collabora/edit', async (req, res) => {
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
+// Read-only Collabora view — same flow as edit but with a 'read' WOPI token
+// and only VIEW permission required.
+router.get('/files/:fileId/collabora/view', async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    const { resolveDriveActor } = await import('../utils/driveActor.js');
+    const actor = await resolveDriveActor(req);
+
+    if (!actor?.userId) {
+      return res.status(401).json({ success: false, error: 'User not authenticated' });
+    }
+
+    const file = await prisma.file.findUnique({ where: { id: fileId } });
+    if (!file) {
+      return res.status(404).json({ success: false, error: 'File not found' });
+    }
+
+    const { requireFilePermission } = await import('../services/permissionService.js');
+    await requireFilePermission(fileId, { userId: actor.userId, roles: actor.roles }, 'VIEW');
+
+    const user = await prisma.user.findUnique({ where: { id: actor.userId } });
+    const userInfo = {
+      displayName: user?.displayName || 'User',
+      email: user?.email || '',
+      id: actor.userId,
+    };
+
+    const { generateWopiToken } = await import('../services/wopiService.js');
+    const wopiToken = generateWopiToken(actor.userId, fileId, 'read', userInfo);
+
+    return res.json({ success: true, payload: { wopiToken } });
+  } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ success: false, error: error.message });
+    }
+    console.error('[Collabora View] Error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
 router.get('/files/:fileId/download', async (req, res, next) => {
   try {
     const { fileId } = req.params;

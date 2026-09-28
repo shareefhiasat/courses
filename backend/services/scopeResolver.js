@@ -96,6 +96,32 @@ export async function getEffectiveDataScope(userId, roles = []) {
     };
   }
 
+  // Program Commander: monitors all programs — unrestricted read scope
+  if (hasRole(normalized, ROLES.PROGRAM_COMMANDER)) {
+    return {
+      unrestricted: true,
+      categoryIds: [],
+      programIds: [],
+      subjectIds: [],
+      classIds: [],
+      source: 'program_commander',
+      visibility: {
+        programs: 'ALL',
+        subjects: 'ALL',
+        classes: 'ALL',
+        instructors: 'ALL',
+        rooms: 'ALL',
+      },
+      explicitGrants: {
+        instructorIds: [],
+        roomIds: [],
+        programIds: [],
+        subjectIds: [],
+        classIds: [],
+      },
+    };
+  }
+
   // Admin and HR: unrestricted by default, unless explicit UCA restrictions exist
   if (hasRole(normalized, ROLES.ADMIN) || hasRole(normalized, ROLES.HR)) {
     // Check if any UCA entries exist for this user

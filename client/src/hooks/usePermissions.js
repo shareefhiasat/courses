@@ -3,7 +3,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { resolveScreenIdFromNavItem } from '@config/navigationRegistry.js';
 import { hasPermissionWithDeps } from '@constants/permissionDependencies.js';
 
-const ROLE_HIERARCHY = ['student', 'instructor', 'hr', 'admin', 'super_admin'];
+const ROLE_HIERARCHY = ['student', 'instructor', 'hr', 'admin', 'program_commander', 'super_admin'];
 
 function roleHasPermission(operation, roleCode) {
   const perm = operation.permissions.find((p) => p.role === roleCode);
@@ -15,6 +15,7 @@ export const usePermissions = () => {
     isSuperAdmin,
     isHR,
     isAdmin,
+    isProgramCommander,
     isInstructor,
     isStudent,
     permissions: permissionsData,
@@ -27,12 +28,13 @@ export const usePermissions = () => {
   const roleCodes = useMemo(() => {
     const roles = [];
     if (isSuperAdmin) roles.push('super_admin');
+    if (isProgramCommander) roles.push('program_commander');
     if (isAdmin) roles.push('admin');
     if (isHR) roles.push('hr');
     if (isInstructor) roles.push('instructor');
     if (isStudent) roles.push('student');
     return roles;
-  }, [isSuperAdmin, isHR, isAdmin, isInstructor, isStudent]);
+  }, [isSuperAdmin, isProgramCommander, isHR, isAdmin, isInstructor, isStudent]);
 
   const highestRoleCode = useMemo(() => {
     if (roleCodes.length === 0) return null;

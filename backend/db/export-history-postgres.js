@@ -10,6 +10,7 @@ import prisma from './prismaClient.js';
 const ALLOWED_EXPORT_TYPES = [
   'attendance_daily',
   'attendance_daily_official',
+  'attendance_daily_template',
   'official_attendance',
   'behavioral',
   'penalty',
@@ -17,9 +18,13 @@ const ALLOWED_EXPORT_TYPES = [
   'marks_semester_certificate',
   'marks_class_subject',
   'marks_qualitative_card',
+  'marks_subject_sheet',
   'marks_warning_first',
   'marks_warning_final',
   'weekly_class_schedule',
+  'class_summary_report',
+  'class_deduction_report',
+  'program_summary_report',
 ];
 const ALLOWED_FORMATS = ['pdf', 'excel', 'csv'];
 const MAX_LIMIT = 200;

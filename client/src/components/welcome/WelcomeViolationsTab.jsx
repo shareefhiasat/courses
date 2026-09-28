@@ -40,6 +40,9 @@ import {
   Users,
   Maximize2,
   Minimize2,
+  Download,
+  Hash,
+  Sigma,
 } from 'lucide-react';
 import {
   Table,
@@ -68,8 +71,10 @@ import {
 import { getWarningWorkflowHistory } from '@services/business/workflowSnapshotService.js';
 import { format, parseISO } from 'date-fns';
 import { formatForDateInput } from '@utils/date-formatter.js';
+import { openDriveFileInCollabora } from '@utils/collaboraUtils.js';
 import { getWeekRange } from '@services/business/workflowSnapshotService.js';
 import { exportClassSummaryReport, exportProgramSummaryReport } from '@services/business/studentSummaryReportService.js';
+import { startExportLoading } from '@services/export/official-reports/index.jsx';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
@@ -203,6 +208,7 @@ function getBreakdownItems(s, t) {
     count: s[item.studentKey] || 0,
     label: t(item.labelKey),
     note: item.noteKey ? t(item.noteKey) : null,
+    unit: 'count',
   }));
 }
 
@@ -221,17 +227,29 @@ function getClassTotalBarItems(s, t, classTotalColor, classApprovedColor, classN
       display: s.classTotalAbsences || 0,
       label: t(TOTAL_BAR_ITEMS[0].labelKey),
       color: classTotalColor.dot,
+      unit: 'count',
+      // Counts and deduction weights are different units — when the deduction
+      // split is shown, keep absences in the tooltip but out of the bar so the
+      // bar encodes one consistent quantity (approved vs not-approved share).
+      skipBar: canViewDeduction,
     },
   ];
   if (canViewDeduction) {
     const approved = Number(s.classDeductionApproved || 0);
     const notApproved = Number(s.classDeductionNotApproved || 0);
+    // Bar proportions should reflect how many absences are approved vs not —
+    // deduction weights (0.25 vs 0.5) would skew the visual share.
+    const classAbsences = Array.isArray(s.classAbsences) ? s.classAbsences : [];
+    const approvedCount = classAbsences.filter((a) => a.excusedViaWorkflow).length;
+    const notApprovedCount = Math.max(0, classAbsences.length - approvedCount);
     items.push(
       {
         ...TOTAL_BAR_ITEMS[1],
         count: approved,
         value: approved,
         display: approved.toFixed(2),
+        barValue: approvedCount,
+        unit: 'marks',
         label: t(TOTAL_BAR_ITEMS[1].labelKey),
         color: classApprovedColor.dot,
       },
@@ -240,6 +258,8 @@ function getClassTotalBarItems(s, t, classTotalColor, classApprovedColor, classN
         count: notApproved,
         value: notApproved,
         display: notApproved.toFixed(2),
+        barValue: notApprovedCount,
+        unit: 'marks',
         label: t(TOTAL_BAR_ITEMS[2].labelKey),
         color: classNotApprovedColor.dot,
       },
@@ -274,12 +294,17 @@ function getBreakdownTooltipTitle(item, isDark) {
   );
 }
 
-function BreakdownBar({ items, isDark, isAr, title, showTotal = true }) {
+function BreakdownBar({ items, isDark, isAr, title, showTotal = true, totalDeduction = null }) {
   const { t } = useLang();
-  const total = items.reduce((sum, i) => sum + (i.value ?? i.count), 0);
-  const activeItem = items.find((i) => (i.value ?? i.count) > 0);
+  // Items flagged skipBar stay in the tooltip but don't get a bar segment.
+  const barItems = items.filter((i) => !i.skipBar);
+  const segValue = (i) => i.barValue ?? i.value ?? i.count;
+  const total = barItems.reduce((sum, i) => sum + segValue(i), 0);
+  const activeItem = barItems.find((i) => segValue(i) > 0);
   const tooltipTextColor = isDark ? '#f1f5f9' : '#0f172a';
   const zeroColor = getColor('muted', isDark);
+  const countLabel = t('violations.unit_count') || 'count';
+  const marksLabel = t('violations.unit_marks') || 'marks';
 
   const summaryTooltip = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '4px 0', color: tooltipTextColor }}>
@@ -292,17 +317,35 @@ function BreakdownBar({ items, isDark, isAr, title, showTotal = true }) {
         const display = item.display ?? item.count;
         const isActive = value > 0;
         const lineColor = item.color;
+        const UnitIcon = item.unit === 'marks' ? Sigma : item.unit === 'count' ? Hash : null;
+        const unitLabel = item.unit === 'marks' ? marksLabel : item.unit === 'count' ? countLabel : null;
         return (
           <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
             <Icon size={13} style={{ color: item.color }} />
+            {UnitIcon && (
+              <ColoredTooltip title={unitLabel} color={item.color} placement="top">
+                <UnitIcon size={10} style={{ color: item.color, opacity: 0.7, flexShrink: 0 }} />
+              </ColoredTooltip>
+            )}
             <span style={{ fontWeight: 600, minWidth: 16, color: item.color }}>{display}</span>
             <span style={{ opacity: isActive ? 1 : 0.75, color: lineColor }}>{item.label}</span>
+            {item.unit === 'marks' && item.barValue != null && (
+              <span style={{ opacity: 0.7, color: item.color, fontSize: '0.9em', whiteSpace: 'nowrap' }}>
+                ×{item.barValue} {countLabel}
+              </span>
+            )}
           </div>
         );
       })}
       {showTotal && (
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)', marginTop: 2, paddingTop: 4, fontWeight: 700, fontSize: 12 }}>
           {t('violations.total')}: {total}
+        </div>
+      )}
+      {totalDeduction != null && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)', marginTop: 2, paddingTop: 4, fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Sigma size={12} style={{ color: '#f59e0b', flexShrink: 0 }} />
+          {t('violations.total_deduction') || 'Total deduction'}: {Number(totalDeduction).toFixed(2)} {marksLabel}
         </div>
       )}
       {items.some((i) => i.note) && (
@@ -363,12 +406,12 @@ function BreakdownBar({ items, isDark, isAr, title, showTotal = true }) {
           cursor: 'default',
         }}
       >
-        {items.map((item) => (
+        {barItems.map((item) => (
           <div
             key={item.key}
             style={{
-              flex: `${item.value ?? item.count} 0 0`,
-              minWidth: 2,
+              flex: `${segValue(item)} 0 0`,
+              minWidth: segValue(item) > 0 ? 2 : 0,
               backgroundColor: item.color,
               height: '100%',
             }}
@@ -414,6 +457,7 @@ export default function WelcomeViolationsTab({
   expanded = false,
   onToggleExpand,
   onScheduleFontScaleChange,
+  onExportSuccess,
 }) {
   const { lang, t } = useLang();
   const { user, isAdmin, isHR, isSuperAdmin } = useAuth();
@@ -862,12 +906,14 @@ export default function WelcomeViolationsTab({
   const handlePreviewPdf = useCallback(async (student) => {
     if (!student?.warningType || !metadata) return;
     setPdfPreviewingId(student.studentId);
+    const stopLoading = startExportLoading(t('violations.generating_warning_letter') || 'Generating warning letter...');
     try {
       const url = await previewWarningLetter(student, student.warningType, lang, metadata);
       window.open(url, '_blank');
     } catch (err) {
       toast.error(t('violations.preview_warning_failed', { msg: err.message || 'Failed to preview warning letter' }));
     } finally {
+      stopLoading();
       setPdfPreviewingId(null);
     }
   }, [metadata, lang, t]);
@@ -1079,6 +1125,14 @@ export default function WelcomeViolationsTab({
           [data-testid="violations-table"] .text-\\[10px\\] {
             font-size: calc(10px * var(--schedule-font-scale, 1)) !important;
           }
+          /* Scale cell/status icons with the zoom slider and enlarge the base
+             size so they're easier to hover. Lucide sets width/height as
+             attributes — CSS width/height overrides them. */
+          [data-testid="violations-table"] td svg,
+          [data-testid="violations-table"] th svg {
+            width: calc(16px * var(--schedule-font-scale, 1));
+            height: calc(16px * var(--schedule-font-scale, 1));
+          }
         `}
       </style>
 
@@ -1130,6 +1184,58 @@ export default function WelcomeViolationsTab({
                   size="small"
                   sx={{ width: 28, height: 28, flexShrink: 0, color }}
                   onClick={() => {
+                    const reportTitle = selectedClassId
+                      ? (t('report_class_summary') || 'Class Summary Report')
+                      : (t('report_program_summary') || 'Program Summary Report');
+                    const done = lang === 'ar' ? 'تم التصدير بنجاح' : 'Export successful';
+                    const openLabel = lang === 'ar' ? 'فتح الملف' : 'Open file';
+                    const showBanner = (result) => {
+                      if (!onExportSuccess || !result?.blob) return;
+                      const blobUrl = URL.createObjectURL(result.blob);
+                      setTimeout(() => URL.revokeObjectURL(blobUrl), 5 * 60 * 1000);
+                      const downloadFile = () => {
+                        const a = document.createElement('a');
+                        a.href = blobUrl;
+                        a.download = result.filename || 'export.xlsx';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                      };
+                      if (format === 'excel') {
+                        // Same action buttons as every other Excel export banner.
+                        onExportSuccess({
+                          pillColor: '#059669',
+                          icon: <CheckCircle2 size={16} className="shrink-0" />,
+                          message: `${reportTitle} — Excel — ${done}`,
+                          actions: result.fileId
+                            ? [
+                                { label: t('export_open_collabora') || 'Open in Collabora', icon: <ExternalLink size={14} />, onClick: async () => { if (!(await openDriveFileInCollabora(result.fileId))) downloadFile(); } },
+                                { label: t('export_save_file') || 'Save', icon: <Download size={14} />, onClick: downloadFile },
+                              ]
+                            : [{ label: t('export_save_file') || 'Save', icon: <Download size={14} />, onClick: downloadFile }],
+                        });
+                        return;
+                      }
+                      onExportSuccess({
+                        pillColor: '#059669',
+                        icon: <CheckCircle2 size={16} className="shrink-0" />,
+                        message: (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0px', fontSize: '0.75rem' }}>
+                            {`${reportTitle} — PDF — ${done}`}
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
+                              onClick={() => window.open(blobUrl, '_blank')}
+                              style={{ marginLeft: '8px' }}
+                              aria-label={openLabel}
+                            >
+                              <ExternalLink size={14} />
+                              {openLabel}
+                            </button>
+                          </span>
+                        ),
+                      });
+                    };
                     if (selectedClassId && selectedClass) {
                       exportClassSummaryReport({
                         classId: selectedClass.id,
@@ -1145,7 +1251,10 @@ export default function WelcomeViolationsTab({
                         format,
                         lang,
                         user,
-                      }).catch((err) => console.error('[Violations] class summary export failed:', err));
+                        notify: false,
+                        reportDate: format(selectedDate, 'yyyy-MM-dd'),
+                      }).then(showBanner)
+                        .catch((err) => console.error('[Violations] class summary export failed:', err));
                     } else {
                       exportProgramSummaryReport({
                         programId: welcomeContext?.programId,
@@ -1155,7 +1264,10 @@ export default function WelcomeViolationsTab({
                         format,
                         lang,
                         user,
-                      }).catch((err) => console.error('[Violations] program summary export failed:', err));
+                        notify: false,
+                        reportDate: format(selectedDate, 'yyyy-MM-dd'),
+                      }).then(showBanner)
+                        .catch((err) => console.error('[Violations] program summary export failed:', err));
                     }
                   }}
                 >
@@ -1334,8 +1446,8 @@ export default function WelcomeViolationsTab({
                     </TableHead>
                   </>
                 )}
-                <TableHead className="w-28 py-2 px-2 cursor-pointer select-none" align={isAr ? 'right' : 'left'} onClick={() => handleSort(SORT_KEYS.WARNING)} data-tour="violations-col-warning">
-                  <span className="inline-flex items-center gap-1">{t('violations.status')}<SortIcon columnKey={SORT_KEYS.WARNING} /></span>
+                <TableHead className="w-28 py-2 px-2 cursor-pointer select-none" align="center" onClick={() => handleSort(SORT_KEYS.WARNING)} data-tour="violations-col-warning">
+                  <span className="inline-flex items-center justify-center gap-1 w-full">{t('violations.status')}<SortIcon columnKey={SORT_KEYS.WARNING} /></span>
                 </TableHead>
                 <TableHead className="w-44 py-2 px-3" data-tour="violations-col-recorded">
                   {t('violations.warnings')}
@@ -1367,7 +1479,7 @@ export default function WelcomeViolationsTab({
                   const excusedColor = getColor('pink', isDark);
                   const humanColor = getColor('purple', isDark);
                   const zeroColor = getColor('muted', isDark);
-                  const approvedColor = getColor('green', isDark);
+                  const approvedColor = getColor(s.deductionApproved > 0 ? 'green' : 'muted', isDark);
                   const notApprovedColor = getColor(s.deductionNotApproved > 0 ? 'red' : 'muted', isDark);
                   const classTotalColor = getColor(s.classTotalAbsences > 0 ? 'red' : 'muted', isDark);
                   const classApprovedColor = getColor(s.classDeductionApproved > 0 ? 'green' : 'muted', isDark);
@@ -1461,18 +1573,18 @@ export default function WelcomeViolationsTab({
 
                       {/* Absences — two stacked values: period total (calendar) + class total (users) */}
                       <TableCell className="text-center py-2 px-2">
-                        <div className="inline-flex flex-col items-center gap-0.5 text-[10px] font-semibold">
+                        <div className="inline-flex flex-col items-center gap-0.5 text-xs font-semibold">
                           <ColoredTooltip title={t('violations.tip_period_absences', { period: periodTotalLabel }) || `${periodTotalLabel} — ${t('violations.absences')}`} color={totalColor.text} borderColor={totalColor.dot} placement="top" arrow>
-                            <span className="inline-flex items-center gap-0.5" style={{ color: totalColor.text, cursor: 'default' }}>
-                              <PeriodScopeIcon size={10} style={{ color: totalColor.dot, flexShrink: 0 }} />
-                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: totalColor.dot }} />
+                            <span className="inline-flex items-center gap-1" style={{ color: totalColor.text, cursor: 'default' }}>
+                              <PeriodScopeIcon size={13} style={{ color: totalColor.dot, flexShrink: 0 }} />
+                              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: totalColor.dot }} />
                               {s.totalAbsences || 0}
                             </span>
                           </ColoredTooltip>
                           <ColoredTooltip title={classTotalTip(t('violations.tip_class_absences') || `${t('violations.class_total')} — ${t('violations.absences')}`)} color={classTotalColor.text} borderColor={classTotalColor.dot} placement="top" arrow>
-                            <span className="inline-flex items-center gap-0.5" style={{ color: classTotalColor.text, cursor: 'default' }}>
-                              <Users size={10} style={{ color: classTotalColor.dot, flexShrink: 0 }} />
-                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: classTotalColor.dot }} />
+                            <span className="inline-flex items-center gap-1" style={{ color: classTotalColor.text, cursor: 'default' }}>
+                              <Users size={13} style={{ color: classTotalColor.dot, flexShrink: 0 }} />
+                              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: classTotalColor.dot }} />
                               {s.classTotalAbsences || 0}
                             </span>
                           </ColoredTooltip>
@@ -1482,7 +1594,7 @@ export default function WelcomeViolationsTab({
                       {/* Breakdown: compact icons + counts + bar with unified tooltip */}
                       <TableCell className="py-2 px-2">
                         <div className="flex flex-col items-center gap-0.5">
-                          <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-[10px]">
+                          <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-xs">
                             {breakdownItems.map((item) => {
                               const Icon = item.icon;
                               const active = item.count > 0;
@@ -1497,10 +1609,10 @@ export default function WelcomeViolationsTab({
                                   arrow
                                 >
                                   <span
-                                    className="inline-flex items-center gap-0.5 font-semibold"
+                                    className="inline-flex items-center gap-1 font-semibold"
                                     style={{ color: active ? item.color : zeroColor.text, cursor: 'default' }}
                                   >
-                                    <Icon size={11} style={{ color }} />
+                                    <Icon size={13} style={{ color }} />
                                     {item.count}
                                   </span>
                                 </ColoredTooltip>
@@ -1519,6 +1631,7 @@ export default function WelcomeViolationsTab({
                             isAr={isAr}
                             title={t('violations.class_total')}
                             showTotal={false}
+                            totalDeduction={s.classDeductionTotal}
                           />
                         </div>
                       </TableCell>
@@ -1527,18 +1640,18 @@ export default function WelcomeViolationsTab({
                         <>
                           {/* Approved — two stacked dot values: period + class total */}
                           <TableCell className="text-center py-2 px-1">
-                            <div className="inline-flex flex-col items-center gap-0.5 text-[10px] font-semibold">
+                            <div className="inline-flex flex-col items-center gap-0.5 text-xs font-semibold">
                               <ColoredTooltip title={t('violations.tip_period_approved', { period: periodScopeLabel }) || `${periodTotalLabel} — ${t('violations.deduction_approved')}`} color={approvedColor.text} borderColor={approvedColor.dot} placement="top" arrow>
-                                <span className="inline-flex items-center gap-0.5" style={{ color: approvedColor.text, cursor: 'default' }}>
-                                  <PeriodScopeIcon size={10} style={{ color: approvedColor.dot, flexShrink: 0 }} />
-                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: approvedColor.dot }} />
+                                <span className="inline-flex items-center gap-1" style={{ color: approvedColor.text, cursor: 'default' }}>
+                                  <PeriodScopeIcon size={13} style={{ color: approvedColor.dot, flexShrink: 0 }} />
+                                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: approvedColor.dot }} />
                                   {Number(s.deductionApproved || 0).toFixed(2)}
                                 </span>
                               </ColoredTooltip>
                               <ColoredTooltip title={classTotalTip(t('violations.tip_class_approved') || `${t('violations.class_total')} — ${t('violations.deduction_approved')}`)} color={classApprovedColor.text} borderColor={classApprovedColor.dot} placement="top" arrow>
-                                <span className="inline-flex items-center gap-0.5" style={{ color: classApprovedColor.text, cursor: 'default' }}>
-                                  <Users size={10} style={{ color: classApprovedColor.dot, flexShrink: 0 }} />
-                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: classApprovedColor.dot }} />
+                                <span className="inline-flex items-center gap-1" style={{ color: classApprovedColor.text, cursor: 'default' }}>
+                                  <Users size={13} style={{ color: classApprovedColor.dot, flexShrink: 0 }} />
+                                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: classApprovedColor.dot }} />
                                   {Number(s.classDeductionApproved || 0).toFixed(2)}
                                 </span>
                               </ColoredTooltip>
@@ -1546,18 +1659,18 @@ export default function WelcomeViolationsTab({
                           </TableCell>
                           {/* Not Approved — two stacked dot values: period + class total */}
                           <TableCell className="text-center py-2 px-1">
-                            <div className="inline-flex flex-col items-center gap-0.5 text-[10px] font-semibold">
+                            <div className="inline-flex flex-col items-center gap-0.5 text-xs font-semibold">
                               <ColoredTooltip title={t('violations.tip_period_not_approved', { period: periodScopeLabel }) || `${periodTotalLabel} — ${t('violations.deduction_not_approved')}`} color={notApprovedColor.text} borderColor={notApprovedColor.dot} placement="top" arrow>
-                                <span className="inline-flex items-center gap-0.5" style={{ color: notApprovedColor.text, cursor: 'default' }}>
-                                  <PeriodScopeIcon size={10} style={{ color: notApprovedColor.dot, flexShrink: 0 }} />
-                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: notApprovedColor.dot }} />
+                                <span className="inline-flex items-center gap-1" style={{ color: notApprovedColor.text, cursor: 'default' }}>
+                                  <PeriodScopeIcon size={13} style={{ color: notApprovedColor.dot, flexShrink: 0 }} />
+                                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: notApprovedColor.dot }} />
                                   {Number(s.deductionNotApproved || 0).toFixed(2)}
                                 </span>
                               </ColoredTooltip>
                               <ColoredTooltip title={classTotalTip(t('violations.tip_class_not_approved') || `${t('violations.class_total')} — ${t('violations.deduction_not_approved')}`)} color={classNotApprovedColor.text} borderColor={classNotApprovedColor.dot} placement="top" arrow>
-                                <span className="inline-flex items-center gap-0.5" style={{ color: classNotApprovedColor.text, cursor: 'default' }}>
-                                  <Users size={10} style={{ color: classNotApprovedColor.dot, flexShrink: 0 }} />
-                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: classNotApprovedColor.dot }} />
+                                <span className="inline-flex items-center gap-1" style={{ color: classNotApprovedColor.text, cursor: 'default' }}>
+                                  <Users size={13} style={{ color: classNotApprovedColor.dot, flexShrink: 0 }} />
+                                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: classNotApprovedColor.dot }} />
                                   {Number(s.classDeductionNotApproved || 0).toFixed(2)}
                                 </span>
                               </ColoredTooltip>
@@ -1566,7 +1679,7 @@ export default function WelcomeViolationsTab({
                         </>
                       )}
 
-                      <TableCell align={isAr ? 'right' : 'left'} className="py-2 px-2">
+                      <TableCell align="center" className="py-2 px-2">
                         <ColoredTooltip
                         title={
                           s.warningType === 'dismissed'
@@ -1580,7 +1693,7 @@ export default function WelcomeViolationsTab({
                         color={warningColor.text}
                         placement="top"
                       >
-                        <span className="inline-flex items-center text-xs font-semibold" style={{ color: warningColor.text, cursor: 'default' }}>
+                        <span className="inline-flex items-center justify-center text-xs font-semibold w-full" style={{ color: warningColor.text, cursor: 'default' }}>
                           {s.warningType === 'dismissed' ? (
                             <UserX size={15} />
                           ) : s.warningType === 'final' ? (

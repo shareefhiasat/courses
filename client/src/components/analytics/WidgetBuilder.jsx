@@ -30,8 +30,8 @@ const GROUP_BY_KEYS = {
   usageType: 'gb_usage_type', dayOfWeek: 'gb_day_of_week', type: 'gb_type',
   startDate: 'gb_date', location: 'gb_location', primarySubject: 'gb_subject',
   coverageType: 'gb_coverage_type', recurrenceType: 'gb_recurrence_type', impactType: 'gb_impact_type',
-  date: 'gb_date', markType: 'gb_mark_type', mimeType: 'gb_file_type',
-  assigneeId: 'gb_assignee', studentId: 'gb_student', score: 'vf_score',
+  mimeType: 'gb_file_type',
+  assigneeId: 'gb_assignee', score: 'vf_score',
 };
 
 const AGGREGATION_KEYS = [

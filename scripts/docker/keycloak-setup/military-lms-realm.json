@@ -72,6 +72,14 @@
       "containerId" : "military-lms",
       "attributes" : { }
     }, {
+      "id" : "7c4f2a1e-9b3d-4c8a-9e1f-2a5b6c7d8e9f",
+      "name" : "program_commander",
+      "description" : "Program commander - admin-level visibility plus view-only access to HR screens",
+      "composite" : false,
+      "clientRole" : false,
+      "containerId" : "military-lms",
+      "attributes" : { }
+    }, {
       "id" : "fbd6fa34-7489-457a-91bd-f5b5e776b9ac",
       "name" : "default-roles-military-lms",
       "description" : "${role_default-roles}",

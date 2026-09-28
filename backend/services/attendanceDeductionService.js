@@ -314,7 +314,9 @@ export async function getClassAbsenceWarningCounts({ classId, userId, dateFrom, 
   const enrollments = await prisma.enrollment.findMany({
     where: {
       classId: Number(classId),
-      status: { code: ENROLLMENT_STATUS_CODES.ACTIVE },
+      // ENROLLED is the legacy code still present on older rows — treat both
+      // as "currently enrolled" so reports don't come back empty.
+      status: { code: { in: [ENROLLMENT_STATUS_CODES.ACTIVE, ENROLLMENT_STATUS_CODES.ENROLLED] } },
       ...(userId && { userId: Number(userId) }),
     },
     include: {

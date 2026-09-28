@@ -9,16 +9,16 @@ import {
   exportDailyOfficialForDate,
   exportAttendanceOfficialForScope,
 } from '@services/business/accessScopeExportService.js';
-import { FileText, FileSpreadsheet, AlertCircle, CheckCircle2, ExternalLink, Workflow as WorkflowIcon, FilePenLine, GitBranch, FileSignature, Star, CircleDashed, FileBarChart, Paintbrush } from 'lucide-react';
+import { FileText, FileSpreadsheet, AlertCircle, CheckCircle2, ExternalLink, Download, Workflow as WorkflowIcon, FilePenLine, GitBranch, FileSignature, Star, CircleDashed, FileBarChart, Paintbrush } from 'lucide-react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, Box } from '@mui/material';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import useQRPermissions from '@hooks/useQRPermissions';
 import { isHROnlyViewer, canViewParticipation } from '@components/operations-board/hrAttendancePrivacy.js';
 import AppMenu from '@components/ui/mui/AppMenu.jsx';
-import ColoredTooltip from '@components/ui/mui/ColoredTooltip.jsx';
 import InitiateWorkflowDialog from '@components/workspace/InitiateWorkflowDialog.jsx';
 import UploadSignedDialog from '@components/workflow/UploadSignedDialog.jsx';
 import { handleFilePreview } from '@utils/fileUtils.js';
+import { openDriveFileInCollabora } from '@utils/collaboraUtils.js';
 import { findExistingAttendanceWorkflow } from '@services/business/workflowInitiationService.js';
 import { exportClassSummaryReport, exportClassDeductionReport } from '@services/business/studentSummaryReportService.js';
 import { getWeekRange } from '@services/business/workflowSnapshotService.js';
@@ -41,12 +41,12 @@ function ScheduleContextMenu({
   onOpenWeeklyWorkflowDialog,
   onExportSuccess,
 }) {
-  const { user, isAdmin, isHR, isSuperAdmin, isInstructor } = useAuth();
+  const { user, isAdmin, isHR, isSuperAdmin, isInstructor, isProgramCommander } = useAuth();
   const { t, lang } = useLang();
   const { canExport, canSeeStandupMode } = useQRPermissions();
-  const hrOnly = isHROnlyViewer({ isHR, isAdmin, isSuperAdmin });
-  const instructorOnly = isInstructor && !isAdmin && !isHR && !isSuperAdmin;
-  const canSeeParticipation = canViewParticipation({ isInstructor, isAdmin, isHR, isSuperAdmin });
+  const hrOnly = isHROnlyViewer({ isHR, isAdmin, isSuperAdmin, isProgramCommander });
+  const instructorOnly = isInstructor && !isAdmin && !isHR && !isSuperAdmin && !isProgramCommander;
+  const canSeeParticipation = canViewParticipation({ isInstructor, isAdmin, isHR, isSuperAdmin, isProgramCommander });
   const [exporting, setExporting] = useState(null);
   const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
   const [existingWorkflow, setExistingWorkflow] = useState(null);
@@ -68,13 +68,13 @@ function ScheduleContextMenu({
       localStorage.setItem('schedule_colorize_class_summary', colorizeClassSummary ? 'true' : 'false');
     } catch { /* ignore */ }
   }, [colorizeClassSummary]);
-  const canToggleDailyNotes = isAdmin || isSuperAdmin;
+  const canToggleDailyNotes = isAdmin || isSuperAdmin || isProgramCommander;
 
   const cls = session?.class;
   const subject = cls?.subject;
   const slotInstructor = session?.instructor || cls?.instructorName;
   const dateStr = toIsoDate(selectedDate) || toIsoDate(new Date());
-  const canUploadSignedCopy = isAdmin || isHR || isSuperAdmin;
+  const canUploadSignedCopy = isAdmin || isHR || isSuperAdmin || isProgramCommander;
 
   const handleSignedClick = useCallback((workflow, target) => {
     if (!workflow) return;
@@ -130,32 +130,38 @@ function ScheduleContextMenu({
     }
   }, [onClose]);
 
-  const buildExportBanner = useCallback((label, format, blob, filename, blobUrl, date = dateStr, workflowStatus = null) => ({
-    pillColor: workflowStatus ? getWorkflowBadgeColor(String(workflowStatus).toUpperCase()).bg : '#059669',
-    icon: <CheckCircle2 size={16} className="shrink-0" />,
-    message: (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem' }}>
-        {`${label}${date ? ` — ${date}` : ''} — ${t('export_success') || 'Export successful'}`}
-        <button
-          type="button"
-          className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
-          onClick={() =>
-            format === EXPORT_FORMAT.EXCEL
-              ? downloadBlob(blob, `${filename}.xlsx`)
-              : window.open(blobUrl, '_blank')
-          }
-          style={{ marginInlineStart: '4px' }}
-          aria-label={
-            format === EXPORT_FORMAT.EXCEL
-              ? (t('download_file') || 'Download file')
-              : (t('open_in_new_tab') || 'Open in new tab')
-          }
-        >
-          <ExternalLink size={14} />
-        </button>
-      </span>
-    ),
-  }), [t, dateStr]);
+  const buildExportBanner = useCallback((label, format, blob, filename, blobUrl, date = dateStr, workflowStatus = null, fileId = null) => {
+    const downloadFile = () => downloadBlob(blob, `${filename}.xlsx`);
+    const isExcel = format === EXPORT_FORMAT.EXCEL;
+    return {
+      pillColor: workflowStatus ? getWorkflowBadgeColor(String(workflowStatus).toUpperCase()).bg : '#059669',
+      icon: <CheckCircle2 size={16} className="shrink-0" />,
+      message: isExcel
+        ? `${label}${date ? ` — ${date}` : ''} — ${t('export_success') || 'Export successful'}`
+        : (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem' }}>
+            {`${label}${date ? ` — ${date}` : ''} — ${t('export_success') || 'Export successful'}`}
+            <button
+              type="button"
+              className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
+              onClick={() => window.open(blobUrl, '_blank')}
+              style={{ marginInlineStart: '4px' }}
+              aria-label={t('open_in_new_tab') || 'Open in new tab'}
+            >
+              <ExternalLink size={14} />
+            </button>
+          </span>
+        ),
+      actions: isExcel
+        ? (fileId
+          ? [
+              { label: t('export_open_collabora') || 'Open in Collabora', icon: <ExternalLink size={14} />, onClick: async () => { if (!(await openDriveFileInCollabora(fileId))) downloadFile(); } },
+              { label: t('export_save_file') || 'Save', icon: <Download size={14} />, onClick: downloadFile },
+            ]
+          : [{ label: t('export_save_file') || 'Save', icon: <Download size={14} />, onClick: downloadFile }])
+        : undefined,
+    };
+  }, [t, dateStr]);
 
   const handleScan = useCallback((mode) => {
     if (!cls) return;
@@ -236,6 +242,7 @@ function ScheduleContextMenu({
       blobUrl,
       dateStr,
       existingWorkflow?.status || null,
+      result.fileId || null,
     ));
     setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
   }, [existingWorkflow, cls, program, subject, academicTerm, lang, user, dateStr, slotInstructor, onExportSuccess, buildExportBanner, t, dailyIncludeNotes, dailyIncludeParticipation]);
@@ -294,6 +301,7 @@ function ScheduleContextMenu({
       result.blobUrl,
       weekRange,
       existingWeeklyWorkflow?.status || null,
+      result.fileId || null,
     ));
     setTimeout(() => URL.revokeObjectURL(result.blobUrl), 60000);
   }, [existingWeeklyWorkflow, cls, subject, program, lang, user, dateStr, onExportSuccess, buildExportBanner, t]);
@@ -610,16 +618,18 @@ function ScheduleContextMenu({
             baseName,
             blobUrl,
             null,
+            null,
+            result.fileId || null,
           ));
           setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
         };
         const runClassSummary = (format) => runExport(`class-summary-${format}`, async () => {
           console.log('[ScheduleContextMenu] exporting class summary:', { classId: cls.id, format, colorize: colorizeClassSummary });
-          const result = await exportClassSummaryReport({ classId: cls.id, classInfo, format, lang, user, notify: false, colorize: colorizeClassSummary });
+          const result = await exportClassSummaryReport({ classId: cls.id, classInfo, format, lang, user, notify: false, colorize: colorizeClassSummary, reportDate: dateStr });
           showReportBanner(t('report_class_summary') || 'Class Summary', format, result);
         });
         const runClassDeduction = (format) => runExport(`class-deduction-${format}`, async () => {
-          const result = await exportClassDeductionReport({ classId: cls.id, classInfo, format, lang, user, notify: false });
+          const result = await exportClassDeductionReport({ classId: cls.id, classInfo, format, lang, user, notify: false, reportDate: dateStr });
           showReportBanner(t('report_class_deduction') || 'Deduction Report', format, result);
         });
         attendanceChildren.push({ divider: true });
@@ -629,51 +639,41 @@ function ScheduleContextMenu({
           icon: <FileBarChart size={18} color="#0ea5e9" />,
           onClick: () => runClassSummary('excel'),
           trailing: (
-            <ColoredTooltip
-              title={
+            <Box
+              role="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const newValue = !colorizeClassSummary;
+                console.log('[ScheduleContextMenu] colorizeClassSummary toggled:', { classId: cls?.id, newValue });
+                setColorizeClassSummary(newValue);
+                try {
+                  localStorage.setItem('schedule_colorize_class_summary', newValue ? 'true' : 'false');
+                } catch { /* ignore */ }
+              }}
+              aria-label={
                 colorizeClassSummary
                   ? (t('colorize_class_summary_on') || 'Colorize rows')
                   : (t('colorize_class_summary_off') || 'Plain rows')
               }
-              color={colorizeClassSummary ? '#0ea5e9' : '#64748b'}
-              placement="top"
+              sx={{
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 22,
+                height: 22,
+                borderRadius: 0.75,
+                opacity: 0.75,
+                color: colorizeClassSummary ? '#0ea5e9' : '#94a3b8',
+                '&:hover': { bgcolor: 'action.selected', opacity: 1 },
+              }}
             >
-              <Box
-                role="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const newValue = !colorizeClassSummary;
-                  console.log('[ScheduleContextMenu] colorizeClassSummary toggled:', { classId: cls?.id, newValue });
-                  setColorizeClassSummary(newValue);
-                  try {
-                    localStorage.setItem('schedule_colorize_class_summary', newValue ? 'true' : 'false');
-                  } catch { /* ignore */ }
-                }}
-                aria-label={
-                  colorizeClassSummary
-                    ? (t('colorize_class_summary_on') || 'Colorize rows')
-                    : (t('colorize_class_summary_off') || 'Plain rows')
-                }
-                sx={{
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 22,
-                  height: 22,
-                  borderRadius: 0.75,
-                  opacity: 0.75,
-                  color: colorizeClassSummary ? '#0ea5e9' : '#94a3b8',
-                  '&:hover': { bgcolor: 'action.selected', opacity: 1 },
-                }}
-              >
-                <Paintbrush
-                  size={16}
-                  fill={colorizeClassSummary ? '#0ea5e9' : 'none'}
-                  color={colorizeClassSummary ? '#0ea5e9' : '#94a3b8'}
-                />
-              </Box>
-            </ColoredTooltip>
+              <Paintbrush
+                size={16}
+                fill={colorizeClassSummary ? '#0ea5e9' : 'none'}
+                color={colorizeClassSummary ? '#0ea5e9' : '#94a3b8'}
+              />
+            </Box>
           ),
           trailingActions: [
             {

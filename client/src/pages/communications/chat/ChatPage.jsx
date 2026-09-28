@@ -1987,7 +1987,7 @@ const ChatPage = memo(() => {
                 );
               })()}
               {/* Class info inline beside the name */}
-              {classMembers.length > 0 && !selectedClass?.startsWith('dm:') && !selectedClass?.startsWith('group:') && (
+              {safeClassMembers.some((m) => m?.isStudent !== true) && !selectedClass?.startsWith('dm:') && !selectedClass?.startsWith('group:') && (
                 <div style={{ fontSize: '0.9rem', color: 'var(--muted)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flexShrink: 0 }}>
                   <span
                     data-tour="chat-members-btn"
@@ -1995,7 +1995,7 @@ const ChatPage = memo(() => {
                     style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', textDecoration: 'underline' }}
                   >
                     {getThemedIcon('ui', 'users', 14, theme)}
-                    {classMembers.length} {t('chat_members')}
+                    {safeClassMembers.filter((m) => m?.isStudent !== true).length} {t('chat_members')}
                   </span>
                   <button
                     onClick={async () => {
@@ -4025,12 +4025,10 @@ const ChatPage = memo(() => {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
                 {(isStaffRole
                   ? [{ key: 'all', label: t('chat_all'), icon: null, color: null },
-                     { key: 'student', label: t('chat_filter_students'), icon: 'student', color: getUserRoleColor('student') },
                      { key: 'instructor', label: t('chat_filter_instructors'), icon: 'instructor', color: getUserRoleColor('instructor') },
                      { key: 'admin', label: t('chat_filter_admins'), icon: 'admin', color: getUserRoleColor('admin') },
                      { key: 'hr', label: t('chat_filter_hr'), icon: 'hr', color: getUserRoleColor('hr') }]
                   : [{ key: 'all', label: t('chat_all'), icon: null, color: null },
-                     { key: 'student', label: t('chat_filter_students'), icon: 'student', color: getUserRoleColor('student') },
                      { key: 'instructor', label: t('chat_filter_instructors'), icon: 'instructor', color: getUserRoleColor('instructor') }]
                 ).map(chip => {
                   const isActive = (chip.key === 'all' && !studentsOnly && !roleFilter) ||
@@ -4108,6 +4106,11 @@ const ChatPage = memo(() => {
                     });
                   }
                   
+                  // Layer 3a: Hide students from the members list
+                  if (Array.isArray(filtered) && filtered.length > 0) {
+                    filtered = filtered.filter((m) => m && typeof m === 'object' && m.isStudent !== true);
+                  }
+
                   // Layer 3b: Instructors can only see admins in the members list
                   if (instructorAdminOnlyView && Array.isArray(filtered) && filtered.length > 0) {
                     filtered = filtered.filter(m => {

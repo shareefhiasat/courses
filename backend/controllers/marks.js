@@ -6,6 +6,7 @@ import { EVENTS } from '../services/notifications/constants.js';
 import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
 import { getRequestScope, isRecordInScope, assertClassInScope, scopeForbidden } from '../utils/scopeAccess.js';
 import { scopeArray } from '../utils/applyListScope.js';
+import { ENROLLMENT_STATUS_CODES } from '../constants/enrollmentConstants.js';
 
 
 // Get marks distribution for a subject

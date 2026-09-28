@@ -1063,7 +1063,9 @@ const WorkflowDocumentDetailPage = () => {
 
                     const link = window.document.createElement('a');
                     link.href = blobUrl;
-                    link.download = '';
+                    // Blob URLs have no Content-Disposition — empty download
+                    // names the file after the blob UUID, so use the real name.
+                    link.download = document.file?.name || 'download';
                     window.document.body.appendChild(link);
                     link.click();
                     window.document.body.removeChild(link);

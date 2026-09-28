@@ -136,11 +136,11 @@ export const handleFilePreview = async (file, fileVersionId = null) => {
       } else {
         // Fallback to download if preview fails
         console.log('🔍 [fileUtils] Image preview failed, falling back to download');
-        await downloadFileWithAuth(file.id, fileVersionId);
+        await downloadFileWithAuth(file.id, fileVersionId, file.name);
       }
     } catch (error) {
       console.error('❌ [fileUtils] Failed to get image preview URL:', error);
-      await downloadFileWithAuth(file.id, fileVersionId);
+      await downloadFileWithAuth(file.id, fileVersionId, file.name);
     }
     return;
   }
@@ -148,7 +148,7 @@ export const handleFilePreview = async (file, fileVersionId = null) => {
   // For PDFs, open in a new tab as inline preview with version support
   if (fileType === 'pdf') {
     console.log('🔍 [fileUtils] Opening PDF in new tab');
-    await previewFileWithAuth(file.id, fileVersionId);
+    await previewFileWithAuth(file.id, fileVersionId, file.name);
     return;
   }
 
@@ -169,18 +169,18 @@ export const handleFilePreview = async (file, fileVersionId = null) => {
       } else {
         // Fallback to download if preview fails
         console.log('🔍 [fileUtils] Preview failed, falling back to download');
-        await downloadFileWithAuth(file.id, fileVersionId);
+        await downloadFileWithAuth(file.id, fileVersionId, file.name);
       }
     } catch (error) {
       console.error('❌ [fileUtils] Failed to get preview URL:', error);
-      await downloadFileWithAuth(file.id, fileVersionId);
+      await downloadFileWithAuth(file.id, fileVersionId, file.name);
     }
     return;
   }
 
   // For other file types, open in a new tab as preview with version support
   console.log('🔍 [fileUtils] Opening file in new tab');
-  await previewFileWithAuth(file.id, fileVersionId);
+  await previewFileWithAuth(file.id, fileVersionId, file.name);
 };
 
 /**
@@ -189,7 +189,7 @@ export const handleFilePreview = async (file, fileVersionId = null) => {
  * @param {string|null} fileVersionId - Optional file version ID
  * @returns {Promise<void>
  */
-async function previewFileWithAuth(fileId, fileVersionId = null) {
+async function previewFileWithAuth(fileId, fileVersionId = null, fileName = '') {
   try {
     const { apiService } = await import('@services/api/apiService.js');
     const url = fileVersionId
@@ -211,7 +211,7 @@ async function previewFileWithAuth(fileId, fileVersionId = null) {
     setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60000);
   } catch (error) {
     console.error('❌ [fileUtils] Preview failed, falling back to download:', error);
-    await downloadFileWithAuth(fileId, fileVersionId);
+    await downloadFileWithAuth(fileId, fileVersionId, fileName);
   }
 }
 
@@ -221,7 +221,7 @@ async function previewFileWithAuth(fileId, fileVersionId = null) {
  * @param {string|null} fileVersionId - Optional file version ID
  * @returns {Promise<void>}
  */
-async function downloadFileWithAuth(fileId, fileVersionId = null) {
+async function downloadFileWithAuth(fileId, fileVersionId = null, fileName = '') {
   try {
     const { apiService } = await import('@services/api/apiService.js');
     const url = fileVersionId
@@ -239,10 +239,13 @@ async function downloadFileWithAuth(fileId, fileVersionId = null) {
     const blob = response.data || response;
     const blobUrl = window.URL.createObjectURL(blob);
 
-    // Create a hidden anchor tag to trigger download from blob
+    // Create a hidden anchor tag to trigger download from blob.
+    // Note: blob URLs carry no Content-Disposition — an empty download
+    // attribute makes Chrome name the file after the blob UUID, so always
+    // pass an explicit filename.
     const link = document.createElement('a');
     link.href = blobUrl;
-    link.download = ''; // Let browser determine filename from Content-Disposition
+    link.download = fileName || 'download';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

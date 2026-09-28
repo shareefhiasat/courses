@@ -23,6 +23,12 @@ import {
 import { getThemedIcon } from '@constants/iconTypes';
 import { getAcademicTermDisplayName } from '@utils/academicTermUtils';
 
+function fmtShortDate(value) {
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '';
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+}
+
 function labelFor(item, lang, field = 'name') {
   if (!item) return '';
   const en = field === 'code' ? item.code : item.nameEn;
@@ -225,9 +231,12 @@ export default function WelcomeContextSwitcher({
                         <ListItemText
                           primary={getAcademicTermDisplayName(term, lang)}
                           secondary={
-                            term.classCount > 0
-                              ? `${term.classCount} ${t('workspace_classes')}`
-                              : ''
+                            [
+                              term.classCount > 0 ? `${term.classCount} ${t('workspace_classes')}` : '',
+                              term.startDate && term.endDate
+                                ? `${fmtShortDate(term.startDate)} – ${fmtShortDate(term.endDate)}`
+                                : '',
+                            ].filter(Boolean).join(' · ')
                           }
                           primaryTypographyProps={{ fontWeight: isCurrent ? 700 : 500, fontSize: '0.85rem', textAlign: isRTL ? 'right' : 'left' }}
                           secondaryTypographyProps={{ fontSize: '0.75rem', textAlign: isRTL ? 'right' : 'left' }}

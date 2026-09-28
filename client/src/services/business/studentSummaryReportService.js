@@ -11,6 +11,7 @@ import { getLocalizedTermDisplay } from '@constants/gradingStandards';
 import { getAcademicTermDisplayName } from '@utils/academicTermUtils';
 import { buildReportFilename } from '../export/official-reports/engine/reportFilename.js';
 import { notifyExportSuccess, withExportLoading } from '../export/official-reports/engine/exportToast.js';
+import { persistAndLogExport, mimeTypeForFormat } from './exportDriveService.js';
 
 /**
  * Term may be a string ('fall') or an academicTerm object — resolve to a label.
@@ -19,6 +20,30 @@ function resolveTermLabel(term, lang) {
   if (!term) return '';
   if (typeof term === 'object') return getAcademicTermDisplayName(term, lang);
   return getLocalizedTermDisplay(term, lang);
+}
+
+/**
+ * Persist an exported report blob to Smart Drive and log it to export history
+ * so it shows up in the class "Documents" tab. Best-effort — never throws.
+ */
+async function persistReport({ blob, filename, format, exportType, classId, subjectId, programId, reportDate }) {
+  try {
+    const result = await persistAndLogExport({
+      blob,
+      filename,
+      mimeType: mimeTypeForFormat(format === 'excel' ? 'excel' : 'pdf'),
+      format,
+      exportType,
+      classId: classId || undefined,
+      subjectId: subjectId || undefined,
+      programId: programId || undefined,
+      reportDate: reportDate || new Date().toISOString().slice(0, 10),
+    });
+    return result?.fileId || null;
+  } catch (err) {
+    console.warn('[studentSummaryReportService] export history log failed:', err);
+    return null;
+  }
 }
 
 function resolveEnrollmentClass(enrollment) {
@@ -167,6 +192,7 @@ async function exportClassSummaryReportImpl({
   download = false,
   notify = true,
   colorize = true,
+  reportDate,
 }) {
   if (!classId) throw new Error('Missing class id');
   const res = await fetchAbsenceWarningCounts({ classId });
@@ -193,18 +219,29 @@ async function exportClassSummaryReportImpl({
     lang,
   });
 
+  const persistFields = {
+    format,
+    exportType: 'class_summary_report',
+    classId,
+    subjectId: classInfo.subjectId || classInfo.subject?.id,
+    programId: classInfo.programId || classInfo.program?.id,
+    reportDate,
+  };
+
   if (format === 'excel') {
     const blob = await exportClassSummaryExcel(data);
     if (download) downloadBlob(blob, filename);
-    if (notify) notifyExportSuccess('class', format, lang, blob, filename);
-    return { blob, filename };
+    const fileId = await persistReport({ ...persistFields, blob, filename });
+    if (notify) notifyExportSuccess('class', format, lang, blob, filename, fileId);
+    return { blob, filename, fileId };
   }
   const blob = await renderOfficialPdf(
     React.createElement(ClassSummaryTemplate, { data }),
     { filename, lang, download },
   );
-  if (notify) notifyExportSuccess('class', format, lang, blob, filename);
-  return { blob, filename };
+  const fileId = await persistReport({ ...persistFields, blob, filename });
+  if (notify) notifyExportSuccess('class', format, lang, blob, filename, fileId);
+  return { blob, filename, fileId };
 }
 
 /**
@@ -227,6 +264,7 @@ async function exportClassDeductionReportImpl({
   user = null,
   download = false,
   notify = true,
+  reportDate,
 }) {
   if (!classId) throw new Error('Missing class id');
   const res = await fetchAbsenceWarningCounts({ classId });
@@ -279,11 +317,21 @@ async function exportClassDeductionReportImpl({
     lang,
   });
 
+  const persistFields = {
+    format,
+    exportType: 'class_deduction_report',
+    classId,
+    subjectId: classInfo.subjectId || classInfo.subject?.id,
+    programId: classInfo.programId || classInfo.program?.id,
+    reportDate,
+  };
+
   if (format === 'excel') {
     const blob = await exportClassDeductionExcel(dataList);
     if (download) downloadBlob(blob, filename);
-    if (notify) notifyExportSuccess('deduction', format, lang, blob, filename);
-    return { blob, filename };
+    const fileId = await persistReport({ ...persistFields, blob, filename });
+    if (notify) notifyExportSuccess('deduction', format, lang, blob, filename, fileId);
+    return { blob, filename, fileId };
   }
   const blob = await renderOfficialPdf(
     React.createElement(React.Fragment, null,
@@ -291,8 +339,9 @@ async function exportClassDeductionReportImpl({
     ),
     { filename, lang, download },
   );
-  if (notify) notifyExportSuccess('deduction', format, lang, blob, filename);
-  return { blob, filename };
+  const fileId = await persistReport({ ...persistFields, blob, filename });
+  if (notify) notifyExportSuccess('deduction', format, lang, blob, filename, fileId);
+  return { blob, filename, fileId };
 }
 
 /**
@@ -318,6 +367,7 @@ async function exportProgramSummaryReportImpl({
   academicTerm = null,
   download = false,
   notify = true,
+  reportDate,
 }) {
   const dataList = await Promise.all(
     classes.map(async (cls, idx) => {
@@ -354,11 +404,19 @@ async function exportProgramSummaryReportImpl({
     lang,
   });
 
+  const persistFields = {
+    format,
+    exportType: 'program_summary_report',
+    programId,
+    reportDate,
+  };
+
   if (format === 'excel') {
     const blob = await exportProgramSummaryExcel(dataList);
     if (download) downloadBlob(blob, filename);
-    if (notify) notifyExportSuccess('program', format, lang, blob, filename);
-    return { blob, filename };
+    const fileId = await persistReport({ ...persistFields, blob, filename });
+    if (notify) notifyExportSuccess('program', format, lang, blob, filename, fileId);
+    return { blob, filename, fileId };
   }
   const blob = await renderOfficialPdf(
     React.createElement(React.Fragment, null,
@@ -366,6 +424,7 @@ async function exportProgramSummaryReportImpl({
     ),
     { filename, lang, download },
   );
-  if (notify) notifyExportSuccess('program', format, lang, blob, filename);
-  return { blob, filename };
+  const fileId = await persistReport({ ...persistFields, blob, filename });
+  if (notify) notifyExportSuccess('program', format, lang, blob, filename, fileId);
+  return { blob, filename, fileId };
 }

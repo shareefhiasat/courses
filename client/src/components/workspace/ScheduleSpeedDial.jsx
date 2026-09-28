@@ -4,7 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { SpeedDial, SpeedDialAction, SpeedDialIcon } from '@mui/material';
-import { CheckCircle2, ExternalLink } from 'lucide-react';
+import { CheckCircle2, ExternalLink, Download } from 'lucide-react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { EXPORT_FORMAT, downloadBlob, startExportLoading } from '@services/export/official-reports/index.jsx';
 import { buildReportFilename } from '@services/export/official-reports/engine/reportFilename.js';
@@ -15,6 +15,7 @@ import {
 import { getAttendanceRecords } from '@services/business/attendanceService.js';
 import { getUsers } from '@services/business/userService.js';
 import { exportGeneric } from '@services/export/excelExportService.js';
+import { openDriveFileInCollabora } from '@utils/collaboraUtils.js';
 import { getStatusCodeFromRecord } from '@constants/attendanceTypes';
 import useQRPermissions from '@hooks/useQRPermissions';
 import PdfPreviewDialog from '@components/workspace/PdfPreviewDialog.jsx';
@@ -94,32 +95,38 @@ function ScheduleSpeedDial({
     onClose();
   }, [cls, dateStr, navigate, onClose]);
 
-  const buildExportBanner = useCallback((label, format, blob, filename, blobUrl) => ({
-    pillColor: '#059669',
-    icon: <CheckCircle2 size={16} className="shrink-0" />,
-    message: (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem' }}>
-        {`${label}${dateStr ? ` — ${dateStr}` : ''} — ${t('export_success') || 'Export successful'}`}
-        <button
-          type="button"
-          className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
-          onClick={() =>
-            format === EXPORT_FORMAT.EXCEL
-              ? downloadBlob(blob, `${filename}.xlsx`)
-              : window.open(blobUrl, '_blank')
-          }
-          style={{ marginInlineStart: '4px' }}
-          aria-label={
-            format === EXPORT_FORMAT.EXCEL
-              ? (t('download_file') || 'Download file')
-              : (t('open_in_new_tab') || 'Open in new tab')
-          }
-        >
-          <ExternalLink size={14} />
-        </button>
-      </span>
-    ),
-  }), [t, dateStr]);
+  const buildExportBanner = useCallback((label, format, blob, filename, blobUrl, fileId = null) => {
+    const downloadFile = () => downloadBlob(blob, `${filename}.xlsx`);
+    const isExcel = format === EXPORT_FORMAT.EXCEL;
+    return {
+      pillColor: '#059669',
+      icon: <CheckCircle2 size={16} className="shrink-0" />,
+      message: isExcel
+        ? `${label}${dateStr ? ` — ${dateStr}` : ''} — ${t('export_success') || 'Export successful'}`
+        : (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem' }}>
+            {`${label}${dateStr ? ` — ${dateStr}` : ''} — ${t('export_success') || 'Export successful'}`}
+            <button
+              type="button"
+              className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
+              onClick={() => window.open(blobUrl, '_blank')}
+              style={{ marginInlineStart: '4px' }}
+              aria-label={t('open_in_new_tab') || 'Open in new tab'}
+            >
+              <ExternalLink size={14} />
+            </button>
+          </span>
+        ),
+      actions: isExcel
+        ? (fileId
+          ? [
+              { label: t('export_open_collabora') || 'Open in Collabora', icon: <ExternalLink size={14} />, onClick: async () => { if (!(await openDriveFileInCollabora(fileId))) downloadFile(); } },
+              { label: t('export_save_file') || 'Save', icon: <Download size={14} />, onClick: downloadFile },
+            ]
+          : [{ label: t('export_save_file') || 'Save', icon: <Download size={14} />, onClick: downloadFile }])
+        : undefined,
+    };
+  }, [t, dateStr]);
 
   const handleExportAttendanceSummary = useCallback(async () => {
     if (!cls) return;
@@ -258,7 +265,7 @@ function ScheduleSpeedDial({
             onClick: () => runExport('export-daily-excel', async () => {
               const result = await exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.EXCEL, skipDownload: true });
               const blobUrl = URL.createObjectURL(result.blob);
-              onExportSuccess?.(buildExportBanner(`${t('daily_official')} Excel`, EXPORT_FORMAT.EXCEL, result.blob, result.filename, blobUrl));
+              onExportSuccess?.(buildExportBanner(`${t('daily_official')} Excel`, EXPORT_FORMAT.EXCEL, result.blob, result.filename, blobUrl, result.fileId || null));
               setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
             }),
           });
@@ -285,7 +292,7 @@ function ScheduleSpeedDial({
           onClick: () => runExport('export-weekly-excel', async () => {
             const result = await exportWeeklyScheduleForScope({ cls, program, subject, academicTerm, lang, t, user, format: EXPORT_FORMAT.EXCEL, skipDownload: true });
             const blobUrl = URL.createObjectURL(result.blob);
-            onExportSuccess?.(buildExportBanner(`${t('weekly_schedule')} Excel`, EXPORT_FORMAT.EXCEL, result.blob, result.filename, blobUrl));
+            onExportSuccess?.(buildExportBanner(`${t('weekly_schedule')} Excel`, EXPORT_FORMAT.EXCEL, result.blob, result.filename, blobUrl, result.fileId || null));
             setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
           }),
         });

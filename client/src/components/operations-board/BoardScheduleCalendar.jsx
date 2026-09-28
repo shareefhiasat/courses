@@ -19,6 +19,7 @@ import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import AttendanceStatusDots from './AttendanceStatusDots.jsx';
 import ClassSessionMetaBadges from '@components/workspace/ClassSessionMetaBadges.jsx';
 import { formatDate } from '@utils/date-formatter.js';
+import { openDriveFileInCollabora } from '@utils/collaboraUtils.js';
 import {
   buildClassCalendarEvents,
   collectDatesWithSessions,
@@ -77,14 +78,27 @@ async function directOpenFile(fileId, filename, format = 'pdf', t = (k) => k) {
     const blobUrl = URL.createObjectURL(blob);
     const isExcel = format === 'xlsx' || (filename && /\.xlsx?$/i.test(filename));
     if (isExcel) {
+      // Prefer the Collabora viewer; fall back to download when unavailable.
+      const opened = await openDriveFileInCollabora(fileId);
+      if (opened) { URL.revokeObjectURL(blobUrl); return; }
       const link = document.createElement('a');
       link.href = blobUrl;
       link.download = filename || `download.${format}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
     } else {
-      window.open(blobUrl, '_blank');
+      // For PDFs, don't auto-open — show a toast with an "Open file" action.
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5 * 60 * 1000);
+      toast.success((t('file_ready_click_to_open', { label: filename }) || '').replace('{label}', filename || 'PDF') || 'File ready', {
+        description: filename,
+        duration: 10000,
+        action: {
+          label: t('open_in_new_tab') || 'Open in new tab',
+          onClick: () => window.open(blobUrl, '_blank'),
+        },
+      });
     }
   } catch (err) {
     console.error('Failed to load file:', err);
@@ -449,7 +463,7 @@ export function AttendanceSummaryTooltip({ event, t, lang = 'en', hideNotesParti
   const weeklyApprovedDate = status.weeklyWorkflowApprovedAt ? formatDate(status.weeklyWorkflowApprovedAt, lang) : null;
 
   const labelColor = '#111827';
-  const sectionStyle = { paddingTop: 6, marginTop: 6, borderTop: '1px solid rgba(148,163,184,0.35)', color: labelColor };
+  const sectionStyle = { paddingTop: 4, marginTop: 4, borderTop: '1px solid rgba(148,163,184,0.35)', color: labelColor };
 
   return (
     <div style={{ maxWidth: 260, fontSize: '0.75rem', lineHeight: 1.45, color: labelColor }}>
@@ -591,13 +605,13 @@ export function AttendanceSummaryTooltip({ event, t, lang = 'en', hideNotesParti
       )}
       {r.classId && (
         <div style={sectionStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: labelColor }}>
-            <FileBarChart size={13} color="#0ea5e9" style={{ flexShrink: 0 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: labelColor, fontSize: '0.7rem', lineHeight: 1.25 }}>
+            <FileBarChart size={12} color="#0ea5e9" style={{ flexShrink: 0 }} />
             <span style={{ fontWeight: 600, flex: 1 }}>{t('report_class_summary') || 'Class Summary'}</span>
+            <ColoredTooltip title={`${t('report_class_summary') || 'Class Summary'} — ${t('export_excel') || 'Excel'}`} color="#43a047" placement="top">
             <IconButton
               size="small"
-              title={t('export_excel') || 'Excel'}
-              style={{ padding: 2, color: '#43a047' }}
+              style={{ padding: 1, color: '#43a047' }}
               onClick={(e) => {
                 e.stopPropagation();
                 exportClassSummaryReport({
@@ -613,19 +627,21 @@ export function AttendanceSummaryTooltip({ event, t, lang = 'en', hideNotesParti
                   format: 'excel',
                   lang,
                   user,
+                  reportDate: eventDate,
                 }).catch((err) => console.error('[Calendar] class summary export failed:', err));
               }}
             >
               <FileSpreadsheet size={13} />
             </IconButton>
+            </ColoredTooltip>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: labelColor }}>
-            <FileBarChart size={13} color="#e53935" style={{ flexShrink: 0 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: labelColor, fontSize: '0.7rem', lineHeight: 1.25 }}>
+            <FileBarChart size={12} color="#e53935" style={{ flexShrink: 0 }} />
             <span style={{ fontWeight: 600, flex: 1 }}>{t('report_class_deduction') || 'Deduction Report'}</span>
+            <ColoredTooltip title={`${t('report_class_deduction') || 'Deduction Report'} — ${t('export_pdf') || 'PDF'}`} color="#e53935" placement="top">
             <IconButton
               size="small"
-              title={t('export_pdf') || 'PDF'}
-              style={{ padding: 2, color: '#e53935' }}
+              style={{ padding: 1, color: '#e53935' }}
               onClick={(e) => {
                 e.stopPropagation();
                 exportClassDeductionReport({
@@ -641,15 +657,17 @@ export function AttendanceSummaryTooltip({ event, t, lang = 'en', hideNotesParti
                   format: 'pdf',
                   lang,
                   user,
+                  reportDate: eventDate,
                 }).catch((err) => console.error('[Calendar] deduction report export failed:', err));
               }}
             >
               <FileText size={13} />
             </IconButton>
+            </ColoredTooltip>
+            <ColoredTooltip title={`${t('report_class_deduction') || 'Deduction Report'} — ${t('export_excel') || 'Excel'}`} color="#f59e0b" placement="top">
             <IconButton
               size="small"
-              title={t('export_excel') || 'Excel'}
-              style={{ padding: 2, color: '#f59e0b' }}
+              style={{ padding: 1, color: '#f59e0b' }}
               onClick={(e) => {
                 e.stopPropagation();
                 exportClassDeductionReport({
@@ -665,11 +683,13 @@ export function AttendanceSummaryTooltip({ event, t, lang = 'en', hideNotesParti
                   format: 'excel',
                   lang,
                   user,
+                  reportDate: eventDate,
                 }).catch((err) => console.error('[Calendar] deduction report export failed:', err));
               }}
             >
               <FileSpreadsheet size={13} />
             </IconButton>
+            </ColoredTooltip>
           </div>
         </div>
       )}

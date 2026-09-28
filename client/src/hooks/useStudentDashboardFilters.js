@@ -245,7 +245,9 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
         if (s.enrollments && Array.isArray(s.enrollments)) {
           return s.enrollments.some(enrollment => String(enrollment.classId) === String(selectedClassId));
         }
-        return String(s.classId) === String(selectedClassId) || s.enrolledClassIds?.includes(selectedClassId);
+        return String(s.classId) === String(selectedClassId)
+          || s.enrolledClasses?.some(cid => String(cid) === String(selectedClassId))
+          || s.enrolledClassIds?.includes(selectedClassId);
       });
       info('[StudentDashboardFilters] Filtered students for class', selectedClassId, ':', filtered.length, 'from', students.length);
       return filtered;

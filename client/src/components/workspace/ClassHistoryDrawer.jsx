@@ -3,7 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Star, MessageSquare, FilePenLine, GitBranch, CheckCircle, XCircle, FileText, FileSpreadsheet } from 'lucide-react';
+import { Star, MessageSquare, FilePenLine, GitBranch, CheckCircle, XCircle, FileText, FileSpreadsheet, Shapes } from 'lucide-react';
 import { resolveUserRole } from '@utils/userUtils';
 import RoleBadge from '@pages/communications/chat/components/RoleBadge.jsx';
 import ClassHistorySearchInput from '@components/workspace/ClassHistorySearchInput';
@@ -305,8 +305,8 @@ const ClassHistoryDrawer = ({
         <div
           style={{
             display: 'flex',
-            gap: '8px',
-            padding: '12px 16px',
+            gap: '6px',
+            padding: '8px 16px',
             borderBottom: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
           }}
         >
@@ -324,19 +324,19 @@ const ClassHistoryDrawer = ({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px 12px',
+                    gap: '6px',
+                    padding: '5px 10px',
                     borderRadius: '8px',
                     border: `1px solid ${active ? 'var(--color-primary, #3b82f6)' : (isDark ? '#334155' : '#e2e8f0')}`,
                     background: active ? (isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.08)') : 'transparent',
                     color: active ? 'var(--color-primary, #3b82f6)' : (isDark ? '#94a3b8' : '#64748b'),
                     cursor: 'pointer',
-                    fontSize: '15px',
+                    fontSize: '13px',
                     fontWeight: 600,
                   }}
                   data-testid={`class-history-tab-${tab.key}`}
                 >
-                  {getThemedIcon('ui', tab.icon, 18, active ? 'primary' : theme)}
+                  {getThemedIcon('ui', tab.icon, 15, active ? 'primary' : theme)}
                   {tab.label}
                 </button>
               );
@@ -408,11 +408,12 @@ const ClassDocumentsPanel = ({ workflows: _workflows = [], workflowLoading: _wor
   const [exportCount, setExportCount] = useState(0);
   const count = exportCount;
 
-  const exportType = docSubtype === 'DAILY' ? 'attendance_daily_official' : (docSubtype === 'WEEKLY' ? 'official_attendance' : 'all');
+  const exportType = docSubtype === 'DAILY' ? 'attendance_daily_official' : (docSubtype === 'WEEKLY' ? 'official_attendance' : (docSubtype === 'OTHER' ? 'other' : 'all'));
 
   const chips = [
     { key: 'DAILY', label: t('workflow_subtype_daily') || 'Daily', color: '#3b82f6', icon: FilePenLine, active: docSubtype === 'DAILY', onClick: () => setDocSubtype(docSubtype === 'DAILY' ? 'all' : 'DAILY') },
     { key: 'WEEKLY', label: t('workflow_subtype_weekly_summary') === 'workflow_subtype_weekly_summary' ? 'Weekly' : t('workflow_subtype_weekly_summary'), color: '#8b5cf6', icon: GitBranch, active: docSubtype === 'WEEKLY', onClick: () => setDocSubtype(docSubtype === 'WEEKLY' ? 'all' : 'WEEKLY') },
+    { key: 'OTHER', label: t('other') || 'Other', color: '#64748b', icon: Shapes, active: docSubtype === 'OTHER', onClick: () => setDocSubtype(docSubtype === 'OTHER' ? 'all' : 'OTHER') },
     { key: 'APPROVED', label: t('workflow.status.approved') || 'Approved', color: '#22c55e', icon: CheckCircle, active: docStatus === 'APPROVED', onClick: () => setDocStatus(docStatus === 'APPROVED' ? 'all' : 'APPROVED') },
     { key: 'REJECTED', label: t('workflow.status.rejected') || 'Rejected', color: '#ef4444', icon: XCircle, active: docStatus === 'REJECTED', onClick: () => setDocStatus(docStatus === 'REJECTED' ? 'all' : 'REJECTED') },
     { key: 'PDF', label: 'PDF', color: '#dc2626', icon: FileText, active: docFormat === 'PDF', onClick: () => setDocFormat(docFormat === 'PDF' ? 'all' : 'PDF') },

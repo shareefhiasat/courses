@@ -237,6 +237,7 @@ export function WorkflowCardHoverTooltip({ item, column, summary, t, lang = 'en'
       format,
       lang,
       user,
+      reportDate: (item.date || '').slice(0, 10) || undefined,
       ...extra,
     }).catch((err) => console.error('[WorkflowBoard] report export failed:', err));
   };
@@ -247,7 +248,7 @@ export function WorkflowCardHoverTooltip({ item, column, summary, t, lang = 'en'
     : null;
   const courseName = resolveBoardClassName(item, lang);
 
-  const sectionStyle = { paddingTop: 6, marginTop: 6, borderTop: '1px solid rgba(148,163,184,0.35)' };
+  const sectionStyle = { paddingTop: 4, marginTop: 4, borderTop: '1px solid rgba(148,163,184,0.35)' };
 
   return (
     <div style={{ maxWidth: 220, fontSize: '0.75rem', lineHeight: 1.45, color: labelColor }}>
@@ -280,52 +281,56 @@ export function WorkflowCardHoverTooltip({ item, column, summary, t, lang = 'en'
       )}
       {reportClassInfo && (
         <div style={sectionStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: labelColor }}>
-            <FileBarChart size={13} color="#0ea5e9" style={{ flexShrink: 0 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: labelColor, fontSize: '0.7rem', lineHeight: 1.25 }}>
+            <FileBarChart size={12} color="#0ea5e9" style={{ flexShrink: 0 }} />
             <span style={{ fontWeight: 600, flex: 1, whiteSpace: 'nowrap' }}>{t('report_class_summary') || 'Class Summary'}</span>
-            <IconButton
-              size="small"
-              title={t('export_excel') || 'Excel'}
-              style={{ padding: 2, color: '#43a047' }}
-              onClick={runReport(exportClassSummaryReport, 'excel', { colorize: colorizeClassSummary })}
-            >
-              <FileSpreadsheet size={13} />
-            </IconButton>
-            <IconButton
-              size="small"
-              title={colorizeClassSummary ? (t('colorize_class_summary_on') || 'Colorize rows') : (t('colorize_class_summary_off') || 'Plain rows')}
-              style={{ padding: 2, color: colorizeClassSummary ? '#0ea5e9' : '#94a3b8' }}
-              onClick={(e) => {
-                e.stopPropagation();
-                const newValue = !colorizeClassSummary;
-                setColorizeClassSummary(newValue);
-                try {
-                  localStorage.setItem('schedule_colorize_class_summary', newValue ? 'true' : 'false');
-                } catch { /* ignore */ }
-              }}
-            >
-              <Paintbrush size={13} fill={colorizeClassSummary ? '#0ea5e9' : 'none'} />
-            </IconButton>
+            <ColoredTooltip title={`${t('report_class_summary') || 'Class Summary'} — ${t('export_excel') || 'Excel'}`} color="#43a047" placement="top">
+              <IconButton
+                size="small"
+                style={{ padding: 1, color: '#43a047' }}
+                onClick={runReport(exportClassSummaryReport, 'excel', { colorize: colorizeClassSummary })}
+              >
+                <FileSpreadsheet size={13} />
+              </IconButton>
+            </ColoredTooltip>
+            <ColoredTooltip title={colorizeClassSummary ? (t('colorize_class_summary_on') || 'Colorize rows') : (t('colorize_class_summary_off') || 'Plain rows')} color="#0ea5e9" placement="top">
+              <IconButton
+                size="small"
+                style={{ padding: 1, color: colorizeClassSummary ? '#0ea5e9' : '#94a3b8' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const newValue = !colorizeClassSummary;
+                  setColorizeClassSummary(newValue);
+                  try {
+                    localStorage.setItem('schedule_colorize_class_summary', newValue ? 'true' : 'false');
+                  } catch { /* ignore */ }
+                }}
+              >
+                <Paintbrush size={13} fill={colorizeClassSummary ? '#0ea5e9' : 'none'} />
+              </IconButton>
+            </ColoredTooltip>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: labelColor }}>
-            <FileBarChart size={13} color="#e53935" style={{ flexShrink: 0 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: labelColor, fontSize: '0.7rem', lineHeight: 1.25 }}>
+            <FileBarChart size={12} color="#e53935" style={{ flexShrink: 0 }} />
             <span style={{ fontWeight: 600, flex: 1, whiteSpace: 'nowrap' }}>{t('report_class_deduction') || 'Deduction Report'}</span>
-            <IconButton
-              size="small"
-              title={t('export_pdf') || 'PDF'}
-              style={{ padding: 2, color: '#e53935' }}
-              onClick={runReport(exportClassDeductionReport, 'pdf')}
-            >
-              <FileText size={13} />
-            </IconButton>
-            <IconButton
-              size="small"
-              title={t('export_excel') || 'Excel'}
-              style={{ padding: 2, color: '#f59e0b' }}
-              onClick={runReport(exportClassDeductionReport, 'excel')}
-            >
-              <FileSpreadsheet size={13} />
-            </IconButton>
+            <ColoredTooltip title={`${t('report_class_deduction') || 'Deduction Report'} — ${t('export_pdf') || 'PDF'}`} color="#e53935" placement="top">
+              <IconButton
+                size="small"
+                style={{ padding: 1, color: '#e53935' }}
+                onClick={runReport(exportClassDeductionReport, 'pdf')}
+              >
+                <FileText size={13} />
+              </IconButton>
+            </ColoredTooltip>
+            <ColoredTooltip title={`${t('report_class_deduction') || 'Deduction Report'} — ${t('export_excel') || 'Excel'}`} color="#f59e0b" placement="top">
+              <IconButton
+                size="small"
+                style={{ padding: 1, color: '#f59e0b' }}
+                onClick={runReport(exportClassDeductionReport, 'excel')}
+              >
+                <FileSpreadsheet size={13} />
+              </IconButton>
+            </ColoredTooltip>
           </div>
         </div>
       )}

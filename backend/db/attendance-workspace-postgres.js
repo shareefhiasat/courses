@@ -183,6 +183,8 @@ export const getProgramTerms = async ({ programId, instructorId }) => {
         academicTermId: true,
         year: true,
         term: true,
+        startDate: true,
+        endDate: true,
         academicTerm: {
           select: { id: true, code: true, nameEn: true, nameAr: true, isActive: true },
         },
@@ -205,8 +207,15 @@ export const getProgramTerms = async ({ programId, instructorId }) => {
       const existing = termMap.get(term.id);
       if (existing) {
         existing.classCount += 1;
+        if (cls.startDate && (!existing.startDate || cls.startDate < existing.startDate)) existing.startDate = cls.startDate;
+        if (cls.endDate && (!existing.endDate || cls.endDate > existing.endDate)) existing.endDate = cls.endDate;
       } else {
-        termMap.set(term.id, { ...term, classCount: 1 });
+        termMap.set(term.id, {
+          ...term,
+          classCount: 1,
+          startDate: cls.startDate || null,
+          endDate: cls.endDate || null,
+        });
       }
     }
 
@@ -264,6 +273,16 @@ export const getWeeklySchedule = async ({ programId, academicTermId, instructorI
       }),
     ]);
 
+    const computeTermRange = (clsList) => {
+      let start = null;
+      let end = null;
+      for (const c of clsList || []) {
+        if (c.startDate && (!start || c.startDate < start)) start = c.startDate;
+        if (c.endDate && (!end || c.endDate > end)) end = c.endDate;
+      }
+      return start || end ? { startDate: start, endDate: end } : null;
+    };
+
     if (classIds.length === 0) {
       const [program, academicTerm, timeSlots, [breakSessions, instructorAvailability]] = await Promise.all([
         prisma.program.findUnique({
@@ -284,6 +303,7 @@ export const getWeeklySchedule = async ({ programId, academicTermId, instructorI
         data: {
           program,
           academicTerm,
+          termRange: computeTermRange(classes),
           timeSlots,
           sessions: [],
           classes: [],
@@ -329,6 +349,7 @@ export const getWeeklySchedule = async ({ programId, academicTermId, instructorI
       data: {
         program,
         academicTerm,
+        termRange: computeTermRange(termFilteredClasses),
         timeSlots,
         sessions,
         classes: termFilteredClasses,

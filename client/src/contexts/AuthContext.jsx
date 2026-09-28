@@ -14,7 +14,7 @@ import { ROLES } from '@constants/permissionConfig';
 import { useLang } from '@contexts/LangContext';
 
 // Permissions cache version — bump this when permission defaults change so clients refetch.
-const PERMISSIONS_CACHE_VERSION = 2;
+const PERMISSIONS_CACHE_VERSION = 4;
 
 // Session configuration from environment variables
 const SESSION_CONFIG = {
@@ -43,6 +43,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isProgramCommander, setIsProgramCommander] = useState(false);
   const [isHR, setIsHR] = useState(false);
   const [isInstructor, setIsInstructor] = useState(false);
   const [isStudent, setIsStudent] = useState(false);
@@ -561,6 +562,7 @@ export const AuthProvider = ({ children }) => {
       fetchDbId().then(() => {
         // Set role flags (matching database user_roles table codes)
         setIsAdmin(normalizedRoles.includes(ROLES.ADMIN));
+        setIsProgramCommander(normalizedRoles.includes(ROLES.PROGRAM_COMMANDER));
         setIsHR(normalizedRoles.includes(ROLES.HR));
         setIsInstructor(normalizedRoles.includes(ROLES.INSTRUCTOR));
         setIsStudent(normalizedRoles.includes(ROLES.STUDENT));
@@ -568,6 +570,7 @@ export const AuthProvider = ({ children }) => {
 
         // Set role code
         if (normalizedRoles.includes(ROLES.SUPER_ADMIN)) setRole(ROLES.SUPER_ADMIN);
+        else if (normalizedRoles.includes(ROLES.PROGRAM_COMMANDER)) setRole(ROLES.PROGRAM_COMMANDER);
         else if (normalizedRoles.includes(ROLES.ADMIN)) setRole(ROLES.ADMIN);
         else if (normalizedRoles.includes(ROLES.HR)) setRole(ROLES.HR);
         else if (normalizedRoles.includes(ROLES.INSTRUCTOR)) setRole(ROLES.INSTRUCTOR);
@@ -910,6 +913,7 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     isAdmin,
+    isProgramCommander,
     isHR,
     isInstructor,
     isStudent,

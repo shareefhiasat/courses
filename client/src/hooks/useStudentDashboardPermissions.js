@@ -7,11 +7,13 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
  * Returns booleans and helper functions used by hooks and components.
  */
 const useStudentDashboardPermissions = () => {
-  const { user, userProfile, isAdmin, isInstructor, isHR, isSuperAdmin } = useAuth();
+  const { user, userProfile, isAdmin, isInstructor, isHR, isSuperAdmin, isProgramCommander } = useAuth();
 
   const permissions = useMemo(() => {
-    const isStudent = !isAdmin && !isInstructor && !isHR && !isSuperAdmin;
-    const isStaff = isAdmin || isInstructor || isHR || isSuperAdmin;
+    const isStudent = !isAdmin && !isInstructor && !isHR && !isSuperAdmin && !isProgramCommander;
+    const isStaff = isAdmin || isInstructor || isHR || isSuperAdmin || isProgramCommander;
+    // Roles allowed to mutate records (commander is view-only)
+    const canMutate = isAdmin || isInstructor || isHR || isSuperAdmin;
 
     // Debug: Log role detection
     info('[StudentDashboardPermissions] Role detection:', {
@@ -32,20 +34,21 @@ const useStudentDashboardPermissions = () => {
       isHR: !!isHR,
       isAdmin: !!isAdmin,
       isSuperAdmin: !!isSuperAdmin,
+      isProgramCommander: !!isProgramCommander,
       isStaff,
 
       // Data scope
       canViewOwnOnly: isStudent,
-      canViewClassStudents: !!isInstructor && !isAdmin && !isSuperAdmin,
-      canViewAllStudents: isAdmin || isHR || isSuperAdmin,
+      canViewClassStudents: !!isInstructor && !isAdmin && !isSuperAdmin && !isProgramCommander,
+      canViewAllStudents: isAdmin || isHR || isSuperAdmin || isProgramCommander,
 
       // Actions
       canExport: true,
-      canInlineEdit: isStaff,
-      canMarkAttendance: isStaff,
-      canAddParticipation: isStaff,
-      canAddPenalty: isStaff,
-      canAddBehavior: isStaff,
+      canInlineEdit: canMutate,
+      canMarkAttendance: canMutate,
+      canAddParticipation: canMutate,
+      canAddPenalty: canMutate,
+      canAddBehavior: canMutate,
       canDeleteRecords: isAdmin || isSuperAdmin,
       canNavigateToMarksEntry: isAdmin || isSuperAdmin || isInstructor,
 
@@ -57,14 +60,14 @@ const useStudentDashboardPermissions = () => {
       requiresSelection: isStaff,
 
       // Export scope
-      canExportClassLevel: isAdmin || isHR || isSuperAdmin || isInstructor,
+      canExportClassLevel: isAdmin || isHR || isSuperAdmin || isInstructor || isProgramCommander,
       canExportStudentLevel: true,
 
       // Instructor class filtering
       instructorUid: isInstructor ? user?.uid : null,
       instructorEmail: isInstructor ? user?.email : null,
     };
-  }, [isAdmin, isInstructor, isHR, isSuperAdmin, user]);
+  }, [isAdmin, isInstructor, isHR, isSuperAdmin, isProgramCommander, user]);
 
   /**
    * Filters classes to only those the current user can access.
@@ -92,8 +95,11 @@ const useStudentDashboardPermissions = () => {
     if (permissions.isInstructor && accessibleClassIds.length > 0) {
       const classIdSet = new Set(accessibleClassIds);
       return allStudents.filter(s =>
+        s.enrolledClasses?.some(id => classIdSet.has(String(id))) ||
+        s.enrolledClasses?.some(id => classIdSet.has(Number(id))) ||
         s.enrolledClassIds?.some(id => classIdSet.has(id)) ||
-        classIdSet.has(s.classId)
+        classIdSet.has(s.classId) ||
+        classIdSet.has(Number(s.classId))
       );
     }
     return [];

@@ -6,7 +6,7 @@ import { getRequestScope, filterRecordsByScope } from './scopeAccess.js';
 
 /** Common field maps for hierarchy filtering */
 export const SCOPE_FIELD_MAPS = {
-  program: { idField: 'id', categoryField: 'categoryId' },
+  program: { idField: 'id', programField: 'id', categoryField: 'categoryId' },
   subject: { idField: 'id', subjectField: 'id', programField: 'programId', categoryField: 'categoryId' },
   class: {
     idField: 'id',

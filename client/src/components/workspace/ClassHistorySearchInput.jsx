@@ -11,15 +11,15 @@ const ClassHistorySearchInput = ({ value, onChange, placeholder }) => {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
-        marginBottom: '12px',
-        padding: '6px 10px',
+        gap: '6px',
+        marginBottom: '8px',
+        padding: '4px 10px',
         borderRadius: '8px',
         border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
         background: isDark ? 'rgba(255,255,255,0.03)' : '#ffffff',
       }}
     >
-      {getThemedIcon('ui', 'search', 18, theme)}
+      {getThemedIcon('ui', 'search', 15, theme)}
       <input
         type="text"
         value={value}
@@ -30,7 +30,7 @@ const ClassHistorySearchInput = ({ value, onChange, placeholder }) => {
           border: 'none',
           background: 'transparent',
           outline: 'none',
-          fontSize: '16px',
+          fontSize: '13px',
           color: isDark ? '#f1f5f9' : '#1e293b',
         }}
       />

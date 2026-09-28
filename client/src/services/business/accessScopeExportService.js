@@ -22,7 +22,7 @@ import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getStatusCodeFromRecord } from '@constants/attendanceTypes';
 import { formatForDateInput, getQatarDateParts } from '@utils/date-formatter.js';
 import { buildReportFilename } from '@services/export/official-reports/engine/reportFilename.js';
-import { notifyExportSuccess } from '@services/export/official-reports/engine/exportToast.js';
+import { notifyExportSuccess, withExportLoading } from '@services/export/official-reports/engine/exportToast.js';
 
 function sanitize(str) {
   return str ? String(str).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '';
@@ -94,7 +94,14 @@ async function resolveClassForExport(cls, extras = {}) {
   return cls;
 }
 
-export async function exportWeeklyScheduleForScope({
+export function exportWeeklyScheduleForScope(params) {
+  return withExportLoading(
+    params?.lang === 'ar' ? 'جاري إنشاء الجدول الأسبوعي...' : 'Generating weekly schedule...',
+    () => exportWeeklyScheduleForScopeImpl(params),
+  );
+}
+
+async function exportWeeklyScheduleForScopeImpl({
   cls,
   program,
   subject,
@@ -140,7 +147,7 @@ export async function exportWeeklyScheduleForScope({
     lang,
   });
   const blob = await exportWeeklyScheduleReport(reportData, { format, filename, download: !skipDownload });
-  await persistAndLogExport({
+  const persistRes = await persistAndLogExport({
     blob,
     filename,
     mimeType: mimeTypeForFormat(format),
@@ -148,12 +155,19 @@ export async function exportWeeklyScheduleForScope({
     exportType: 'weekly_class_schedule',
     programId: meta.programId,
     classId: meta.classId,
-  }).catch(() => {});
-  if (!skipDownload) notifyExportSuccess('weekly-schedule', format === EXPORT_FORMAT.EXCEL ? 'excel' : 'pdf', lang, blob, filename);
-  return { filename, blob, dataSource: reportData.dataSource };
+  }).catch(() => null);
+  if (!skipDownload) notifyExportSuccess('weekly-schedule', format === EXPORT_FORMAT.EXCEL ? 'excel' : 'pdf', lang, blob, filename, persistRes?.fileId);
+  return { filename, blob, fileId: persistRes?.fileId || null, dataSource: reportData.dataSource };
 }
 
-export async function exportWeeklyScheduleForProgram({
+export function exportWeeklyScheduleForProgram(params) {
+  return withExportLoading(
+    params?.lang === 'ar' ? 'جاري إنشاء الجدول الأسبوعي...' : 'Generating weekly schedule...',
+    () => exportWeeklyScheduleForProgramImpl(params),
+  );
+}
+
+async function exportWeeklyScheduleForProgramImpl({
   program,
   academicTerm,
   year,
@@ -211,21 +225,29 @@ export async function exportWeeklyScheduleForProgram({
     lang,
   });
   const blob = await exportWeeklyScheduleReport(reportData, { format, filename, download: !skipDownload });
+  let persistRes = null;
   if (!skipDownload) {
-    await persistAndLogExport({
+    persistRes = await persistAndLogExport({
       blob,
       filename,
       mimeType: mimeTypeForFormat(format),
       format,
       exportType: 'weekly_class_schedule',
       programId: program?.id,
-    }).catch(() => {});
-    notifyExportSuccess('weekly-schedule', format === EXPORT_FORMAT.EXCEL ? 'excel' : 'pdf', lang, blob, filename);
+    }).catch(() => null);
+    notifyExportSuccess('weekly-schedule', format === EXPORT_FORMAT.EXCEL ? 'excel' : 'pdf', lang, blob, filename, persistRes?.fileId);
   }
-  return { filename, blob, dataSource: reportData.dataSource };
+  return { filename, blob, fileId: persistRes?.fileId || null, dataSource: reportData.dataSource };
 }
 
-export async function exportDailyOfficialTemplate({
+export function exportDailyOfficialTemplate(params) {
+  return withExportLoading(
+    params?.lang === 'ar' ? 'جاري إنشاء النموذج اليومي...' : 'Generating daily template...',
+    () => exportDailyOfficialTemplateImpl(params),
+  );
+}
+
+async function exportDailyOfficialTemplateImpl({
   cls,
   program,
   subject,
@@ -297,11 +319,18 @@ export async function exportDailyOfficialTemplate({
     subjectId: meta.subjectId,
     programId: meta.programId,
   }).catch(() => null);
-  if (!skipDownload) notifyExportSuccess('daily-template', format === EXPORT_FORMAT.EXCEL ? 'excel' : 'pdf', lang, blob, filename);
+  if (!skipDownload) notifyExportSuccess('daily-template', format === EXPORT_FORMAT.EXCEL ? 'excel' : 'pdf', lang, blob, filename, driveResult?.fileId);
   return { filename, blob, fileId: driveResult?.fileId || null };
 }
 
-export async function exportDailyOfficialForDate({
+export function exportDailyOfficialForDate(params) {
+  return withExportLoading(
+    params?.lang === 'ar' ? 'جاري إنشاء التقرير اليومي الرسمي...' : 'Generating daily official report...',
+    () => exportDailyOfficialForDateImpl(params),
+  );
+}
+
+async function exportDailyOfficialForDateImpl({
   cls,
   program,
   subject,
@@ -430,11 +459,18 @@ export async function exportDailyOfficialForDate({
       approvedAt,
     },
   }).catch(() => null);
-  if (!skipDownload) notifyExportSuccess('daily-official', format === EXPORT_FORMAT.EXCEL ? 'excel' : 'pdf', lang, blob, filename);
+  if (!skipDownload) notifyExportSuccess('daily-official', format === EXPORT_FORMAT.EXCEL ? 'excel' : 'pdf', lang, blob, filename, driveResult?.fileId);
   return { filename, blob, fileId: driveResult?.fileId || null };
 }
 
-export async function exportAttendanceOfficialForScope({
+export function exportAttendanceOfficialForScope(params) {
+  return withExportLoading(
+    params?.lang === 'ar' ? 'جاري إنشاء تقرير الحضور...' : 'Generating attendance report...',
+    () => exportAttendanceOfficialForScopeImpl(params),
+  );
+}
+
+async function exportAttendanceOfficialForScopeImpl({
   subjectIds,
   violationTypes,
   dateFrom,
@@ -603,7 +639,7 @@ export async function exportAttendanceOfficialForScope({
       },
     }).catch(() => {});
   }
-  if (download) notifyExportSuccess('attendance-official', format === EXPORT_FORMAT.EXCEL ? 'excel' : 'pdf', lang, blob, filename);
+  if (download) notifyExportSuccess('attendance-official', format === EXPORT_FORMAT.EXCEL ? 'excel' : 'pdf', lang, blob, filename, driveResult?.fileId);
 
   return {
     filename: driveResult?.filename || filename,

@@ -210,9 +210,10 @@ export const listUsersController = async (req, res) => {
       additionalImageUrl: toImageUrl(u.keycloakId || u.id, u.additionalImageUrl, 'additional'),
     }));
 
-    if (req.userListAccess === 'scoped') {
+    {
       const scope = await getRequestScope(req);
-      usersWithUrls = await attachEnrolledClasses(usersWithUrls, scope.classIds);
+      const classFilter = req.userListAccess === 'scoped' ? scope.classIds : [];
+      usersWithUrls = await attachEnrolledClasses(usersWithUrls, classFilter);
     }
 
     res.status(200).json({

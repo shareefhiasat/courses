@@ -56,7 +56,7 @@ const StudentProfilePanel = memo(({ student, t, lang }) => {
   const sequence = student.sequence || '';
   const phoneNumber = student.phoneNumber || '';
   const email = student.email || '';
-  const profileImageUrl = student.profileImageUrl || null;
+  const rawProfileImageUrl = student.profileImageUrl || null;
   const roles = student.roles || student.role || [];
   const rank = lang === 'ar' ? (student.rankAr || student.rankEn || '') : (student.rankEn || student.rankAr || '');
 
@@ -67,6 +67,7 @@ const StudentProfilePanel = memo(({ student, t, lang }) => {
     if (val.startsWith('http') || val.startsWith('/api/')) return val;
     return `/api/v1/user-images/proxy/${keycloakId}/${type}`;
   };
+  const profileImageUrl = toProxyUrl(rawProfileImageUrl, 'profile');
   const qidImageUrl = toProxyUrl(student.qidImageUrl, 'qid');
   const militaryIdImageUrl = toProxyUrl(student.militaryIdImageUrl, 'military');
   const additionalImageUrl = toProxyUrl(student.additionalImageUrl, 'additional');
